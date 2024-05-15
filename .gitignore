@@ -9,5 +9,13 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.idea
 # weights
 extractor.pth
+# wandb
+wandb/
+# output    
+output/
+# data
+data/JIGSAWS/Suturing/
+data/VTS/VTS_dataset/
