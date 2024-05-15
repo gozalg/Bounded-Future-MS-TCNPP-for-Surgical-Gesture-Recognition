@@ -1,0 +1,33 @@
+
+MISTAKES
+--------------
+B004 missing G3 between 1016 and 1417 not G2 (1117-1417)
+B004 missing G3 between 2565 and 2860 not G2 (2671-2860)
+C001 ~2900 to ~3000 should be G4 not G6 (2920-2987)
+C002 ~1600 to ~1700 should be G4 not G6 (1588-1685)
+C002 ~2950 to ~3000 should be G4 not G6 (2939-3005)
+C003 ~2700 to ~2800 should be G4 not G6 (2701-2818)
+C004 ~2150 to ~2250 should be G4 not G6 (2189-2250)
+D004 first action is not G4, should be G5 (99-190)
+F001 missing G6 from 2400 to 2500 (2409-2498)
+G001 ~1140 to ~1225 should be G2 not G5 (1132-1225) --- NOT POSITIVE ABOUT THIS
+G001 missing G8 between 1478 and 2418 (1871-2040)
+H004 ~800 to ~1000 should have G9 expanded into the G4 (817-1056)
+H004 ~1650 to ~1800 should be G8 not G6 (1614-1817)
+I003 should be G3 not G2 between 655 and 1250 (865-1250)
+
+Missing transfer left to right during G11:
+----------------------------------------------------
+C002 (3006-3039)
+C005 (2272-2341)
+E001 (3077-3156)
+E002 (2472-2569)
+E003 (2131-2202)
+---> there are more, but not useful for this work
+
+
+
+Other notes:
+What is happening at D003 1250?
+Should there be 4 G2s per trial?
+The following are 320x240 instead of 640x480: {G001-5, H001} (capture1 only)

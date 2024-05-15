@@ -1,6 +1,7 @@
 # Copyright (C) 2019  National Center of Tumor Diseases (NCT) Dresden, Division of Translational Surgical Oncology
 from copyreg import pickle
 from functools import partial
+from operator import is_
 from types import MethodType
 from typing import Dict, List, Sequence
 import torch
@@ -21,7 +22,7 @@ import string
 import torchvision
 from torch.autograd import Variable
 import tqdm
-import optuna
+# import optuna
 import wandb
 import pandas as pd
 import timm
@@ -37,6 +38,7 @@ from transforms import BaseGroup, GroupColorJitter, GroupNormalize, GroupRandomV
 from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
 from util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
+
 # "login code: 7f49a329fde9628512efec583de6188a33d0ed01"
 
 # wandb.init(name="my awesome run")
@@ -53,7 +55,6 @@ def log(msg, output_folder):
 
 
 def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids, upload=False):
-
     model.eval()
     with torch.no_grad():
 
@@ -77,7 +78,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
                 except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
                     print(e)
 
-            # for i, batch in enumerate(val_loader):
+                # for i, batch in enumerate(val_loader):
                 # data, target = batch
                 Y = np.append(Y, target.numpy())
                 data = data.to(device_gpu)
@@ -90,8 +91,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
                 P = np.append(P, predicted.to(device_cpu).numpy())
             acc = accuracy(P, Y)
 
-            mean_avg_f1, avg_precision, avg_recall, avg_f1 = average_F1(
-                P, Y, n_classes=num_class)
+            mean_avg_f1, avg_precision, avg_recall, avg_f1 = average_F1(P, Y, n_classes=num_class)
             # if upload:
             # avg_precision_table = wandb.Table(data=avg_precision, columns=gestures_SU)
             # wandb.log({"my_custom_plot_id": wandb.plot.line(avg_precision_table, "x", "avg_precision",
@@ -101,10 +101,8 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             avg_recall_ = np.array(avg_recall)
             avg_f1_ = np.array(avg_f1)
             gesture_ids_ = gesture_ids.copy() + ["mean"]
-            avg_precision.append(
-                np.mean(avg_precision_[(avg_precision_) != np.array(None)]))
-            avg_recall.append(
-                np.mean(avg_recall_[(avg_recall_) != np.array(None)]))
+            avg_precision.append(np.mean(avg_precision_[(avg_precision_) != np.array(None)]))
+            avg_recall.append(np.mean(avg_recall_[(avg_recall_) != np.array(None)]))
             avg_f1.append(np.mean(avg_f1_[(avg_f1_) != np.array(None)]))
             df = pd.DataFrame(list(zip(gesture_ids_, avg_precision, avg_recall, avg_f1)),
                               columns=['gesture_ids', 'avg_precision', 'avg_recall', 'avg_f1'])
@@ -124,22 +122,21 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             overall_f1_50.append(f1_50)
 
         log("Overall: Acc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1_10 {:.3f} F1_25 {:.3f} F1_50 {:.3f}".format(
-            np.mean(overall_acc), np.mean(
-                overall_avg_f1), np.mean(overall_edit),
-            np.mean(overall_f1_10), np.mean(
-                overall_f1_25), np.mean(overall_f1_50)
+            np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit),
+            np.mean(overall_f1_10), np.mean(overall_f1_25), np.mean(overall_f1_50)
         ), output_folder)
 
         overall_acc_mean = np.mean(overall_acc)
         if upload:
             wandb.log({'validation accuracy': np.mean(overall_acc), 'Avg_F1': np.mean(overall_avg_f1), 'Edit': np.mean(
-                overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25), "F1_50": np.mean(overall_f1_50)})
+                overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
+                       "F1_50": np.mean(overall_f1_50)})
 
     return overall_acc_mean
 
 
-def main(trial, split=1, upload=False, group=None, args=None):
-
+# def main(trial, split=1, upload=False, group=None, args=None):
+def main(split=1, upload=False, group=None, args=None):
     print(torch.__version__)
     print(torchvision.__version__)
 
@@ -158,8 +155,8 @@ def main(trial, split=1, upload=False, group=None, args=None):
     args.eval_batch_size = 2 * args.batch_size
     args.split = split
 
-    upload = upload and (not args.test)
-    is_test = args.test
+    upload = upload and (not args.test) # if test, do not upload 
+    is_test = args.test 
 
     # device_gpu = torch.device("cuda")
     device_gpu = torch.device(f"cuda:{args.gpu_id}")
@@ -205,8 +202,7 @@ def main(trial, split=1, upload=False, group=None, args=None):
             if len([t for t in string.Formatter().parse(args.video_lists_dir)]) > 1:
                 args.video_lists_dir = args.video_lists_dir.format(args.task)
             if len([t for t in string.Formatter().parse(args.transcriptions_dir)]) > 1:
-                args.transcriptions_dir = args.transcriptions_dir.format(
-                    args.task)
+                args.transcriptions_dir = args.transcriptions_dir.format(args.task)
 
         log("Used parameters...", output_folder)
         for arg in sorted(vars(args)):
@@ -249,8 +245,7 @@ def main(trial, split=1, upload=False, group=None, args=None):
         model.load_state_dict(checkpoint['model_weights'])
 
     param_count = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel()
-                           for p in model.parameters() if p.requires_grad)
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     log("param count: {}".format(param_count), output_folder)
     log("trainable params: {}".format(trainable_params), output_folder)
@@ -267,12 +262,12 @@ def main(trial, split=1, upload=False, group=None, args=None):
                      class_criterion_weight=args.class_criterion_weight,
                      word_embdding_loss_param={"positive_aggregator": args.positive_aggregator,
                                                "margin": args.margin,
-                                               "label_embedding": label_embedding.to(device_gpu) if args.word_embdding_weight else None},
+                                               "label_embedding": label_embedding.to(
+                                                   device_gpu) if args.word_embdding_weight else None},
                      vae_loss_param={"x_sigma2": args.x_sigma2}
                      )
 
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     if checkpoint:
         # load optimizer state
@@ -286,8 +281,7 @@ def main(trial, split=1, upload=False, group=None, args=None):
         last_epoch = -1
         if checkpoint:
             last_epoch = checkpoint['epoch']
-        scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=50, gamma=0.2, last_epoch=last_epoch)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.2, last_epoch=last_epoch)
 
     # ===== load data =====
 
@@ -320,28 +314,26 @@ def main(trial, split=1, upload=False, group=None, args=None):
         return torch.utils.data.dataloader.default_collate(batch)
 
     def init_train_loader_worker(worker_id):
-        np.random.seed(int((torch.initial_seed() + worker_id) %
-                       (2**32)))  # account for randomness
+        np.random.seed(int((torch.initial_seed() + worker_id) % (2 ** 32)))  # account for randomness
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
-                                               num_workers=args.workers, worker_init_fn=init_train_loader_worker, collate_fn=no_none_collate)
-    log("Training set: will sample {} gesture snippets per pass".format(
-        train_loader.dataset.__len__()), output_folder)
+                                               num_workers=args.workers, worker_init_fn=init_train_loader_worker,
+                                               collate_fn=no_none_collate)
+    log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
     val_augmentation = torchvision.transforms.Compose([GroupScale(int(256)),
-                                                       GroupCenterCrop(args.input_size)])  # need to be corrected
+                                                       GroupCenterCrop(args.input_size)])  ## need to be corrected
     val_videos = list()
     for list_file in val_lists:
-        val_videos.extend(
-            [(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
+        val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
     val_loaders = list()
 
     if args.test:
         val_videos = val_videos[:2]
 
     for video in val_videos:
-
-        data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video[0], frame_count=video[1], transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
+        data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video[0], frame_count=video[1],
+                                                  transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
                                                   snippet_length=1,
                                                   sampling_step=6,
                                                   image_tmpl=args.image_tmpl,
@@ -349,12 +341,12 @@ def main(trial, split=1, upload=False, group=None, args=None):
                                                   normalize=normalize,
                                                   transform=val_augmentation)  # augmentation are off
         val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                       shuffle=False, num_workers=args.workers, collate_fn=no_none_collate))
+                                                       shuffle=False, num_workers=args.workers,
+                                                       collate_fn=no_none_collate))
 
     log("Validation set: ", output_folder)
     for val_loader in val_loaders:
-        log("{} ({})".format(val_loader.dataset.video_id,
-            val_loader.dataset.__len__()), output_folder)
+        log("{} ({})".format(val_loader.dataset.video_id, val_loader.dataset.__len__()), output_folder)
 
     if upload:
         configuration = vars(args)
@@ -371,7 +363,8 @@ def main(trial, split=1, upload=False, group=None, args=None):
 
         wandb.init(project=project_name, config=configuration,
                    id=run_id, resume=checkpoint, group=group,
-                   name=f"{args.arch}_{split}", reinit=True)
+                   name=f"{args.arch}_{split}", reinit=True,
+                   dir=os.path.dirname(os.path.abspath(__file__)))
 
     # ===== train model =====
 
@@ -409,7 +402,7 @@ def main(trial, split=1, upload=False, group=None, args=None):
                 except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
                     print(e)
 
-            # for batch in train_loader:
+                # for batch in train_loader:
                 optimizer.zero_grad()
                 # data, target = batch
                 data = Variable(data.to(device_gpu))
@@ -455,20 +448,18 @@ def main(trial, split=1, upload=False, group=None, args=None):
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
             log("Start testing...", output_folder)
 
-            overall_acc_mean = eval(model, val_loaders, device_gpu, device_cpu,
-                                    num_class, output_folder, gesture_ids, upload=upload)
+            overall_acc_mean = eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids,
+                                    upload=upload)
 
             if overall_acc_mean > max_acc_val and not is_test:
                 max_acc_val = overall_acc_mean
-                model_file = os.path.join(
-                    output_folder, "best_" + f"{args.split}" + ".pth")
+                model_file = os.path.join(output_folder, "best_" + f"{args.split}" + ".pth")
                 torch.save(model.state_dict(), model_file)
                 log("Saved best model to " + model_file, output_folder)
 
         if train_acc.avg > max_acc_train and not is_test:
             max_acc_train = train_acc.avg
-            model_file = os.path.join(
-                output_folder, "best_train_" + f"{args.split}" + ".pth")
+            model_file = os.path.join(output_folder, "best_train_" + f"{args.split}" + ".pth")
             torch.save(model.state_dict(), model_file)
             log("Saved best train model to " + model_file, output_folder)
 
@@ -477,11 +468,10 @@ def main(trial, split=1, upload=False, group=None, args=None):
                 continue
 
             if train_acc.avg >= tresh:
-                model_file = os.path.join(
-                    output_folder, f"acc_{tresh * 100}_epoch_{epoch}_split_" + f"{args.split}" + ".pth")
+                model_file = os.path.join(output_folder,
+                                          f"acc_{tresh * 100}_epoch_{epoch}_split_" + f"{args.split}" + ".pth")
                 torch.save(model.state_dict(), model_file)
-                log(f"Saved model with {tresh * 100} % acc to " +
-                    model_file, output_folder)
+                log(f"Saved model with {tresh * 100} % acc to " + model_file, output_folder)
 
                 acc_tresholds[tresh] = True
                 break
@@ -492,8 +482,7 @@ def main(trial, split=1, upload=False, group=None, args=None):
 
         if (epoch + 1) % args.save_freq == 0 or epoch == args.epochs - 1 and not is_test:
             # ===== save model =====
-            model_file = os.path.join(
-                output_folder, "model_" + str(epoch) + ".pth")
+            model_file = os.path.join(output_folder, "model_" + str(epoch) + ".pth")
             torch.save(model.state_dict(), model_file)
             log("Saved model to " + model_file, output_folder)
 
@@ -542,15 +531,13 @@ def get_splits(dataset, eval_scheme, task):
 
 
 def train_val_split(splits, val_split):
-
     if isinstance(val_split, int):
         assert (val_split >= 0 and val_split < len(splits))
         train_lists = splits[0:val_split] + splits[val_split + 1:]
-        val_list = splits[val_split:val_split+1]
+        val_list = splits[val_split:val_split + 1]
 
         if isinstance(train_lists[0], list):
-            train_lists = [
-                item for train_split in train_lists for item in train_split]
+            train_lists = [item for train_split in train_lists for item in train_split]
         if isinstance(val_list[0], list):
             val_list = [item for val_split in val_list for item in val_split]
 
@@ -599,12 +586,6 @@ def get_gestures(dataset, task=None):
             gesture_ids = gestures_NP
         elif task == "Knot_Tying":
             gesture_ids = gestures_KT
-    elif dataset == "GTEA":
-        gesture_ids = gestures_GTEA
-    elif dataset == "50SALADS":
-        gesture_ids = gestures_50salads
-    elif dataset == "BREAKFAST":
-        gesture_ids = gestures_breakfast
     else:
         raise NotImplementedError()
 
@@ -632,11 +613,9 @@ def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progres
 
     if arch in ["2D-ResNet-18", "2D-ResNet-34"]:
         if arch == "2D-ResNet-18":
-            model = resnet18(pretrained=pretrained,
-                             progress=progress, num_classes=add_layer_param_num)
+            model = resnet18(pretrained=pretrained, progress=progress, num_classes=add_layer_param_num)
         else:
-            model = resnet34(pretrained=pretrained,
-                             progress=progress, num_classes=add_layer_param_num)
+            model = resnet34(pretrained=pretrained, progress=progress, num_classes=add_layer_param_num)
 
         if add_layer_param_num != 0:
             penultimate_shape = add_layer_param_num
@@ -662,14 +641,11 @@ def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progres
 
     elif arch in ["2D-EfficientNetV2-s", "2D-EfficientNetV2-m", "2D-EfficientNetV2-l"]:
         if arch == "2D-EfficientNetV2-s":
-            model = timm.create_model(
-                "tf_efficientnetv2_s", pretrained=pretrained, num_classes=add_layer_param_num)
+            model = timm.create_model("tf_efficientnetv2_s", pretrained=pretrained, num_classes=add_layer_param_num)
         elif arch == "2D-EfficientNetV2-m":
-            model = timm.create_model(
-                "tf_efficientnetv2_m", pretrained=pretrained, num_classes=add_layer_param_num)
+            model = timm.create_model("tf_efficientnetv2_m", pretrained=pretrained, num_classes=add_layer_param_num)
         elif arch == "2D-EfficientNetV2-l":
-            model = timm.create_model(
-                "tf_efficientnetv2_l", pretrained=pretrained, num_classes=add_layer_param_num)
+            model = timm.create_model("tf_efficientnetv2_l", pretrained=pretrained, num_classes=add_layer_param_num)
         else:
             raise NotImplementedError()
 
@@ -706,8 +682,7 @@ def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progres
     if remove_end:
         model.added_fc = Identity()
     elif add_layer_param_num:
-        model.added_fc = nn.Sequential(nn.Mish(), nn.Dropout(
-            0.5), nn.Linear(penultimate_shape, num_classes))
+        model.added_fc = nn.Sequential(nn.Mish(), nn.Dropout(0.5), nn.Linear(penultimate_shape, num_classes))
     else:
         model.added_fc = nn.Linear(penultimate_shape, num_classes)
 
@@ -765,22 +740,17 @@ def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, 
 
     if arch in ["2D-ResNet-18", "2D-ResNet-34"]:
         if arch == "2D-ResNet-18":
-            model = resnet18(pretrained=pretrained,
-                             progress=progress, num_classes=out_param_num)
+            model = resnet18(pretrained=pretrained, progress=progress, num_classes=out_param_num)
         else:
-            model = resnet34(pretrained=pretrained,
-                             progress=progress, num_classes=out_param_num)
+            model = resnet34(pretrained=pretrained, progress=progress, num_classes=out_param_num)
 
     elif arch in ["2D-EfficientNetV2-s", "2D-EfficientNetV2-m", "2D-EfficientNetV2-l"]:
         if arch == "2D-EfficientNetV2-s":
-            model = timm.create_model(
-                "tf_efficientnetv2_s", pretrained=pretrained, num_classes=out_param_num)
+            model = timm.create_model("tf_efficientnetv2_s", pretrained=pretrained, num_classes=out_param_num)
         elif arch == "2D-EfficientNetV2-m":
-            model = timm.create_model(
-                "tf_efficientnetv2_m", pretrained=pretrained, num_classes=out_param_num)
+            model = timm.create_model("tf_efficientnetv2_m", pretrained=pretrained, num_classes=out_param_num)
         else:
-            model = timm.create_model(
-                "tf_efficientnetv2_l", pretrained=pretrained, num_classes=out_param_num)
+            model = timm.create_model("tf_efficientnetv2_l", pretrained=pretrained, num_classes=out_param_num)
 
     else:
         raise NotImplementedError("required architecture not implemented")
@@ -792,8 +762,7 @@ def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, 
             model.classifier = Identity()
 
     if add_layer_param_num != 0 and not remove_end:
-        model = nn.Sequential(
-            *[model, nn.Mish(), nn.Dropout(0.5), nn.Linear(out_param_num, num_classes)])
+        model = nn.Sequential(*[model, nn.Mish(), nn.Dropout(0.5), nn.Linear(out_param_num, num_classes)])
     else:
         # model = nn.Sequential(*[model])
         pass
@@ -804,26 +773,22 @@ def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, 
 def load_model(weights_path, arch, add_layer_param_num=0,
                remove_linear=True, add_certainty_pred=False,
                num_classes=1000, decoder_input_size=0, vae_intermediate_size=0):
-
     model = get_model(arch, remove_end=remove_linear,
                       pretrained=False, add_layer_param_num=add_layer_param_num,
                       add_certainty_pred=add_certainty_pred, num_classes=num_classes,
                       input_shape=decoder_input_size,
                       vae_intermediate_size=vae_intermediate_size)
 
-    incompatible_keys = model.load_state_dict(
-        torch.load(weights_path), strict=False)
+    incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
     if len(incompatible_keys[0]) != 0:  # support for legacy code
         model = get_model(arch, remove_end=remove_linear, pretrained=False,
                           add_layer_param_num=add_layer_param_num, legacy=True)
-        incompatible_keys = model.load_state_dict(
-            torch.load(weights_path), strict=False)
+        incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
         if len(incompatible_keys[0]) != 0:
             model = nn.Sequential(model)
-            incompatible_keys = model.load_state_dict(
-                torch.load(weights_path), strict=False)
+            incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
     if len(incompatible_keys[0]) != 0:
         raise RuntimeError("mssing weights from weight path", weights_path)
@@ -844,14 +809,14 @@ def run_full_LOUO(group_name=None):
         user_num = len(splits_breakfast)
 
     # if group_name is None:
-        # group_name = f"{args.arch} cross validation {args.dataset}"
+    # group_name = f"{args.arch} cross validation {args.dataset}"
 
     for i in range(user_num):
-        main(0, split=i, upload=True, group=group_name)
+        # main(0, split=i, upload=True, group=group_name)
+        main(split=i, upload=True, group=group_name)
 
 
 def get_k_folds_splits(k=5, shuffle=True, args=None):
-
     if not args:
         args = parser.parse_args()
 
@@ -876,39 +841,43 @@ def run_k_folds_validation(k=5, shuffle=True, group_name=None):
     args = parser.parse_args()
 
     for split in get_k_folds_splits(k, shuffle=shuffle):
-        main(0, split=split, upload=True, group=group_name)
+        # main(0, split=split, upload=True, group=group_name)
+        main(split=split, upload=True, group=group_name)
 
 
 def run_single_split(split_idx=0):
     args = parser.parse_args()
     group_name = f"{args.arch} {args.dataset}"
-    main(0, split=split_idx, upload=True, group=group_name)
+    # main(0, split=split_idx, upload=True, group=group_name)
+    main(split=split_idx, upload=True, group=group_name)
 
 
 def run():
-
     args = parser.parse_args()
 
-    if args.dataset in ["JIGSAWS", 'GTEA', "BREAKFAST"]:
+    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+        raise NotImplementedError(f"{args.dataset} not implemented")
+
+    elif args.dataset in ["JIGSAWS"]:
         if args.split_num is not None:
-            main(0, split=args.split_num, upload=True)
+            # main(0, split=args.split_num, upload=True)
+            main(split=args.split_num, upload=True)
         else:
             run_full_LOUO()
-    elif args.dataset == "50SALADS":
+    # elif args.dataset == "50SALADS":
 
-        if args.split_num is not None:
+    #     if args.split_num is not None:
 
-            main(0, split=list(get_k_folds_splits(k=5, shuffle=False))
-                 [args.split_num], upload=True)
-        else:
-            run_k_folds_validation(shuffle=False)
+    #         main(0, split=list(get_k_folds_splits(k=5, shuffle=False))
+    #              [args.split_num], upload=True)
+    #     else:
+    #         run_k_folds_validation(shuffle=False)
 
-    else:
-        raise NotImplementedError()
+    else:  # VTS
+        main(upload=True)
 
 
 if __name__ == '__main__':
-
     run()
 
     # run_full_LOUO(group_name="{} cross validation {} added augmentations 2")

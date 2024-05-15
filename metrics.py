@@ -12,7 +12,6 @@ import statistics as st
 # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
 # https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics
 
-
 def read_file(path):
     with open(path, 'r') as f:
         content = f.read()

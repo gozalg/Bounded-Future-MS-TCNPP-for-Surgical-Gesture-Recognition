@@ -46,4 +46,4 @@ outputs = []
 for i in range(len(num_classes_list)):
     predictions = torch.vstack([o[i] for o in outs])
     outputs.append(predictions)
-# outputs will be the exact output of the model
+    # outputs will be the exact output of the model

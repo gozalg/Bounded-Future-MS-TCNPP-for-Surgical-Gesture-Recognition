@@ -1,0 +1,12 @@
+gestures = {
+    "Reaching for needle with right hand"               : "G1",
+    "Positioning needle"                                : "G2",
+    "Pushing needle through tissue"                     : "G3",
+    "Transferring needle from left to right"            : "G4",
+    "Moving to center with needle in grip"              : "G5",
+    "Pulling suture with left hand"                     : "G6",
+    "Orienting needle"                                  : "G8",
+    "Using right hand to help tighten suture"           : "G9",
+    "Loosening more suture"                             : "G10",
+    "Dropping suture at end and moving to end points"   : "G11"
+    }
