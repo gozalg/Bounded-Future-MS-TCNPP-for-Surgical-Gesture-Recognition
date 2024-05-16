@@ -19,7 +19,7 @@ class Range(object):
     def __iter__(self):
         yield self
 
-data = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 current_dataset = 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 'RARP50' #
 
 
@@ -51,22 +51,22 @@ parser.add_argument('--epoch_size', type=int, default=2400,
 if current_dataset=='VTS':
     parser.add_argument('--num_classes', type=int,
                         default=6, help="Number of classes.")
-    parser.add_argument('--data_path', type=str, default=os.path.join(data, current_dataset, "frames"),
+    parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
     parser.add_argument('--transcriptions_dir', type=str,
-                        default=os.path.join(data, current_dataset, "transcriptions_gestures"),
+                        default=os.path.join(data_dir, current_dataset, "transcriptions_gestures"),
                         help="Path to folder containing the transcription files (gesture annotations). One file per video.")
 #---------------------- JIGSAWS ----------------------
 elif current_dataset=='JIGSAWS':
     parser.add_argument('--num_classes', type=int,
                         default=10, help="Number of classes.")
-    parser.add_argument('--data_path', type=str, default=os.path.join(data, current_dataset, "Suturing", "frames"),
+    parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
-    parser.add_argument('--transcriptions_dir', type=str, default=os.path.join(data, current_dataset, "Suturing", "transcriptions"),
+    parser.add_argument('--transcriptions_dir', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "transcriptions"),
                         help="Path to folder containing the transcription files (gesture annotations). One file per video.")
-    parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data, current_dataset, "Splits", "Suturing"),
+    parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits", "Suturing"),
                     help="Path to directory containing information about each video in the form of video list files. "
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
     parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying'], default='Suturing',

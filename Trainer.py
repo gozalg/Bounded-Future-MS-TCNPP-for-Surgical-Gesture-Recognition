@@ -39,10 +39,6 @@ from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
 from util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
 
-# "login code: 7f49a329fde9628512efec583de6188a33d0ed01"
-
-# wandb.init(name="my awesome run")
-
 INPUT_MEAN = [0.485, 0.456, 0.406]
 INPUT_STD = [0.229, 0.224, 0.225]
 ACC_TRESHOLDS: List[int] = []  # [85, 92, 96, 98, 99, 99.5, 99.9]
