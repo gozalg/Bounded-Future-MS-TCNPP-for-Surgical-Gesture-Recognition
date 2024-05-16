@@ -19,3 +19,5 @@ output/
 # data
 data/JIGSAWS/Suturing/
 data/VTS/VTS_dataset/
+# DGX
+*.sqsh
