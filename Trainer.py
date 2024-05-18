@@ -38,6 +38,9 @@ from transforms import BaseGroup, GroupColorJitter, GroupNormalize, GroupRandomV
 from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
 from util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
+from util import WANDB_API_KEY
+
+wandb.login(key=WANDB_API_KEY)
 
 INPUT_MEAN = [0.485, 0.456, 0.406]
 INPUT_STD = [0.229, 0.224, 0.225]
