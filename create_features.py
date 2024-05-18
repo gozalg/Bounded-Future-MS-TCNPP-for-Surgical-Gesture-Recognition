@@ -16,7 +16,9 @@ from transforms import GroupScale, GroupCenterCrop, GroupNormalize
 from train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
 from Trainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
 from util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
+from util import WANDB_API_KEY
 
+wandb.login(key=WANDB_API_KEY)
 
 import argparse
 import os
