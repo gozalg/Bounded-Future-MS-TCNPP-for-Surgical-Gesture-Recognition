@@ -66,7 +66,7 @@ def get_args():
     parser.add_argument('-b', '--batch-size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
                     help="Target size (width/ height) of each frame.")
-    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment', 'LOUO', '3'),
+    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment', 'LOUO'),
                         help="Path to root folder containing pretrained models weights")
     parser.add_argument('--gpu_id', type=int, default=0, help="Device id of gpu to use.")
     parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, 'features'),
