@@ -68,7 +68,7 @@ def get_args():
     parser.add_argument('-b', '--batch-size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
                     help="Target size (width/ height) of each frame.")
-    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment', 'LOUO'),
+    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment'),
                         help="Path to root folder containing pretrained models weights")
     parser.add_argument('--gpu_id', type=int, default=0, help="Device id of gpu to use.")
     parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, 'features'),
@@ -319,10 +319,12 @@ def run_feature_creator(get_split):
 
             if split is None:
                 continue
-            if split.isnumeric():
-                split = int(split)
+            # if split.isnumeric():
+            #     split = int(split)
             else:
-                split = split[1: -1].split(", ")
+                # split = split[1: -1].split(", ")
+                split = [int(x) if isinstance(x, str) and is_integer(x) else x for x in split if isinstance(x, int) or (isinstance(x, str) and is_integer(x))]
+                split = split[0] if len(split) == 1 else split
 
             print(f"split {split} started")
 
@@ -337,7 +339,8 @@ def run_feature_creator(get_split):
 
 if __name__ == "__main__":
 
-    get_split = lambda filename:  "".join(os.path.splitext(filename)[0].split("_")[1:]).replace("'", "") if "best_" in filename else None 
+    # get_split = lambda filename:  "".join(os.path.splitext(filename)[0].split("_")[1:]).replace("'", "") if "best_" in filename else None 
+    get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename else None 
 
     # get_split = lambda filename:  os.path.splitext(filename)[0][5:].replace("'", "") if "best_[" in filename else None 
 
