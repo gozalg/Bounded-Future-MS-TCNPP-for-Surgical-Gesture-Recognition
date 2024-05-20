@@ -17,8 +17,11 @@ wandb/
 # output    
 output/
 # data
-data/JIGSAWS/Suturing/
-data/VTS/VTS_dataset/
+data/JIGSAWS/Suturing
+data/VTS/VTS_dataset
 # DGX
 *.sqsh
+tasks/
 *task.sh
+slurm*
+*.out
