@@ -51,6 +51,8 @@ parser.add_argument('--epoch_size', type=int, default=2400,
 if current_dataset=='VTS':
     parser.add_argument('--num_classes', type=int,
                         default=6, help="Number of classes.")
+    parser.add_argument('--number_of_samples_per_class', type=int, default=400,
+                    help="Number of samples taken from each class for training")
     parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
@@ -61,6 +63,8 @@ if current_dataset=='VTS':
 elif current_dataset=='JIGSAWS':
     parser.add_argument('--num_classes', type=int,
                         default=10, help="Number of classes.")
+    parser.add_argument('--number_of_samples_per_class', type=int, default=240,
+                    help="Number of samples taken from each class for training")
     parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
@@ -112,8 +116,6 @@ parser.add_argument('--x_sigma2', type=float, default=1,
 
 parser.add_argument('--preload', type='bool', default=True,
                     help="Whether to preload all training set images before training")
-parser.add_argument('--number_of_samples_per_class', type=int, default=400,
-                    help="Number of samples taken from each class for training")
 
 # Model
 
@@ -129,8 +131,8 @@ parser.add_argument('--input_size', type=int, default=224,
 # Training
 parser.add_argument('--resume_exp', type=str, default=None,
                     help="Path to results of former experiment that shall be resumed (UNTESTED).")
-parser.add_argument('-j', '--workers', type=int, default=16, help="Number of threads used for data loading.")
-parser.add_argument('--epochs', type=int, default=5, help="Number of epochs to train.")
+parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
+parser.add_argument('--epochs', type=int, default=100, help="Number of epochs to train.")
 parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
 parser.add_argument('--lr', type=float, default=0.00025, help="Learning rate.")
 parser.add_argument('--weight_decay', type=float, default=0, help="Weight decay.")
