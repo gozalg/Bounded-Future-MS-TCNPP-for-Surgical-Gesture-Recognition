@@ -21,13 +21,14 @@ class Range(object):
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 current_dataset = 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 'RARP50' #
+current_server  = 'so-srv1' # 'DGX' #
 
 
 parser = argparse.ArgumentParser(description="Train model for video-based surgical gesture recognition.")
 parser.register('type', 'bool', str2bool)
 
 # Experiment
-parser.add_argument('--project_name', type=str, default=f"{current_dataset}_Feature_Extractor",
+parser.add_argument('--project_name', type=str, default=f"{current_dataset}_Feature_Extractor_{current_server}",
                     help="Name of the project in wandb.")
 parser.add_argument('--test', type=str2bool, default=False,
                     help="Whether the run is a test")
@@ -131,7 +132,7 @@ parser.add_argument('--input_size', type=int, default=224,
 # Training
 parser.add_argument('--resume_exp', type=str, default=None,
                     help="Path to results of former experiment that shall be resumed (UNTESTED).")
-parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
+parser.add_argument('-j', '--workers', type=int, default=32, help="Number of threads used for data loading.")
 parser.add_argument('--epochs', type=int, default=100, help="Number of epochs to train.")
 parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
 parser.add_argument('--lr', type=float, default=0.00025, help="Learning rate.")
