@@ -18,7 +18,7 @@ from Trainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, loa
 from util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
 from util import WANDB_API_KEY
 
-wandb.login(key=WANDB_API_KEY)
+# wandb.login(key=WANDB_API_KEY)
 
 import argparse
 import os
@@ -29,6 +29,13 @@ feature_extrractor = '2D-EfficientNetV2-m'
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
+
+def is_integer(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 def get_args():
 
@@ -65,7 +72,7 @@ def get_args():
 
     
     # parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
-    parser.add_argument('-b', '--batch-size', type=int, default=32, help="Batch size.")
+    parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
                     help="Target size (width/ height) of each frame.")
     parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment'),
