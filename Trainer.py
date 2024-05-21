@@ -127,8 +127,8 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
 
         overall_acc_mean = np.mean(overall_acc)
         if upload:
-            wandb.log({'validation accuracy': np.mean(overall_acc), 'Avg_F1': np.mean(overall_avg_f1), 'Edit': np.mean(
-                overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
+            wandb.log({'validation accuracy': np.mean(overall_acc), 'Avg_F1': np.mean(overall_avg_f1), 
+                       'Edit': np.mean(overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
                        "F1_50": np.mean(overall_f1_50)})
 
     return overall_acc_mean
@@ -362,7 +362,7 @@ def main(split=1, upload=False, group=None, args=None):
 
         wandb.init(project=project_name, config=configuration,
                    id=run_id, resume=checkpoint, group=group,
-                   name=f"{args.arch}_{split}", reinit=True,
+                   name=f"{args.arch}_{args.eval_scheme}_{split}", reinit=True,
                    dir=os.path.dirname(os.path.abspath(__file__)))
 
     # ===== train model =====
@@ -790,7 +790,7 @@ def load_model(weights_path, arch, add_layer_param_num=0,
             incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
     if len(incompatible_keys[0]) != 0:
-        raise RuntimeError("mssing weights from weight path", weights_path)
+        raise RuntimeError("Missing weights from weight path", weights_path)
 
     return model
 
@@ -798,14 +798,10 @@ def load_model(weights_path, arch, add_layer_param_num=0,
 def run_full_LOUO(group_name=None):
     args = parser.parse_args()
 
-    if args.dataset == "JIGSAWS":
+    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+        raise NotImplementedError(f"{args.dataset} not implemented")
+    elif args.dataset == "JIGSAWS":
         user_num = len(splits_LOUO)
-    elif args.dataset == "GTEA":
-        user_num = len(splits_GTEA)
-    elif args.dataset == "50SALADS":
-        user_num = len(splits_50salads)
-    elif args.dataset == "BREAKFAST":
-        user_num = len(splits_breakfast)
 
     # if group_name is None:
     # group_name = f"{args.arch} cross validation {args.dataset}"
@@ -814,6 +810,20 @@ def run_full_LOUO(group_name=None):
         # main(0, split=i, upload=True, group=group_name)
         main(split=i, upload=True, group=group_name)
 
+def run_full_LOSO(group_name=None):
+    args = parser.parse_args()
+
+    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+        raise NotImplementedError(f"{args.dataset} not implemented")
+    elif args.dataset == "JIGSAWS":
+        supertrial_num = len(splits_LOSO)
+    
+    # if group_name is None:
+    # group_name = f"{args.arch} cross validation {args.dataset}"
+
+    for i in range(supertrial_num):
+        # main(0, split=i, upload=True, group=group_name)
+        main(split=i, upload=True, group=group_name)
 
 def get_k_folds_splits(k=5, shuffle=True, args=None):
     if not args:
@@ -861,8 +871,10 @@ def run():
         if args.split_num is not None:
             # main(0, split=args.split_num, upload=True)
             main(split=args.split_num, upload=True)
-        else:
+        elif args.eval_scheme == "LOUO":
             run_full_LOUO()
+        elif args.eval_scheme == "LOSO":
+            run_full_LOSO()
     # elif args.dataset == "50SALADS":
 
     #     if args.split_num is not None:
