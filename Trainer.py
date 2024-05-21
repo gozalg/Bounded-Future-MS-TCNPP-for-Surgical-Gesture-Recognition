@@ -333,8 +333,8 @@ def main(split=1, upload=False, group=None, args=None):
     for video in val_videos:
         data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video[0], frame_count=video[1],
                                                   transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                                  snippet_length=1,
-                                                  sampling_step=6,
+                                                  snippet_length=args.snippet_length,
+                                                  sampling_step=args.video_sampling_step,
                                                   image_tmpl=args.image_tmpl,
                                                   video_suffix=args.video_suffix,
                                                   normalize=normalize,
