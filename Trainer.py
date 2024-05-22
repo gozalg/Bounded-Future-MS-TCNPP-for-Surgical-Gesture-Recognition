@@ -165,9 +165,6 @@ def main(split=1, upload=False, group=None, args=None):
     if args.resume_exp:
         output_folder = args.resume_exp
     else:
-        output_folder = os.path.join(args.out, args.dataset,
-                                     args.arch, args.exp,
-                                     args.eval_scheme, str(args.split))
         # output_folder = os.path.join(args.out, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
         #                              args.eval_scheme, str(args.split), datetime.datetime.now().strftime("%H%M"))
         if is_test:
@@ -179,7 +176,7 @@ def main(split=1, upload=False, group=None, args=None):
 
         else:
             output_folder = os.path.join(args.out, args.dataset,
-                                         args.arch, args.exp,
+                                         args.arch,
                                          args.eval_scheme, str(args.split))
 
             os.makedirs(output_folder, exist_ok=False)
@@ -222,6 +219,14 @@ def main(split=1, upload=False, group=None, args=None):
     gesture_ids = get_gestures(args.dataset, args.task)
 
     num_class = len(gesture_ids)
+
+    # check num of classes
+    if args.num_classes is not None:
+        assert args.num_classes == num_class, f'Number of classes defined in \'util.py\' is {num_class} and not {args.num_classes} as defined in the arguments (--num_classes)!'
+    # check epoch size and number of samples per class and batch size
+    if args.epoch_size is not None:
+        assert args.epoch_size % args.batch_size == 0, f'Epoch size must be divisible by the batch size!'
+        assert args.epoch_size == (args.number_of_samples_per_class * num_class), f'Epoch size (--epoch_size={args.epoch_size}) must be equal to the number of samples per class (--number_of_samples_per_class={args.number_of_samples_per_class}) times the number of classes (--num_classes={num_class})!'
 
     if args.word_embdding_weight:
         assert args.label_embedding_path
@@ -291,7 +296,7 @@ def main(split=1, upload=False, group=None, args=None):
     lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
     train_lists = list(map(lambda x: os.path.join(lists_dir, x), train_lists))
     val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
-
+    # TODO Add HERE test_lists for other datasets
     log("Splits in train set :" + str(train_lists), output_folder)
     log("Splits in valid set :" + str(val_lists), output_folder)
 

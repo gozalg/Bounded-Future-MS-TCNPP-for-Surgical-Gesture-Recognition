@@ -16,9 +16,6 @@ from transforms import GroupScale, GroupCenterCrop, GroupNormalize
 from train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
 from Trainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
 from util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
-from util import WANDB_API_KEY
-
-# wandb.login(key=WANDB_API_KEY)
 
 import argparse
 import os
@@ -41,8 +38,8 @@ def get_args():
 
     parser = argparse.ArgumentParser(description="create 2d features for video-based gesture recognition.")
     parser.register('type', 'bool', str2bool)
-    parser.add_argument('--name', type=str, default=f'{current_dataset}_base',
-                        help="name of features")
+    # parser.add_argument('--name', type=str, default=f'{current_dataset}_base',
+    #                     help="name of features")
     # Experiment
     parser.add_argument('--dataset', type=str, default=current_dataset, choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'RARP50'],
                         help="Name of the dataset to use.")
@@ -75,10 +72,10 @@ def get_args():
     parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
                     help="Target size (width/ height) of each frame.")
-    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, f'{current_dataset}_experiment'),
+    parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', 'models', current_dataset, feature_extrractor),
                         help="Path to root folder containing pretrained models weights")
     parser.add_argument('--gpu_id', type=int, default=0, help="Device id of gpu to use.")
-    parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', current_dataset, feature_extrractor, 'features'),
+    parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output',  'features', current_dataset, feature_extrractor),
                         help="Path to output folder, where all logs and features will be stored.")
     parser.add_argument('--seed', type=int, default=42, help="Random seed.")
 
@@ -305,51 +302,54 @@ def run_feature_creator(get_split):
     # elif args.dataset == "50SALADS":
     #     user_num = len(splits_50salads)
 
-    dir = os.path.join(args.out, args.dataset, args.name)
+    out_dir = os.path.join(args.out, args.dataset, args.eval_scheme)
     
-    if os.path.isdir(dir):
+    if os.path.isdir(out_dir):
         val = None
         while val not in ['y', 'n']:
-            print(dir)
+            print(out_dir)
             val = input("features exists, press y to override or n to revert:\n")
             if val == 'y':
-                shutil.rmtree(dir)
+                shutil.rmtree(out_dir)
             elif val == 'n':
                 sys.exit()
 
-    os.makedirs(dir)
+    os.makedirs(out_dir)
 
 
-    for root, dirs, files in os.walk(args.pretrain_path):
-        for filename in files:
-            split = get_split(filename)
+    for root, dirs, _ in os.walk(os.path.join(args.pretrain_path, args.eval_scheme)):
+        dirs.sort()
+        for dir in dirs:
+            for filename in os.walk(os.path.join(root, dir)).__next__()[2]:
+                split = get_split(filename)
 
-            if split is None:
-                continue
-            # if split.isnumeric():
-            #     split = int(split)
-            else:
-                # split = split[1: -1].split(", ")
-                split = [int(x) if isinstance(x, str) and is_integer(x) else x for x in split if isinstance(x, int) or (isinstance(x, str) and is_integer(x))]
-                split = split[0] if len(split) == 1 else split
+                if split is None:
+                    continue
+                # if split.isnumeric():
+                #     split = int(split)
+                else:
+                    # split = split[1: -1].split(", ")
+                    split = [int(x) if isinstance(x, str) and is_integer(x) else x for x in split if isinstance(x, int) or (isinstance(x, str) and is_integer(x))]
+                    split = split[0] if len(split) == 1 else split
 
-            print(f"split {split} started")
+                print(f"split {split} started")
 
-            full_path = os.path.join(root, filename)
+                full_path = os.path.join(root, dir, filename)
 
-            split_dir = os.path.join(dir, str(split))
+                split_dir = os.path.join(out_dir, str(split))
 
-            os.makedirs(split_dir)
+                os.makedirs(split_dir)
 
-            feature_creator_split(weights_path=full_path, output_dir=split_dir) 
+                feature_creator_split(weights_path=full_path, output_dir=split_dir) 
     
 
 if __name__ == "__main__":
 
     # get_split = lambda filename:  "".join(os.path.splitext(filename)[0].split("_")[1:]).replace("'", "") if "best_" in filename else None 
-    get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename else None 
-
     # get_split = lambda filename:  os.path.splitext(filename)[0][5:].replace("'", "") if "best_[" in filename else None 
+    
+    # get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename else None 
+    get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
 
 
     run_feature_creator(get_split)
