@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 # Enter your wandb API key here
-WANDB_API_KEY = "7e0dde1e84e0c38284cac0f472f979b7da7122f4"
+WANDB_API_KEY = "YOUR_WANDB_API_KEY_HERE"
 
 #------------------------------------- JIGSAWS -------------------------------------
 
