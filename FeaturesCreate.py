@@ -1,24 +1,25 @@
 
+# Standard library imports
 from logging import raiseExceptions
+import os
+import shutil
+import sys
+import argparse
+
+# Third-party library imports
 from PIL import Image
 import numpy as np
 import torch
 from torch._C import device
 import torch.utils.data as data
 import torchvision
-import os
-import shutil
-import sys
 import torch.nn as nn
 
-from transforms import GroupScale, GroupCenterCrop, GroupNormalize
-# from resnet2D import resnet18
-from train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
-from Trainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
-from util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
-
-import argparse
-import os
+# Local application/library specific imports
+from utils.transforms import GroupScale, GroupCenterCrop, GroupNormalize
+from utils.train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
+from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
+from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 current_dataset = 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 'RARP50' #
@@ -45,7 +46,7 @@ def get_args():
                         help="Name of the dataset to use.")
     parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying'], default='Suturing',
                         help="JIGSAWS task to evaluate.")
-    parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
+    parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOSO',
                         help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
                              "Only LOUO supported for GTEA and 50SALADS.")
     parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2'], default='_capture2')

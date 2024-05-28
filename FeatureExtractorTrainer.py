@@ -1,44 +1,51 @@
 # Copyright (C) 2019  National Center of Tumor Diseases (NCT) Dresden, Division of Translational Surgical Oncology
+#----------------- Python Libraries Imports -----------------#
+# Python Standard Library
 from copyreg import pickle
+import datetime
+import os
+import os.path
+import random
+import string
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 from functools import partial
 from operator import is_
 from types import MethodType
 from typing import Dict, List, Sequence
+
+# Third-party libraries
+import numpy as np
+import pandas as pd
+import PIL
+import timm
 import torch
 from torch import nn
+from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.nn.functional import cross_entropy
 from torch.nn.modules.linear import Identity
 import torchvision
-from timm.models.efficientnet import EfficientNet
 from torchvision.transforms.functional import InterpolationMode
+from timm.models.efficientnet import EfficientNet
+from sklearn.model_selection import KFold
+import tqdm
+import wandb
+# import optuna
+#------------------ Bounded Future Imports ------------------#
 from train_opts_2D import parser
 from utils.resnet2D import resnet18, resnet34
-from utils import util
-import os.path
-import datetime
-import numpy as np
-import string
-import torchvision
-from torch.autograd import Variable
-import tqdm
-# import optuna
-import wandb
-import pandas as pd
-import timm
-import random
-import PIL
-from loss import Loss
-from sklearn.model_selection import KFold
-
-from transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip, GroupRandomRotation, GroupRandomPerspective
-from vae_decoder import VAEDecoder
-from train_dataset import Gesture2DTrainSet, Sequential2DTestGestureDataSet
-from transforms import BaseGroup, GroupColorJitter, GroupNormalize, GroupRandomVerticalFlip, GroupScale, GroupCenterCrop
+from utils.vae_decoder import VAEDecoder
+from utils.train_dataset import Gesture2DTrainSet, Sequential2DTestGestureDataSet
+from utils.transforms import BaseGroup, GroupColorJitter, GroupNormalize, GroupRandomVerticalFlip, GroupScale, GroupCenterCrop
+from utils.transforms import GroupMultiScaleCrop, GroupRandomHorizontalFlip, GroupRandomRotation, GroupRandomPerspective
 from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
-from util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
-from util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
-from util import WANDB_API_KEY
+from utils.loss import Loss
+from utils import util
+from utils.util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
+from utils.util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
+from utils.util import WANDB_API_KEY
+#------------------------------------------------------------#
 
 wandb.login(key=WANDB_API_KEY)
 

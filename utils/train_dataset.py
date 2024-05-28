@@ -1,21 +1,25 @@
+#----------------- Python Libraries Imports -----------------#
+# Python Standard Library
+import math
+import os
+import random
 from typing import Tuple
+
+# Third-party libraries
+import cv2
+import numpy as np
+from numpy.random import randint
+import pandas as pd
 import torch
 import torch.utils.data as data
 import torchvision
-from transforms import Stack, ToTorchFormatTensor
-
 from PIL import Image
-import os
-import numpy as np
-from numpy.random import randint
-import random
-import cv2
 from skimage.util import random_noise
-import pandas as pd
-import math
-
+#------------------ Bounded Future Imports ------------------#
+# Local application/library specific imports
+from utils.transforms import Stack, ToTorchFormatTensor
 # import parser
-
+#------------------------------------------------------------#
 
 class SequentialTestGestureDataSet(data.Dataset):
 

@@ -1,5 +1,5 @@
 # parts of the code were adapted from: https://github.com/sj-li/MS-TCN2?utm_source=catalyzex.com
-from metrics import *
+from utils.metrics import *
 from batch_gen import BatchGenerator, BatchGenerator_1Modal
 from Trainer import Trainer, Trainer_1Modal
 from visualization import plot_seq_gestures, save_all_seq
@@ -9,7 +9,7 @@ import matplotlib.pylab as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 from datetime import datetime
-from metrics import pars_ground_truth
+from utils.metrics import pars_ground_truth
 import torch
 import os
 import argparse

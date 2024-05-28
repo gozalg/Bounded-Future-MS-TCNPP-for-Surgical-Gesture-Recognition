@@ -1,7 +1,14 @@
-import torch.nn as nn
-import torch
-from vae_decoder import vae_loss
+#----------------- Python Libraries Imports -----------------#
+# Python Standard Library
 from functools import partial
+
+# Third-party libraries
+import torch
+import torch.nn as nn
+#------------------ Bounded Future Imports ------------------#
+# Local application/library specific imports
+from utils.vae_decoder import vae_loss
+#------------------------------------------------------------#
 
 class Loss(nn.Module):
     def __init__(self, class_criterion_weight=1, decoder_weight=0,

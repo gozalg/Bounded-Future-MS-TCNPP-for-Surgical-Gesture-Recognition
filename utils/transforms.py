@@ -1,4 +1,5 @@
 # From https://github.com/yjxiong/tsn-pytorch/blob/master/transforms.py
+from functools import partial
 import torchvision
 import random
 from PIL import Image, ImageOps
@@ -6,6 +7,80 @@ import numpy as np
 import numbers
 import math
 import torch
+
+import torchvision.transforms
+import torchvision.transforms.functional as F 
+
+class BaseGroup:
+    def __init__(self, transform, p=0.5) -> None:
+        self.transform = transform
+        self.p = p
+    
+    def __call__(self, img_group):
+        v = random.random()
+        if v < self.p:
+            return list(map(self.transform, img_group))
+        return img_group
+
+
+class GroupRandomVerticalFlip(BaseGroup):
+    def __init__(self, p=0.5) -> None:
+        super().__init__(F.vflip, p=p)
+
+class GroupRandomPerspective(torchvision.transforms.RandomPerspective):
+
+    def forward(self, img_group):
+        fill = self.fill
+        if isinstance(img_group[0], torch.Tensor):
+            if isinstance(fill, (int, float)):
+                fill = [float(fill)] * F._get_image_num_channels(img_group[0])
+            else:
+                fill = [float(f) for f in fill]
+
+        if random.random() < self.p:
+            width, height = F._get_image_size(img_group[0])
+            startpoints, endpoints = self.get_params(width, height, self.distortion_scale)
+            return list(map(partial(F.perspective, startpoints=startpoints,
+                                    endpoints=endpoints, fill=fill), img_group))
+        return img_group
+
+
+class GroupRandomRotation(torchvision.transforms.RandomRotation):
+    def __init__(self, degrees, resample=False, expand=False, center=None, fill=None):
+        super(GroupRandomRotation, self).__init__(degrees, expand=expand, center=center, fill=fill)
+        self.resample = resample
+    def forward(self, img_group):
+        fill = self.fill
+        if isinstance(img_group[0], torch.Tensor):
+            if isinstance(fill, (int, float)):
+                fill = [float(fill)] * F._get_image_num_channels(img_group[0])
+            else:
+                fill = [float(f) for f in fill]
+        angle = self.get_params(self.degrees)
+        
+        return [F.rotate(img, angle, self.resample, self.expand, self.center, fill) for img in img_group]
+
+
+class GroupColorJitter(torchvision.transforms.ColorJitter):
+    def forward(self, img_group):
+        fn_idx, brightness_factor, contrast_factor, saturation_factor, hue_factor = \
+            self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
+
+        for i in range(len(img_group)):
+            img = img_group[i]
+            for fn_id in fn_idx:
+                if fn_id == 0 and brightness_factor is not None:
+                    img = F.adjust_brightness(img, brightness_factor)
+                elif fn_id == 1 and contrast_factor is not None:
+                    img = F.adjust_contrast(img, contrast_factor)
+                elif fn_id == 2 and saturation_factor is not None:
+                    img = F.adjust_saturation(img, saturation_factor)
+                elif fn_id == 3 and hue_factor is not None:
+                    img = F.adjust_hue(img, hue_factor)
+            img_group[i] = img
+
+        return img_group
+
 
 
 
@@ -78,16 +153,12 @@ class GroupNormalize(object):
 
 
 class GroupScale(object):
-    """ Rescales the input PIL.Image to the given 'size'.
-    'size' will be the size of the smaller edge.
-    For example, if height > width, then image will be
-    rescaled to (size * height / width, size)
-    size: size of the smaller edge
+    """ Resize the input PIL.Image to the given size x size (for example: 224x224).
     interpolation: Default: PIL.Image.BILINEAR
     """
 
     def __init__(self, size, interpolation=Image.BILINEAR):
-        self.worker = torchvision.transforms.Resize(size, interpolation)
+        self.worker = torchvision.transforms.Resize((size, size), interpolation)
 
     def __call__(self, img_group):
         return [self.worker(img) for img in img_group]
