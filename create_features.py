@@ -87,7 +87,7 @@ class Sequential2DImageReader(data.Dataset):
                  snippet_length=16, sampling_step = 6,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
                  return_3D_tensor=True, return_dense_labels=True,
-                 transform=None, normalize=None,initial_frame_idx=1):
+                 transform=None, normalize=None, resize=224, initial_frame_idx=1):
 
         self.root_path = root_path
         self.video_name = video_id
@@ -102,6 +102,7 @@ class Sequential2DImageReader(data.Dataset):
         self.return_dense_labels = return_dense_labels #
         self.transform = transform
         self.normalize = normalize
+        self.resize = resize
         self.frame_count = int(frame_count)
         self.initial_frame_idx = initial_frame_idx
 
@@ -125,6 +126,7 @@ class Sequential2DImageReader(data.Dataset):
 
     def _load_image(self, directory, idx):
         img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
     def __getitem__(self, index):
@@ -150,6 +152,7 @@ class Sequential2DImageReader(data.Dataset):
         snippet.append(img)
         snippet = rotate_snippet(snippet,0.5)
         Add_Gaussian_Noise_to_snippet(snippet)
+        snippet = [torchvision.transforms.Resize((self.resize, self.resize))(img) for img in snippet]
         snippet = self.transform(snippet)
         snippet = [torchvision.transforms.ToTensor()(img) for img in snippet]
         snippet = snippet[0]
@@ -205,10 +208,8 @@ def run_model(model, frames_loader):
 
 def get_dataloaders(val_lists, data_path, image_tmpl, video_suffix, batch_size, input_size, workers):
     normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
-
-    val_augmentation = torchvision.transforms.Compose([GroupScale(int(256)),
+    val_augmentation = torchvision.transforms.Compose([GroupScale(input_size),
                                                        GroupCenterCrop(input_size)])   ## need to be corrected
-    
     
     val_videos = list()
     for list_file in val_lists:
@@ -224,6 +225,7 @@ def get_dataloaders(val_lists, data_path, image_tmpl, video_suffix, batch_size, 
                                           image_tmpl=image_tmpl,
                                           video_suffix=video_suffix,
                                           normalize=normalize,
+                                          resize=input_size,
                                           transform=val_augmentation)
 
 
@@ -259,7 +261,6 @@ def feature_creator_split(weights_path, output_dir):
     #     if args.eval_scheme == "LOUO":
     #         splits = splits_50salads
 
-
     val_list = splits
     # if isinstance(split, int):
     #     assert (split >= 0 and split < len(splits))
@@ -269,7 +270,6 @@ def feature_creator_split(weights_path, output_dir):
     #     val_list = [s for s in splits if s in split]
     # else:
     #     raise NotImplementedError("split parameter must by of type int or list")
-
 
     lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
 
