@@ -1,5 +1,6 @@
 import argparse
 import os
+import random
 
 
 def str2bool(v):
@@ -86,16 +87,16 @@ elif current_dataset=='RARP50':
 parser.add_argument('--video_sampling_step', type=int, default=1,
                     help="Describes how the available video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
-parser.add_argument('--do_horizontal_flip', type='bool', default=False,
+parser.add_argument('--do_horizontal_flip', type='bool', default=True,
                     help="Whether data augmentation should include a random horizontal flip.")
-parser.add_argument('--do_vertical_flip', type='bool', default=False,
+parser.add_argument('--do_vertical_flip', type='bool', default=True,
                     help="Whether data augmentation should include a random vertical flip.")
 parser.add_argument('--do_color_jitter', type='bool', default=False,
                     help="Whether data augmentation should include a random jitter.")
 parser.add_argument('--perspective_distortion', type=float, default=0, choices=Range(0.0, 1.0),
                     help="Argument to control the degree of distortion." 
                          "If 0 then augmentaion is not applied.")
-parser.add_argument('--degrees', type=int, default=0,
+parser.add_argument('--degrees', type=int, default=random.randint(5,7),
                     help="Number of degrees for random roation augmenation."
                          "If 0 then augmentation is not applied")
 parser.add_argument('--corner_cropping', type='bool', default=True,

@@ -150,16 +150,12 @@ class GroupNormalize(object):
 
 
 class GroupScale(object):
-    """ Rescales the input PIL.Image to the given 'size'.
-    'size' will be the size of the smaller edge.
-    For example, if height > width, then image will be
-    rescaled to (size * height / width, size)
-    size: size of the smaller edge
+    """ Resize the input PIL.Image to the given size x size (for example: 224x224).
     interpolation: Default: PIL.Image.BILINEAR
     """
 
     def __init__(self, size, interpolation=Image.BILINEAR):
-        self.worker = torchvision.transforms.Resize(size, interpolation)
+        self.worker = torchvision.transforms.Resize((size, size), interpolation)
 
     def __call__(self, img_group):
         return [self.worker(img) for img in img_group]

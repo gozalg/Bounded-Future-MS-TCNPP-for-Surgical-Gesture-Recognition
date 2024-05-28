@@ -478,7 +478,7 @@ class Gesture2DTrainSet(data.Dataset):
     def __init__(self, root_path, list_of_list_files, transcriptions_dir, gesture_ids,
                  temporal_augmentaion_factor=0.2,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
-                 transform=None, normalize=None, number_of_samples_per_class=400,
+                 transform=None, normalize=None, resize=224, number_of_samples_per_class=400, 
                  debag=False, preload=True):
         self.debag = debag
         self.root_path = root_path
@@ -489,6 +489,7 @@ class Gesture2DTrainSet(data.Dataset):
         self.video_suffix = video_suffix
         self.transform = transform
         self.normalize = normalize
+        self.resize = resize
         self.preload = preload
         self.gesture_sequence_per_video = {}
         self.image_data = {}
@@ -599,6 +600,7 @@ class Gesture2DTrainSet(data.Dataset):
     def _load_image(self, directory, idx):
         img = Image.open(os.path.join(
             directory, self.image_tmpl.format(idx))).convert('RGB')
+        img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
     def _real_length_calc(self, policy_list):
@@ -672,7 +674,7 @@ class Gesture2DTrainSet(data.Dataset):
             img = self._load_image(*img)[0]
         snippet.append(img)
         snippet = rotate_snippet(snippet, 0.5)
-        # Add_Gaussian_Noise_to_snippet(snippet)
+        snippet = [torchvision.transforms.Resize((self.resize, self.resize))(img) for img in snippet]
         snippet = self.transform(snippet)
         snippet = [torchvision.transforms.ToTensor()(img) for img in snippet]
         snippet = snippet[0]

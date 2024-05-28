@@ -192,13 +192,13 @@ def main(split=1, upload=False, group=None, args=None):
         log("Resuming experiment...", output_folder)
         log("====================================================================", output_folder)
     else:
-        if args.dataset == "JIGSAWS":
-            if len([t for t in string.Formatter().parse(args.data_path)]) > 1:
-                args.data_path = args.data_path.format(args.task)
-            if len([t for t in string.Formatter().parse(args.video_lists_dir)]) > 1:
-                args.video_lists_dir = args.video_lists_dir.format(args.task)
-            if len([t for t in string.Formatter().parse(args.transcriptions_dir)]) > 1:
-                args.transcriptions_dir = args.transcriptions_dir.format(args.task)
+        # if args.dataset == "JIGSAWS":
+        #     if len([t for t in string.Formatter().parse(args.data_path)]) > 1:
+        #         args.data_path = args.data_path.format(args.task)
+        #     if len([t for t in string.Formatter().parse(args.video_lists_dir)]) > 1:
+        #         args.video_lists_dir = args.video_lists_dir.format(args.task)
+        #     if len([t for t in string.Formatter().parse(args.transcriptions_dir)]) > 1:
+        #         args.transcriptions_dir = args.transcriptions_dir.format(args.task)
 
         log("Used parameters...", output_folder)
         for arg in sorted(vars(args)):
@@ -307,10 +307,9 @@ def main(split=1, upload=False, group=None, args=None):
                                           perspective_distortion=args.perspective_distortion,
                                           degrees=args.degrees,
                                           do_color_jitter=args.do_color_jitter)
-
     train_set = Gesture2DTrainSet(args.data_path, train_lists, args.transcriptions_dir, gesture_ids,
                                   image_tmpl=args.image_tmpl, video_suffix=args.video_suffix,
-                                  transform=train_augmentation, normalize=normalize, debag=False,
+                                  transform=train_augmentation, normalize=normalize, resize=args.input_size, debag=False,
                                   number_of_samples_per_class=args.number_of_samples_per_class, preload=args.preload)
 
     def no_none_collate(batch):
@@ -325,8 +324,8 @@ def main(split=1, upload=False, group=None, args=None):
                                                collate_fn=no_none_collate)
     log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
-    val_augmentation = torchvision.transforms.Compose([GroupScale(int(256)),
-                                                       GroupCenterCrop(args.input_size)])  ## need to be corrected
+    val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size),
+                                                       GroupCenterCrop(args.input_size)])
     val_videos = list()
     for list_file in val_lists:
         val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
