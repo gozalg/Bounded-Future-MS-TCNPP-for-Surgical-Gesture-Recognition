@@ -46,6 +46,9 @@ class GroupRandomPerspective(torchvision.transforms.RandomPerspective):
 
 
 class GroupRandomRotation(torchvision.transforms.RandomRotation):
+    def __init__(self, degrees, resample=False, expand=False, center=None, fill=None):
+        super(GroupRandomRotation, self).__init__(degrees, expand=expand, center=center, fill=fill)
+        self.resample = resample
     def forward(self, img_group):
         fill = self.fill
         if isinstance(img_group[0], torch.Tensor):
