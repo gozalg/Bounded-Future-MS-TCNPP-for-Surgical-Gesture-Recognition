@@ -348,7 +348,7 @@ def main(split=1, upload=False, group=None, args=None):
                                                   sampling_step=args.video_sampling_step,
                                                   image_tmpl=args.image_tmpl,
                                                   video_suffix=args.video_suffix,
-                                                  normalize=normalize,
+                                                  normalize=normalize, resize=args.input_size,
                                                   transform=val_augmentation)  # augmentation are off
         val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
                                                        shuffle=False, num_workers=args.workers,
@@ -393,7 +393,9 @@ def main(split=1, upload=False, group=None, args=None):
     finished_acc_tresholds = False
 
     for epoch in range(start_epoch, args.epochs):
-
+        if epoch > start_epoch:
+            log(f"Training set: sampling {train_loader.dataset.__len__()} gesture snippets for epoch number {epoch}", output_folder)
+            train_set.randomize() # resample the dataset for each epoch
         train_loss = AverageMeter()
         train_acc = AverageMeter()
         model.train()

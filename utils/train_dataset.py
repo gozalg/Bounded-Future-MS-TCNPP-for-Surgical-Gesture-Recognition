@@ -348,7 +348,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
                  snippet_length=16, sampling_step=6,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
                  return_3D_tensor=True, return_dense_labels=True,
-                 transform=None, normalize=None, preload=True):
+                 transform=None, normalize=None, resize=224, preload=True):
 
         self.preload = preload
         self.root_path = root_path
@@ -364,6 +364,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         self.return_dense_labels = return_dense_labels
         self.transform = transform
         self.normalize = normalize
+        self.resize = resize
         self.frame_count = int(frame_count)
 
         self.gesture_sequence_per_video = {}
@@ -432,6 +433,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
     def _load_image(self, directory, idx):
         img = Image.open(os.path.join(
             directory, self.image_tmpl.format(idx))).convert('RGB')
+        img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
     def __getitem__(self, index):
@@ -502,11 +504,12 @@ class Gesture2DTrainSet(data.Dataset):
         self._parse_list_files(list_of_list_files)
         self.ballanced_data_set = []
 
-        num_of_frames_to_choose = number_of_samples_per_class
-        gesture_dict = self._sort_frames_by_gesture()
-        self._random_balancing(num_of_frames_to_choose, gesture_dict)
+        self.num_of_frames_to_choose = number_of_samples_per_class
+        self.gesture_dict = self._sort_frames_by_gesture()
+        self._random_balancing(self.num_of_frames_to_choose, self.gesture_dict)
 
         if self.preload:
+            print("Preloading images from blanced dataset...")
             self._load_balanced_images()
 
     def _load_balanced_images(self):
@@ -688,7 +691,13 @@ class Gesture2DTrainSet(data.Dataset):
 
     def __len__(self):
         return len(self.ballanced_data_set)
-
+    # randomize the data set for each epoch
+    def randomize(self):
+        self.ballanced_data_set = [] # clear the data set
+        self._random_balancing(self.num_of_frames_to_choose, self.gesture_dict)
+        if self.preload:
+            print("Preloading images from blanced dataset...")
+            self._load_balanced_images()
 
 def rotate_snippet(snippet, max_angle):
     preform = random.uniform(0, 1)
