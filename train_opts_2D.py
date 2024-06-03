@@ -87,6 +87,9 @@ elif current_dataset=='RARP50':
 parser.add_argument('--video_sampling_step', type=int, default=1,
                     help="Describes how the available video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
+parser.add_argument('--val_sampling_step', type=int, default=80,
+                    help="Describes how the validation video data has been downsampled from the original temporal "
+                         "resolution (by taking every <video_sampling_step>th frame).")
 parser.add_argument('--do_horizontal_flip', type='bool', default=True,
                     help="Whether data augmentation should include a random horizontal flip.")
 parser.add_argument('--do_vertical_flip', type='bool', default=True,
