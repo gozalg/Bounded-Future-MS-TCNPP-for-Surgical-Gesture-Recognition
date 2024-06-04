@@ -509,7 +509,7 @@ class Gesture2DTrainSet(data.Dataset):
         self._random_balancing(self.num_of_frames_to_choose, self.gesture_dict)
 
         if self.preload:
-            print("Preloading images from blanced dataset...")
+            print("Preloading images from balanced dataset...")
             self._load_balanced_images()
 
     def _load_balanced_images(self):
@@ -696,7 +696,7 @@ class Gesture2DTrainSet(data.Dataset):
         self.ballanced_data_set = [] # clear the data set
         self._random_balancing(self.num_of_frames_to_choose, self.gesture_dict)
         if self.preload:
-            print("Preloading images from blanced dataset...")
+            print("Preloading images from balanced dataset...")
             self._load_balanced_images()
 
 def rotate_snippet(snippet, max_angle):

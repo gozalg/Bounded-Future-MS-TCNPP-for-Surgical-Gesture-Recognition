@@ -141,6 +141,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+        self.avg = self.avg * 100.0 # to percent
 
 
 def reg_l2(model,l2_lambda,device ):
