@@ -60,7 +60,7 @@ def log(msg, output_folder):
     f_log.close()
 
 
-def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids, upload=False):
+def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids, epoch, upload=False):
     model.eval()
     with torch.no_grad():
 
@@ -461,7 +461,7 @@ def main(split=1, upload=False, group=None, args=None):
             log("Start testing...", output_folder)
 
             overall_acc_mean = eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids,
-                                    upload=upload)
+                                    epoch, upload=upload)
 
             if overall_acc_mean > max_acc_val and not is_test:
                 max_acc_val = overall_acc_mean
