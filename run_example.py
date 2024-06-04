@@ -1,6 +1,6 @@
 from utils.efficientnetV2 import EfficientnetV2
 from utils.transforms import GroupNormalize, GroupScale, GroupCenterCrop
-from model import MST_TCN2
+from utils.model import MST_TCN2
 import torch
 from torchvision import transforms
 from FrameGenrator import FrameGenerator

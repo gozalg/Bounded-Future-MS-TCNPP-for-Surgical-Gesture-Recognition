@@ -132,6 +132,7 @@ class Gesture2dTrainSet(data.Dataset):
         img =img[0]
         data.append(img)
         data = rotate_snippet(data,0.5)
+        Add_Gaussian_Noise_to_snippet(data)
         data = self.transform(data)
         data = [torchvision.transforms.ToTensor()(img) for img in data]
         data = data[0]
