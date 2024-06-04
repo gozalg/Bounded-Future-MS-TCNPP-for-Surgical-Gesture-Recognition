@@ -136,7 +136,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
         if upload:
             wandb.log({'validation accuracy': np.mean(overall_acc), 'Avg_F1': np.mean(overall_avg_f1), 
                        'Edit': np.mean(overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
-                       "F1_50": np.mean(overall_f1_50)})
+                       "F1_50": np.mean(overall_f1_50)}, step=epoch)
 
     return overall_acc_mean
 
@@ -455,7 +455,7 @@ def main(split=1, upload=False, group=None, args=None):
         log("Epoch {}: Train loss: {train_loss.avg:.4f} Train acc: {train_acc.avg:.3f}"
             .format(epoch, train_loss=train_loss, train_acc=train_acc), output_folder)
         if upload:
-            wandb.log({'train accuracy': train_acc.avg, 'loss': train_loss.avg})
+            wandb.log({'train accuracy': train_acc.avg, 'loss': train_loss.avg}, step=epoch)
 
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
             log("Start testing...", output_folder)
