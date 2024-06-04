@@ -99,7 +99,7 @@ parser.add_argument('--do_color_jitter', type='bool', default=False,
 parser.add_argument('--perspective_distortion', type=float, default=0, choices=Range(0.0, 1.0),
                     help="Argument to control the degree of distortion." 
                          "If 0 then augmentaion is not applied.")
-parser.add_argument('--degrees', type=int, default=random.randint(5,7),
+parser.add_argument('--degrees', type=int, default=(-10, 10),
                     help="Number of degrees for random roation augmenation."
                          "If 0 then augmentation is not applied")
 parser.add_argument('--corner_cropping', type='bool', default=True,

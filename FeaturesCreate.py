@@ -1,4 +1,4 @@
-
+#----------------- Python Libraries Imports -----------------#
 # Standard library imports
 from logging import raiseExceptions
 import os
@@ -14,13 +14,13 @@ from torch._C import device
 import torch.utils.data as data
 import torchvision
 import torch.nn as nn
-
+#------------------ Bounded Future Imports ------------------#
 # Local application/library specific imports
 from utils.transforms import GroupScale, GroupCenterCrop, GroupNormalize
 from utils.train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
 from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_GTEA, splits_50salads
 from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
-
+#------------------------------------------------------------#
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 current_dataset = 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 'RARP50' #
 feature_extrractor = '2D-EfficientNetV2-m'
