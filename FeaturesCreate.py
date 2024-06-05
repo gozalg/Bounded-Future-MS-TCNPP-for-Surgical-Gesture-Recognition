@@ -303,7 +303,7 @@ def run_feature_creator(get_split):
     # elif args.dataset == "50SALADS":
     #     user_num = len(splits_50salads)
 
-    out_dir = os.path.join(args.out, args.dataset, args.eval_scheme)
+    out_dir = os.path.join(args.out, args.eval_scheme)
     
     if os.path.isdir(out_dir):
         val = None
