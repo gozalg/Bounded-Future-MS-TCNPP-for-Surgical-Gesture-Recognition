@@ -69,7 +69,7 @@ def get_args():
                     help="number of parameters in additional linear layer. if 0 then no additional layer is added to the model")
 
     
-    # parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
+    parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
     parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
                     help="Target size (width/ height) of each frame.")
@@ -278,7 +278,7 @@ def feature_creator_split(weights_path, output_dir):
 
 
     val_loaders = get_dataloaders(val_lists, args.data_path, args.image_tmpl,
-                                  args.video_suffix, args.batch_size, args.input_size, workers=1)
+                                  args.video_suffix, args.batch_size, args.input_size, workers=args.workers)
 
     for video_name, val_loader in val_loaders:
 
