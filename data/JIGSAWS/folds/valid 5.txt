@@ -1,5 +1,0 @@
-Suturing_G001.txt
-Suturing_G002.txt
-Suturing_G003.txt
-Suturing_G004.txt
-Suturing_G005.txt

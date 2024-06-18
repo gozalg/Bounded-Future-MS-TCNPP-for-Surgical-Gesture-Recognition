@@ -1,62 +1,70 @@
 # parts of the code were adapted from: https://github.com/sj-li/MS-TCN2?utm_source=catalyzex.com
-# imports
-import torch
-from Trainer import Trainer
-from batch_gen import BatchGenerator
-import os
+#----------------- Python Libraries Imports -----------------#
+# Standard library imports
 import argparse
-import pandas as pd
 from datetime import datetime
-from termcolor import colored, cprint
+from logging import raiseExceptions
+import os
 import random
 import time
 
+# Third party imports
+import pandas as pd
+import torch
+from termcolor import colored, cprint
+#------------------ Bounded Future Imports ------------------#
+# Local application imports
+from batch_gen import BatchGenerator
+from utils.Trainer import Trainer
+#------------------------------------------------------------#
 
-dt_string = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', choices=['VTS'], default="VTS")
-parser.add_argument(
-    '--task', choices=['gestures', 'tools', 'multi-taks'], default="gestures")
-parser.add_argument(
-    '--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
-parser.add_argument(
-    '--split', choices=['0', '1', '2', '3', '4', 'all'], default='all')
+parser.add_argument('--dataset', type=str, default='JIGSAWS', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'RARP50'],
+                    help="Name of the dataset to use.")
+parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
+                    help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
+                    "Only LOUO supported for TBD.")
+parser.add_argument('--task', choices=['gestures', 'tools', 'multi-taks'], default="gestures")
+parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-m", 
+                    choices=['3D-ResNet-18', '3D-ResNet-50', "2D-ResNet-18", "2D-ResNet-34",
+                             "2D-EfficientNetV2-s", "2D-EfficientNetV2-m", "2D-EfficientNetV2-l"])
+parser.add_argument('--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
+parser.add_argument('--split', choices=['0', '1', '2', '3', '4', '5', '6', '7', 'all'], default='all')
 parser.add_argument('--features_dim', default=1280, type=int)
 parser.add_argument('--lr', default='0.0010351748096577', type=float)
-parser.add_argument('--num_epochs', default=1, type=int)
+parser.add_argument('--num_epochs', default=40, type=int)
 parser.add_argument('--eval_rate', default=1, type=int)
 
-# Architectuyre
-parser.add_argument('--window_dim', default=6, type=int)
+# Architecture
+parser.add_argument('--w_max', default=0, type=int) # 0 for "online", >0 for "offline"
 parser.add_argument('--num_layers_PG', default=10, type=int)
 parser.add_argument('--num_layers_R', default=10, type=int)
 parser.add_argument('--num_f_maps', default=128, type=int)
 
-parser.add_argument('--normalization', choices=[
-                    'Min-max', 'Standard', 'samplewise_SD', 'none'], default='none', type=str)
+parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewise_SD', 'None'], default='None', type=str)
 parser.add_argument('--num_R', default=3, type=int)
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--offline_mode', default=True, type=bool)
+parser.add_argument('--offline_mode', default=False, type=bool)
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
 parser.add_argument('--loss_lambda', default=1, type=float)
 parser.add_argument('--dropout_TCN', default=0.5, type=float)
-parser.add_argument(
-    '--project', default="Offline RNN nets Sensor paper Final", type=str)
-parser.add_argument('--group', default=dt_string + " ", type=str)
+parser.add_argument('--project', default="BF-MS-TCN_JIGSAWS_LOUO_online_wmax=0_TEST", type=str) # default="Offline RNN nets Sensor paper Final"
+parser.add_argument('--group', default=date_str + " ", type=str)
 parser.add_argument('--use_gpu_num', default="1", type=str)
-parser.add_argument('--upload', default=False, type=bool)
-parser.add_argument('--debagging', default=False, type=bool)
+parser.add_argument('--upload', default=True, type=bool)
+parser.add_argument('--DEBUG', default=False, type=bool)
 parser.add_argument('--hyper_parameter_tuning', default=False, type=bool)
 
 args = parser.parse_args()
 
-debagging = args.debagging
-if debagging:
+DEBUG = args.DEBUG
+if DEBUG:
     args.upload = False
 
 
@@ -74,14 +82,18 @@ print(device)
 # use the full temporal resolution @ 30Hz
 
 sample_rate = args.sample_rate
-bz = 2
+batch_size = 2
 
 list_of_splits = []
-if len(args.split) == 1:
+if args.split.isdigit(): # if split isn't 'all'
     list_of_splits.append(int(args.split))
-
 elif args.dataset == "VTS":
     list_of_splits = list(range(0, 5))
+elif args.dataset == "JIGSAWS":
+    if args.eval_scheme == "LOUO":
+        list_of_splits = list(range(0, 8))
+    if args.eval_scheme == "LOSO":
+        list_of_splits = list(range(0, 5))
 else:
     raise NotImplemented
 
@@ -97,17 +109,16 @@ num_layers_PG = args.num_layers_PG
 num_layers_R = args.num_layers_R
 num_f_maps = args.num_f_maps
 experiment_name = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-    args.network + " is Offline: " + \
-    str(args.offline_mode) + " window dim: " + str(args.window_dim)
+                  args.network + " is Offline: " + str(args.offline_mode) + " w_max: " + str(args.w_max)
 args.group = experiment_name
 hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
 
 
-summaries_dir = "./summaries/" + args.dataset + "/" + experiment_name
+summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, experiment_name) 
 
 
-if not debagging:
+if not DEBUG:
     if not os.path.exists(summaries_dir):
         os.makedirs(summaries_dir)
 
@@ -116,46 +127,30 @@ full_eval_results = pd.DataFrame()
 full_train_results = pd.DataFrame()
 full_test_results = pd.DataFrame()
 
-data = "/data/"
-models = "models/"
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme)
 for split_num in list_of_splits:
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme)
     print("split number: " + str(split_num))
     args.split = str(split_num)
 
-    folds_folder = os.path.join(data, args.dataset, "folds")
+    gt_path_gestures = os.path.join(data_dir, args.dataset, "transcriptions_gestures")
+    mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
+    model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
 
     if args.dataset == "VTS":
-        features_path = os.path.join(
-            data, args.dataset, "features", "fold " + str(split_num))
-
+        raise NotImplementedError()
+        features_path = os.path.join(data_dir, args.dataset, "features", "fold " + str(split_num))
+        folds_dir = os.path.join(data_dir, args.dataset, "folds")
+    elif args.dataset == "JIGSAWS":
+        features_path = os.path.join(features_path, args.split)
+        folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
     else:
-        # features_path = "./data/" + args.dataset + "/kinematics_npy/"
-        features_path = os.path.join(data, args.dataset, "kinematics_npy")
+        raise NotImplementedError()
 
-    # gt_path_gestures = "./data/"+args.dataset+"/transcriptions_gestures/"
-    gt_path_gestures = os.path.join(
-        data, args.dataset, "transcriptions_gestures")
-    # gt_path_tools_left = "./data/"+args.dataset+"/transcriptions_tools_left/"
-    gt_path_tools_left = os.path.join(
-        data, args.dataset, "transcriptions_tools_left")
-    # gt_path_tools_right = "./data/"+args.dataset+"/transcriptions_tools_right/"
-    gt_path_tools_right = os.path.join(
-        data, args.dataset, "transcriptions_tools_right")
-
-    # mapping_gestures_file = "./data/"+args.dataset+"/mapping_gestures.txt"
-    mapping_gestures_file = os.path.join(
-        data, args.dataset, "mapping_gestures.txt")
-
-    # mapping_tool_file = "./data/"+args.dataset+"/mapping_tools.txt"
-    mapping_tool_file = os.path.join(data, args.dataset, "mapping_tools.txt")
-
-    # model_dir = "./models/"+args.dataset+"/"+ experiment_name+"/split_"+args.split
-    model_dir = os.path.join(models, args.dataset,
-                             experiment_name, "split" + args.split)
-
-    if not debagging:
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
+    if not DEBUG:
+        if not os.path.exists(model_out_dir):
+            os.makedirs(model_out_dir)
 
     file_ptr = open(mapping_gestures_file, 'r')
     actions = file_ptr.read().split('\n')[:-1]
@@ -186,21 +181,21 @@ for split_num in list_of_splits:
 
     # initializes the Trainer - does not train
     trainer = Trainer(num_layers_PG, num_layers_R, args.num_R, num_f_maps, features_dim, num_classes_list,
-                      offline_mode=offline_mode, window_dim=args.window_dim,
+                      offline_mode=offline_mode, w_max=args.w_max,
                       tau=loss_tau, lambd=loss_lambda,
                       dropout_TCN=args.dropout_TCN, task=args.task, device=device,
                       network=args.network,
-                      hyper_parameter_tuning=hyper_parameter_tuning, debagging=debagging)
-    print(num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_folder,
-          gt_path_gestures, gt_path_tools_left, gt_path_tools_right, sample_rate, args.normalization, args.task)
-    batch_gen = BatchGenerator(num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_folder,
-                               gt_path_gestures, gt_path_tools_left, gt_path_tools_right, sample_rate=sample_rate, normalization=args.normalization, task=args.task)
+                      hyper_parameter_tuning=hyper_parameter_tuning, DEBUG=DEBUG)
+    print(num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_dir,
+          gt_path_gestures, sample_rate, args.normalization, args.task)
+    batch_gen = BatchGenerator(args.dataset, num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, 
+                               folds_dir, gt_path_gestures, sample_rate=sample_rate, normalization=args.normalization, task=args.task)
     eval_dict = {"features_path": features_path, "actions_dict_gestures": actions_dict_gestures, "actions_dict_tools": actions_dict_tools, "device": device, "sample_rate": sample_rate, "eval_rate": eval_rate,
-                 "gt_path_gestures": gt_path_gestures, "gt_path_tools_left": gt_path_tools_left, "gt_path_tools_right": gt_path_tools_right, "task": args.task}
+                 "gt_path_gestures": gt_path_gestures, "task": args.task}
     best_valid_results, eval_results, train_results, test_results = trainer.train(
-        model_dir, batch_gen, num_epochs=num_epochs, batch_size=bz, learning_rate=lr, eval_dict=eval_dict, args=args)
+        model_out_dir, batch_gen, num_epochs=num_epochs, batch_size=batch_size, learning_rate=lr, eval_dict=eval_dict, args=args)
 
-    if not debagging:
+    if not DEBUG:
         eval_results = pd.DataFrame(eval_results)
         train_results = pd.DataFrame(train_results)
         test_results = pd.DataFrame(test_results)

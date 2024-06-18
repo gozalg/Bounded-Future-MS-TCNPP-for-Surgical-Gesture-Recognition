@@ -1,22 +1,29 @@
 # parts of the code were adapted from: https://github.com/sj-li/MS-TCN2?utm_source=catalyzex.com
-
-from model import *
-import os
-from torch import optim
-import math
-import pandas as pd
-from termcolor import colored, cprint
-
-from metrics import*
-import wandb
+#----------------- Python Libraries Imports -----------------#
+# Standard library imports
 from datetime import datetime
-import tqdm
-from scipy import signal
+import math
+import os
 
+# Third party imports
+import pandas as pd
+import torch
+from scipy import signal
+from termcolor import colored, cprint
+import tqdm
+import wandb
+#------------------ Bounded Future Imports ------------------#
+# Local application imports
+from .model import *
+from .MetricsBoundedFuture import *
+from .util import WANDB_API_KEY
+#------------------------------------------------------------#
+
+wandb.login(key=WANDB_API_KEY)
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, offline_mode=False,window_dim= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
-                 network='MS-TCN2',hyper_parameter_tuning=False,debagging=False):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, offline_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
+                 network='MS-TCN2',hyper_parameter_tuning=False,DEBUG=False):
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,offline_mode=offline_mode)
         elif network == 'MS-TCN2 late':
@@ -29,9 +36,9 @@ class Trainer:
         self.number_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
 
-        self.window_dim = window_dim
-        self.model.window_dim = window_dim
-        self.debagging =debagging
+        self.w_max = w_max
+        self.model.w_max = w_max
+        self.DEBUG =DEBUG
         self.network = network
         self.device = device
         self.ce = nn.CrossEntropyLoss(ignore_index=-100)
@@ -64,7 +71,7 @@ class Trainer:
         self.model.train()
         self.model.to(self.device)
         eval_rate = eval_dict["eval_rate"]
-        optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         for epoch in range(num_epochs):
             pbar = tqdm.tqdm(total=number_of_batches)
             epoch_loss = 0
@@ -183,17 +190,13 @@ class Trainer:
                                  "train acc left": float(correct2) / total2,
                                  "train acc right": float(correct3) / total3}
             else:
-                print(colored(dt_string, 'green',
-                              attrs=['bold']) + "  " + "[epoch %d]: train loss = %f,   train acc = %f" % (epoch + 1,
-                                                                                                          epoch_loss / len(
-                                                                                                              batch_gen.list_of_train_examples),
-                                                                                                          float(
-                                                                                                              correct1) / total1))
+                print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d]: train loss = %f,   train acc = %f" % \
+                      (epoch + 1, epoch_loss / len(batch_gen.list_of_train_examples), float(correct1) / total1))
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
                                  "train acc": float(correct1) / total1}
 
             if args.upload:
-                wandb.log(train_results)
+                wandb.log(train_results, step=epoch)
 
             train_results_list.append(train_results)
 
@@ -206,7 +209,7 @@ class Trainer:
                    if results['F1@50 gesture'] >= Max_F1_50:
                     Max_F1_50 =results['F1@50 gesture']
                     best_valid_results = results
-                    if not self.debagging and not self.hyper_parameter_tuning:
+                    if not self.DEBUG and not self.hyper_parameter_tuning:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
@@ -214,7 +217,7 @@ class Trainer:
                    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
                     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
                     best_valid_results = results
-                    if not self.debagging and not self.hyper_parameter_tuning:
+                    if not self.DEBUG and not self.hyper_parameter_tuning:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
@@ -222,14 +225,14 @@ class Trainer:
                    if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
                     Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
                     best_valid_results = results
-                    if not self.debagging and not self.hyper_parameter_tuning:
+                    if not self.DEBUG and not self.hyper_parameter_tuning:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
 
                 if args.upload is True:
-                    wandb.log(results)
-
+                    wandb.log(results, step=epoch)
+        
         ## test HERE!!
         if self.hyper_parameter_tuning:
             return best_valid_results, eval_results_list, train_results_list, []
@@ -238,9 +241,13 @@ class Trainer:
             print(colored("model testing based on epoch: " + str(best_epoch), 'green', attrs=['bold']))
 
             self.model.load_state_dict(torch.load(save_dir + "/"+self.network+"_"+self.task + ".model"))
-            test_results = self.evaluate(eval_dict, batch_gen,True)
-            test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
-            return best_valid_results, eval_results_list, train_results_list, test_results
+            if args.dataset == "JIGSAWS":
+                # TODO NOTICE: There is no test set for JIGSAWS dataset
+                test_results = None
+            else: 
+                test_results = self.evaluate(eval_dict, batch_gen,True)
+                test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
+        return best_valid_results, eval_results_list, train_results_list, test_results
 
     def evaluate(self, eval_dict, batch_gen,is_test=False):
         results = {}
@@ -249,8 +256,8 @@ class Trainer:
         sample_rate = eval_dict["sample_rate"]
         actions_dict = eval_dict["actions_dict_tools"]
         actions_dict_gesures = eval_dict["actions_dict_gestures"]
-        ground_truth_path_right = eval_dict["gt_path_tools_right"]
-        ground_truth_path_left = eval_dict["gt_path_tools_left"]
+        # ground_truth_path_right = eval_dict["gt_path_tools_right"]
+        # ground_truth_path_left = eval_dict["gt_path_tools_left"]
         ground_truth_path_gestures = eval_dict["gt_path_gestures"]
 
         self.model.eval()

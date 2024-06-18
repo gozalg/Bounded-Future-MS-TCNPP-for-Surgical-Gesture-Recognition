@@ -1,17 +1,22 @@
+#----------------- Python Libraries Imports -----------------#
+# Standard library imports
+import math
+import os
+import random
+
+# Third party imports
+from PIL import Image
+import cv2
+import numpy as np
+from numpy.random import randint
 import torch
 import torch.utils.data as data
 import torchvision
-from utils.transforms import Stack, ToTorchFormatTensor
-
-from PIL import Image
-import os
-import numpy as np
-from numpy.random import randint
-import random
-import math
-import cv2
 from skimage.util import random_noise
-
+#------------------ Bounded Future Imports ------------------#
+# Local application imports
+from utils.transforms import Stack, ToTorchFormatTensor
+#------------------------------------------------------------#
 
 class Gesture2dTrainSet(data.Dataset):
     def __init__(self,list_of_train_examples, root_path, transcriptions_dir, gesture_ids,

@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 
+from sympy import N
 import torch
 import numpy as np
 import random
@@ -9,9 +10,9 @@ from scipy.stats import norm
 
 
 class BatchGenerator(object):
-    def __init__(self, num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_folder, gt_path_gestures=None, gt_path_tools_left=None, gt_path_tools_right=None, sample_rate=1, normalization="None", task="gestures"):
+    def __init__(self, dataset, num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_folder, gt_path_gestures=None, gt_path_tools_left=None, gt_path_tools_right=None, sample_rate=1, normalization="None", task="gestures"):
         """
-
+        :param dataset: VTS or JIGSAWS or MultiBypass140 or RARP150
         :param num_classes_gestures: 
         :param num_classes_tools: 
         :param actions_dict_gestures: 
@@ -26,6 +27,7 @@ class BatchGenerator(object):
         :param normalization: None - no normalization, min-max - Min-max feature scaling, Standard - Standard score	 or Z-score Normalization
         ## https://en.wikipedia.org/wiki/Normalization_(statistics)
         """""
+        self.dataset = dataset
         self.task = task
         self.normalization = normalization
         self.folds_folder = folds_folder
@@ -43,27 +45,23 @@ class BatchGenerator(object):
         self.gt_path_tools_right = gt_path_tools_right
         self.features_path = features_path
         self.sample_rate = sample_rate
-        self.read_data()
+        if self.dataset == "VTS":
+            self.read_VTS_data()
+            # foldfile_end_with = ".txt"
+            # foldfile_in_name = "fold"
+        elif self.dataset == "JIGSAWS":
+            self.read_JIGSAWS_data()
+            # foldfile_end_with = ".csv"
+            # foldfile_in_name = "data_"
+        else: # MultiBypass140 or RARP150
+            raise NotImplementedError
+            self.read_MultiBypass140_data()
+            # foldfile_end_with = ".csv"
+            # foldfile_in_name = "data_"
         self.normalization_params_read()
 
-    def normalization_params_read(self):
-        params = pd.read_csv(os.path.join(
-            self.folds_folder, "std_params_fold_" + str(self.split_num) + ".csv"), index_col=0).values
-        self.max = params[0, :]
-        self.min = params[1, :]
-        self.mean = params[2, :]
-        self.std = params[3, :]
-
-    def reset(self):
-        self.index = 0
-        random.shuffle(self.list_of_train_examples)
-
-    def has_next(self):
-        if self.index < len(self.list_of_train_examples):
-            return True
-        return False
-
-    def read_data(self):
+    #---------------------------------VTS---------------------------------#
+    def read_VTS_data(self):
         self.list_of_train_examples = []
         number_of_folds = 0
         for file in os.listdir(self.folds_folder):
@@ -102,6 +100,81 @@ class BatchGenerator(object):
                 continue
 
         random.shuffle(self.list_of_train_examples)
+    #-------------------------------JIGSAWS-------------------------------#
+    def read_JIGSAWS_data(self):
+        self.list_of_train_examples = []
+        number_of_folds = 0
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and "valid" in filename:
+                number_of_folds = number_of_folds + 1
+
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and "valid" in filename:
+                file_path = os.path.join(self.folds_folder, filename)
+                if not os.path.exists(file_path):
+                    print(f"The file {file_path} does not exist.")
+                    raise FileNotFoundError
+                elif os.path.getsize(file_path) == 0:
+                    print(f"The file {file_path} is empty.")
+                    raise EOFError
+                else:
+                    with open(file_path, 'r') as file_ptr:
+                            contents = file_ptr.read()
+                    if '\n' not in contents:
+                        print(f"The file {file_path} does not contain any newline characters.")
+                    else:
+                        files_to_sort = contents.split('\n')[:-1]
+                    #----- Validation set -----#
+                    if str(self.split_num) in filename:
+                        self.list_of_valid_examples = files_to_sort
+                        if not self.list_of_valid_examples:
+                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                            raise EOFError
+                        else:
+                            random.shuffle(self.list_of_valid_examples)
+                    #----- Test set -----# TODO NOTICE: There is no Test set in JIGSAWS dataset
+                    # elif str((self.split_num + 1) % number_of_folds) in filename:
+                    #         self.list_of_test_examples = files_to_sort
+                    #         if not self.list_of_test_examples:
+                    #             print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                    #             raise EOFError
+                    #         else:
+                    #             random.shuffle(self.list_of_valid_examples)
+                    #----- Training set -----#
+                    else:
+                        self.list_of_train_examples = self.list_of_train_examples + files_to_sort
+                        if not self.list_of_train_examples:
+                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                            raise EOFError
+                continue
+            else:
+                continue
+
+        random.shuffle(self.list_of_train_examples)
+    #----------------------------MultiBypass140---------------------------#
+    #-------------------------------RARP150-------------------------------#
+
+    def normalization_params_read(self):
+        if self.normalization == "None":
+            return
+        params = pd.read_csv(os.path.join(
+            self.folds_folder, "std_params_fold_" + str(self.split_num) + ".csv"), index_col=0).values
+        self.max = params[0, :]
+        self.min = params[1, :]
+        self.mean = params[2, :]
+        self.std = params[3, :]
+
+    def reset(self):
+        self.index = 0
+        random.shuffle(self.list_of_train_examples)
+
+    def has_next(self):
+        if self.index < len(self.list_of_train_examples):
+            return True
+        return False
+    
 
     def pars_ground_truth(self, gt_source):
         contant = []
