@@ -1,0 +1,3 @@
+[submodule "data/SAR-RARP50/SAR_RARP50-evaluation"]
+	path = data/SAR-RARP50/SAR_RARP50-evaluation
+	url = https://github.com/surgical-vision/SAR_RARP50-evaluation.git
