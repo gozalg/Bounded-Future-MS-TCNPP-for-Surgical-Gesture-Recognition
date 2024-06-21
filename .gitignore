@@ -17,10 +17,12 @@ wandb/
 # output    
 output/
 # data
+data/.vscode
 data/JIGSAWS/Suturing
 data/VTS/VTS_dataset
 data/SAR-RARP50/test
 data/SAR-RARP50/train
+data/SAR-RARP50/frames
 data/SAR-RARP50/README.md
 # DGX
 *.sqsh
