@@ -48,7 +48,7 @@ parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewi
 parser.add_argument('--num_R', default=3, type=int)
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--offline_mode', default=False, type=bool)
+parser.add_argument('--offline_mode', default=False, type=bool) #True for RR-MS-TCN, False for BF-MS-TCN
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
