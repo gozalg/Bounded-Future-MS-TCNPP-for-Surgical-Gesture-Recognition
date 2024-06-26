@@ -39,7 +39,7 @@ parser.add_argument('--num_epochs', default=40, type=int)
 parser.add_argument('--eval_rate', default=1, type=int)
 
 # Architecture
-parser.add_argument('--w_max', default=0, type=int) # 0 for "online", >0 for "offline"
+parser.add_argument('--w_max', default=0, type=int) # 0 for "offline", >0 for "online"
 parser.add_argument('--num_layers_PG', default=10, type=int)
 parser.add_argument('--num_layers_R', default=10, type=int)
 parser.add_argument('--num_f_maps', default=128, type=int)
@@ -48,13 +48,13 @@ parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewi
 parser.add_argument('--num_R', default=3, type=int)
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--offline_mode', default=False, type=bool) #True for RR-MS-TCN, False for BF-MS-TCN
+parser.add_argument('--RR_not_BF_mode', default=False, type=bool) #True for RR-MS-TCN, False for BF-MS-TCN
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
 parser.add_argument('--loss_lambda', default=1, type=float)
 parser.add_argument('--dropout_TCN', default=0.5, type=float)
-parser.add_argument('--project', default="BF-MS-TCN_JIGSAWS_LOUO_online_wmax=0_TEST", type=str) # default="Offline RNN nets Sensor paper Final"
+parser.add_argument('--project', default="BF-MS-TCN_JIGSAWS_LOUO_online_wmax=0_with_test_TEST", type=str) # default="Offline RNN nets Sensor paper Final"
 parser.add_argument('--group', default=date_str + " ", type=str)
 parser.add_argument('--use_gpu_num', default="1", type=str)
 parser.add_argument('--upload', default=True, type=bool)
@@ -104,12 +104,12 @@ num_epochs = args.num_epochs
 eval_rate = args.eval_rate
 features_dim = args.features_dim
 lr = args.lr
-offline_mode = args.offline_mode
+RR_not_BF_mode = args.RR_not_BF_mode
 num_layers_PG = args.num_layers_PG
 num_layers_R = args.num_layers_R
 num_f_maps = args.num_f_maps
 experiment_name = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-                  args.network + " is Offline: " + str(args.offline_mode) + " w_max: " + str(args.w_max)
+                  args.network + " is Offline: " + str(args.RR_not_BF_mode) + " w_max: " + str(args.w_max)
 args.group = experiment_name
 hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
@@ -181,7 +181,7 @@ for split_num in list_of_splits:
 
     # initializes the Trainer - does not train
     trainer = Trainer(num_layers_PG, num_layers_R, args.num_R, num_f_maps, features_dim, num_classes_list,
-                      offline_mode=offline_mode, w_max=args.w_max,
+                      RR_not_BF_mode=RR_not_BF_mode, w_max=args.w_max,
                       tau=loss_tau, lambd=loss_lambda,
                       dropout_TCN=args.dropout_TCN, task=args.task, device=device,
                       network=args.network,

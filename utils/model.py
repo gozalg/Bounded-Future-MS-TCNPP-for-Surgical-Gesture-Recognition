@@ -8,10 +8,10 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 
 class MST_TCN2_late(nn.Module):
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list,dropout=0.5,window_dim=0, offline_mode=False):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list,dropout=0.5,window_dim=0, RR_not_BF_mode=False):
         super(MST_TCN2_late, self).__init__()
         self.window_dim = window_dim
-        self.offline_mode = offline_mode
+        self.RR_not_BF_mode = RR_not_BF_mode
         self.num_R = num_R
         self.PG = MT_Prediction_Generation(num_layers_PG, num_f_maps, dim, num_classes_list,dropout)
 
@@ -20,7 +20,7 @@ class MST_TCN2_late(nn.Module):
 
     def forward(self, x,*args):
         outputs=[]
-        outs, _ = self.PG(x, 0, self.offline_mode)
+        outs, _ = self.PG(x, 0, self.RR_not_BF_mode)
         for out in outs:
             outputs.append(out.unsqueeze(0))
         out = torch.cat(outs,1)
@@ -28,9 +28,9 @@ class MST_TCN2_late(nn.Module):
         if self.num_R >0:
             for k,R in enumerate(self.Rs):
                 if k != len(self.Rs):
-                    outs = R(F.softmax(out, dim=1),0, self.offline_mode)
+                    outs = R(F.softmax(out, dim=1),0, self.RR_not_BF_mode)
                 else:
-                    outs = R(F.softmax(out, dim=1),self.window_dim, self.offline_mode)
+                    outs = R(F.softmax(out, dim=1),self.window_dim, self.RR_not_BF_mode)
 
 
                 out = torch.cat(outs, 1)
@@ -40,10 +40,10 @@ class MST_TCN2_late(nn.Module):
         return outputs
 
 class MST_TCN2_early(nn.Module):
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list,dropout=0.5,window_dim=0, offline_mode=False):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list,dropout=0.5,window_dim=0, RR_not_BF_mode=False):
         super(MST_TCN2_early, self).__init__()
         self.window_dim = window_dim
-        self.offline_mode = offline_mode
+        self.RR_not_BF_mode = RR_not_BF_mode
         self.num_R = num_R
         self.PG = MT_Prediction_Generation(num_layers_PG, num_f_maps, dim, num_classes_list,dropout)
 
@@ -52,14 +52,14 @@ class MST_TCN2_early(nn.Module):
 
     def forward(self, x,*args):
         outputs=[]
-        outs, _ = self.PG(x, self.window_dim, self.offline_mode)
+        outs, _ = self.PG(x, self.window_dim, self.RR_not_BF_mode)
         for out in outs:
             outputs.append(out.unsqueeze(0))
         out = torch.cat(outs,1)
 
         if self.num_R >0:
             for R in self.Rs:
-                outs = R(F.softmax(out, dim=1),0, self.offline_mode)
+                outs = R(F.softmax(out, dim=1),0, self.RR_not_BF_mode)
                 out = torch.cat(outs, 1)
                 for i, output in enumerate(outputs):
                     outputs[i] = torch.cat((output, outs[i].unsqueeze(0)), dim=0)
@@ -68,10 +68,10 @@ class MST_TCN2_early(nn.Module):
 
 
 class MST_TCN2(nn.Module):
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, dropout=0.5, w_max=0, offline_mode=False):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, dropout=0.5, w_max=0, RR_not_BF_mode=False):
         super(MST_TCN2, self).__init__()
         self.w_max = w_max
-        self.offline_mode = offline_mode
+        self.RR_not_BF_mode = RR_not_BF_mode
         self.num_R = num_R
         self.PG = MT_Prediction_Generation(num_layers_PG, num_f_maps, dim, num_classes_list,dropout)
 
@@ -80,14 +80,14 @@ class MST_TCN2(nn.Module):
 
     def forward(self, x, *args):
         outputs = []
-        outs, _ = self.PG(x, self.w_max, self.offline_mode)
+        outs, _ = self.PG(x, self.w_max, self.RR_not_BF_mode)
         for out in outs:
             outputs.append(out.unsqueeze(0))
         out = torch.cat(outs, 1)
 
         if self.num_R > 0:
             for R in self.Rs:
-                outs = R(F.softmax(out, dim=1),self.w_max, self.offline_mode)
+                outs = R(F.softmax(out, dim=1),self.w_max, self.RR_not_BF_mode)
                 out = torch.cat(outs, 1)
                 for i, output in enumerate(outputs):
                     outputs[i] = torch.cat((output, outs[i].unsqueeze(0)), dim=0)
@@ -215,11 +215,11 @@ class MT_Refinement(nn.Module):  # refinement stage
             nn.Conv1d(num_f_maps, num_classes_list[s], 1))
             for s in range(len(num_classes_list))])
 
-    def forward(self, x, w_max, offline_mode):
+    def forward(self, x, w_max, RR_not_BF_mode):
         outs = []
         f = self.conv_1x1(x)
         for layer in self.layers:
-            f = layer(f, w_max, offline_mode)
+            f = layer(f, w_max, RR_not_BF_mode)
         for conv_out in self.conv_outs:
             outs.append(conv_out(f))
         return outs

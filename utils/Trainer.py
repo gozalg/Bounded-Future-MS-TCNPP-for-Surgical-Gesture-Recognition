@@ -22,14 +22,14 @@ from .util import WANDB_API_KEY
 wandb.login(key=WANDB_API_KEY)
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, offline_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
                  network='MS-TCN2',hyper_parameter_tuning=False,DEBUG=False):
         if network == 'MS-TCN2':
-            self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,offline_mode=offline_mode)
+            self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
         elif network == 'MS-TCN2 late':
-            self.model = MST_TCN2_late(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,offline_mode=offline_mode)
+            self.model = MST_TCN2_late(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
         elif network == 'MS-TCN2 early':
-            self.model = MST_TCN2_early(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,offline_mode=offline_mode)
+            self.model = MST_TCN2_early(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
 
         else:
             raise NotImplemented
@@ -206,28 +206,32 @@ class Trainer:
                 results.update(self.evaluate(eval_dict, batch_gen))
                 eval_results_list.append(results)
                 if self.task == "gestures":
-                   if results['F1@50 gesture'] >= Max_F1_50:
+                   # NOTICE: we are using the F1@50 gesture for the early stopping when there is a validation set in the dataset
+                   #         In the case of JIGSAWS, there is no validation set, so we always update the model.
+                   if (args.dataset in ['JIGSAWS']) or (results['F1@50 gesture'] >= Max_F1_50):
                     Max_F1_50 =results['F1@50 gesture']
                     best_valid_results = results
                     if not self.DEBUG and not self.hyper_parameter_tuning:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
-                if self.task == "tools":
-                   if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
-                    Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
-                    best_valid_results = results
-                    if not self.DEBUG and not self.hyper_parameter_tuning:
-                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                # elif self.task == "tools":
+                #    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
+                #     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
+                #     best_valid_results = results
+                #     if not self.DEBUG and not self.hyper_parameter_tuning:
+                #         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                #         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
-                if self.task == "multi-taks":
-                   if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
-                    Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
-                    best_valid_results = results
-                    if not self.DEBUG and not self.hyper_parameter_tuning:
-                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                # elif self.task == "multi-taks":
+                #    if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
+                #     Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
+                #     best_valid_results = results
+                #     if not self.DEBUG and not self.hyper_parameter_tuning:
+                #         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                #         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                else:
+                    raise NotImplemented
 
 
                 if args.upload is True:
@@ -241,12 +245,14 @@ class Trainer:
             print(colored("model testing based on epoch: " + str(best_epoch), 'green', attrs=['bold']))
 
             self.model.load_state_dict(torch.load(save_dir + "/"+self.network+"_"+self.task + ".model"))
-            if args.dataset == "JIGSAWS":
-                # TODO NOTICE: There is no test set for JIGSAWS dataset
-                test_results = None
-            else: 
-                test_results = self.evaluate(eval_dict, batch_gen,True)
-                test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
+            # if args.dataset == "JIGSAWS":
+            #     # TODO NOTICE: There is no test set for JIGSAWS dataset
+            #     test_results = None
+            # else: 
+            #     test_results = self.evaluate(eval_dict, batch_gen,True)
+            #     test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
+            test_results = self.evaluate(eval_dict, batch_gen,True)
+            test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
         return best_valid_results, eval_results_list, train_results_list, test_results
 
     def evaluate(self, eval_dict, batch_gen,is_test=False):

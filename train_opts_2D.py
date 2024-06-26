@@ -148,7 +148,7 @@ parser.add_argument('--loss_weighting', type=bool, default=True,
                          "weigh more heavily.")
 parser.add_argument('--eval_freq', '-ef', type=int, default=1, help="Validate model every <eval_freq> epochs.")
 parser.add_argument('--save_freq', '-sf', type=int, default=5, help="Save checkpoint every <save_freq> epochs.")
-parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models"),
+parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "feature_extractor"),
                     help="Path to output folder, where all models and results will be stored.")
 parser.add_argument('--label_embedding_path', type=str, default=None,
                     help="Path to label embeddings, where a vector embedding will be saved for each label")

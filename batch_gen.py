@@ -126,7 +126,7 @@ class BatchGenerator(object):
                         print(f"The file {file_path} does not contain any newline characters.")
                     else:
                         files_to_sort = contents.split('\n')[:-1]
-                    #----- Validation set -----#
+                    #----- Validation set -----# NOTICE: There is no Validation set in JIGSAWS dataset
                     if str(self.split_num) in filename:
                         self.list_of_valid_examples = files_to_sort
                         if not self.list_of_valid_examples:
@@ -134,14 +134,14 @@ class BatchGenerator(object):
                             raise EOFError
                         else:
                             random.shuffle(self.list_of_valid_examples)
-                    #----- Test set -----# TODO NOTICE: There is no Test set in JIGSAWS dataset
-                    # elif str((self.split_num + 1) % number_of_folds) in filename:
-                    #         self.list_of_test_examples = files_to_sort
-                    #         if not self.list_of_test_examples:
-                    #             print(f"The file {file_path} only contains empty lines or ends with a newline.")
-                    #             raise EOFError
-                    #         else:
-                    #             random.shuffle(self.list_of_valid_examples)
+                    #----- Test set -----# Using the same data for test and validation since there is no validation set in JIGSAWS dataset
+                    if str(self.split_num) in filename:
+                            self.list_of_test_examples = files_to_sort
+                            if not self.list_of_test_examples:
+                                print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                                raise EOFError
+                            else:
+                                random.shuffle(self.list_of_test_examples)
                     #----- Training set -----#
                     else:
                         self.list_of_train_examples = self.list_of_train_examples + files_to_sort
