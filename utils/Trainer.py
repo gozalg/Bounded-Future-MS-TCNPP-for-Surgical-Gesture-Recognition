@@ -231,7 +231,7 @@ class Trainer:
                 #         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                 #         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 else:
-                    raise NotImplemented
+                    raise NotImplementedError()
 
 
                 if args.upload is True:

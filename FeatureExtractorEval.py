@@ -225,4 +225,4 @@ for i in range(total_splits):
     args.next_split()
 
 # keep results in csv file
-results.to_csv(f"/workspace/BoundedFuture++/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)
+results.to_csv(f"/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)

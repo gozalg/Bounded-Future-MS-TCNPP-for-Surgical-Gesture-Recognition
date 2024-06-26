@@ -80,7 +80,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu_num  # number of GPUs
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Running on: {device}")
 
-if device=="cpu":
+if device.type=='cpu':
     raiseExceptions("Not using CUDA")
 
 # use the full temporal resolution @ 30Hz
