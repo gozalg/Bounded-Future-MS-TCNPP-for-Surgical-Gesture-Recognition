@@ -54,7 +54,7 @@ parser.add_argument('--RR_not_BF_mode', default=False, type=bool) #True for RR-M
 parser.add_argument('--loss_tau', default=16, type=float)
 parser.add_argument('--loss_lambda', default=1, type=float)
 parser.add_argument('--dropout_TCN', default=0.5, type=float)
-parser.add_argument('--project', default="BF-MS-TCN_JIGSAWS_LOUO_online_wmax=0_with_test_TEST", type=str) # default="Offline RNN nets Sensor paper Final"
+parser.add_argument('--project', default="RR-MS-TCN_JIGSAWS_LOUO_wmax=0_so01", type=str) # default="Offline RNN nets Sensor paper Final"
 parser.add_argument('--group', default=date_str + " ", type=str)
 parser.add_argument('--use_gpu_num', default="1", type=str)
 parser.add_argument('--upload', default=True, type=bool)
@@ -78,9 +78,12 @@ torch.backends.cudnn.deterministic = True
 os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu_num  # number of GPUs
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
-# use the full temporal resolution @ 30Hz
+print(f"Running on: {device}")
 
+if device=="cpu":
+    raiseExceptions("Not using CUDA")
+
+# use the full temporal resolution @ 30Hz
 sample_rate = args.sample_rate
 batch_size = 2
 

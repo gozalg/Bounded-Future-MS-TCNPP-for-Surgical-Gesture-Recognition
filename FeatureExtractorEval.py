@@ -141,8 +141,14 @@ if args.eval_scheme == 'LOUO':
 elif args.eval_scheme == 'LOSO':
     total_splits = 5
 
+# for results.csv
+results = pd.DataFrame(columns=["split", "test_acc", "test_macro_f1", "test_f1_10", "test_f1_25", "test_f1_50"])
+
 # Run for all splits
 for i in range(total_splits):
+    print(f"=========================")
+    print(f"Testing Split Num: {i}...")
+    print(f"=========================")
     # ===== load data =====
     gesture_ids = get_gestures(args.dataset, args.task)
     args.eval_batch_size = 2 * args.batch_size
@@ -212,6 +218,11 @@ for i in range(total_splits):
     print("\033[94m" + "\tTest Macro F1: " + "\033[93m" + f"\t{test_macro_f1:.3f}" + "\033[0m")
     print("\033[94m" + "\tTest F1@10: " + "\033[93m" + f"\t{test_f1_10:.3f}" + "\033[0m")
     print("\033[94m" + "\tTest F1@25: " + "\033[93m" + f"\t{test_f1_25:.3f}" + "\033[0m")
-    print("\033[94m" + "\tTest F1@50: " + "\033[93m" + f"\t{test_f1_50:.3f}" + "\033[0m")
+    print("\033[94m" + "\tTest F1@50: " + "\033[93m" + f"\t{test_f1_50:.3f}")
+
+    results.loc[i] = [args.split, test_acc, test_macro_f1, test_f1_10, test_f1_25, test_f1_50]
 
     args.next_split()
+
+# keep results in csv file
+results.to_csv(f"/workspace/BoundedFuture++/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)
