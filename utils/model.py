@@ -190,13 +190,13 @@ class MT_Prediction_Generation(nn.Module):
             nn.Conv1d(num_f_maps, num_classes_list[s], 1))
                                  for s in range(len(num_classes_list))])
 
-    def forward(self, x, w_max, offline_mod):
+    def forward(self, x, w_max, RR_not_BF_mode):
         outs = []
         f = self.conv_1x1_in(x)
 
         for i in range(self.num_layers):
             f_in = f
-            f = self.conv_fusion[i](torch.cat([self.conv_dilated_1[i](f, w_max, offline_mod), self.conv_dilated_2[i](f, w_max, offline_mod)], 1))
+            f = self.conv_fusion[i](torch.cat([self.conv_dilated_1[i](f, w_max, RR_not_BF_mode), self.conv_dilated_2[i](f, w_max, RR_not_BF_mode)], 1))
             f = F.relu(f)
             f = self.dropout(f)
             f = f + f_in
@@ -232,8 +232,8 @@ class Dilated_conv(nn.Module):
         self.Dilated_conv = nn.Conv1d(num_f_maps, num_f_maps, karnel_size, dilation=dilation)
         # the dilation seperates the frames
 
-    def forward(self, x, w_max, offline):
-        if offline:
+    def forward(self, x, w_max, RR_not_BF_mode):
+        if RR_not_BF_mode:
             out = self.Acausal_padding(x, self.dilation)
         else:
             out = self.window_padding(x, self.dilation, w_max)
@@ -260,8 +260,8 @@ class DilatedResidualLayer(nn.Module):
         self.conv_1x1 = nn.Conv1d(out_channels, out_channels, 1)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x, w_max, offline):
-        if offline:
+    def forward(self, x, w_max, RR_not_BF_mode):
+        if RR_not_BF_mode:
             out = self.Acausal_padding(x, self.dilation)
         else:
             out = self.window_padding(x, self.dilation, w_max)
