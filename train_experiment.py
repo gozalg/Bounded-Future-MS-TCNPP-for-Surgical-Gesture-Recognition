@@ -75,7 +75,7 @@ torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 torch.backends.cudnn.deterministic = True
 
-os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu_num  # number of GPUs
+# os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu_num  # number of GPUs
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Running on: {device}")
@@ -112,7 +112,7 @@ num_layers_PG = args.num_layers_PG
 num_layers_R = args.num_layers_R
 num_f_maps = args.num_f_maps
 experiment_name = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-                  args.network + " is Offline: " + str(args.RR_not_BF_mode) + " w_max: " + str(args.w_max)
+                  args.network + " is RR_not_BF_mode: " + str(args.RR_not_BF_mode) + " w_max: " + str(args.w_max)
 args.group = experiment_name
 hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
