@@ -20,7 +20,9 @@ gestures_KT = ['G1', 'G11', 'G12', 'G13', 'G14', 'G15']
 #---------------------------------- MultiBypass140 ----------------------------------
 
 #-------------------------------------- RARP50 --------------------------------------
-
+splits_SAR_RARP50   = ['data_1.csv', 'data_2.csv', 'data_3.csv', 'data_4.csv', 'data_5.csv']
+gestures_SAR_RARP50 = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']
+#--------------------------------------- TODO ---------------------------------------
 gestures_GTEA = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11']
 """
     G1 - spread
@@ -39,34 +41,7 @@ splits_GTEA = ['data_A.csv', 'data_C.csv', 'data_D.csv', 'data_B.csv'] # this li
 # splits_GTEA = ['data_A.csv', 'data_B.csv', 'data_C.csv', 'data_D.csv']  
 
 gestures_50salads = [f'G{i}' for i in range(1, 20)]
-
-
-splits_50salads = ['data_A.csv', 'data_B.csv', 'data_C.csv', 'data_D.csv', 'data_E.csv', 'data_F.csv', 
-                   'data_G.csv', 'data_H.csv', 'data_I.csv', 'data_J.csv', 'data_L.csv', 'data_M.csv',
-                   'data_N.csv', 'data_O.csv', 'data_P.csv', 'data_Q.csv', 'data_R.csv', 'data_S.csv',
-                   'data_T.csv', 'data_U.csv', 'data_V.csv', 'data_W.csv', 'data_X.csv', 'data_Y.csv',
-                   'data_Z.csv']
-
-gestures_breakfast = ["add_saltnpepper", "add_teabag", "butter_pan",
-                    "crack_egg", "cut_bun", "cut_fruit",
-                    "cut_orange", "fry_egg", "fry_pancake",
-                    "peel_fruit", "pour_cereals", "pour_coffee",
-                    "pour_dough2pan", "pour_egg2pan", "pour_flour", "pour_juice",
-                    "pour_milk", "pour_oil", "pour_sugar", "pour_water",
-                    "put_bunTogether", "put_egg2plate", "put_fruit2bowl", "put_pancake2plate",
-                    "put_toppingOnTop", "SIL", "smear_butter", "spoon_flour",
-                    "spoon_powder", "spoon_sugar", "squeeze_orange", "stir_cereals",
-                    "stir_coffee", "stir_dough", "stir_egg", "stir_fruit",
-                    "stirfry_egg", "stir_milk", "stir_tea", "take_bowl",
-                    "take_butter", "take_cup", "take_eggs", "take_glass",
-                    "take_knife", "take_plate", "take_squeezer", "take_topping"
-                    ]
-
-splits_breakfast = [[f'data_{i:02}.csv' for i in range(3, 16)],
-                    [f'data_{i:02}.csv' for i in range(16, 29)],
-                    [f'data_{i:02}.csv' for i in range(29, 42)],
-                    [f'data_{i:02}.csv' for i in range(42, 55)]
-                   ]
+#-----------------------------------------------------------------------------------
 
 
 def log(file, msg):

@@ -1,4 +1,5 @@
 gestures = {
+    "Other"                                             : "G0",
     "Reaching for needle with right hand"               : "G1",
     "Positioning needle"                                : "G2",
     "Pushing needle through tissue"                     : "G3",

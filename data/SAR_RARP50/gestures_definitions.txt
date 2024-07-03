@@ -1,0 +1,10 @@
+gestures = {
+    "Other"                                             : "G0",
+    "Picking-up the needle"                             : "G1",
+    "Positioning the needle tip"                        : "G2",
+    "Pushing the needle through the tissue"             : "G3",
+    "Pulling the needle out of the tissue"              : "G4",
+    "Tying a knot"                                      : "G5",
+    "Cutting the suture"                                : "G6",
+    "Returning/dropping the needle"                     : "G7"
+    }

@@ -164,13 +164,13 @@ for split_num in list_of_splits:
     num_classes_tools = 0
     # Example: {'T0': 0, 'T1': 1, 'T2': 2, 'T3': 3}
     actions_dict_tools = dict()
-    if args.dataset == "VTS":
-        file_ptr = open(mapping_tool_file, 'r')
-        actions = file_ptr.read().split('\n')[:-1]
-        file_ptr.close()
-        for a in actions:
-            actions_dict_tools[a.split()[1]] = int(a.split()[0])
-        num_classes_tools = len(actions_dict_tools)
+    # if args.dataset == "VTS":
+    #     file_ptr = open(mapping_tool_file, 'r')
+    #     actions = file_ptr.read().split('\n')[:-1]
+    #     file_ptr.close()
+    #     for a in actions:
+    #         actions_dict_tools[a.split()[1]] = int(a.split()[0])
+    #     num_classes_tools = len(actions_dict_tools)
 
     num_classes_gestures = len(actions_dict_gestures)
 

@@ -13,6 +13,7 @@ import pandas as pd
 import torch
 import torch.utils.data as data
 import torchvision
+from tqdm import tqdm
 from PIL import Image
 from skimage.util import random_noise
 #------------------ Bounded Future Imports ------------------#
@@ -55,20 +56,16 @@ class SequentialTestGestureDataSet(data.Dataset):
         video_id = video_name
         _frame_count = self.frame_count
 
-        gestures_file = os.path.join(
-            self.transcriptions_dir, video_id + ".txt")
-        gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
-                    for x in open(gestures_file)]
+        gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
+        gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
         # [start_frame, end_frame, gesture_id]
 
         _initial_labeled_frame = gestures[0][0]
         _final_labaled_frame = gestures[-1][1]
 
-        _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
-                                       'img_{:05d}.jpg'.format(_frame_count))
+        _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix, 'img_{:05d}.jpg'.format(_frame_count))
 
-        self.frame_num_data[video_id] = list(
-            range(_initial_labeled_frame, _final_labaled_frame, self.sampling_step))
+        self.frame_num_data[video_id] = list(range(_initial_labeled_frame, _final_labaled_frame, self.sampling_step))
         self._generate_labels_list(video_id, gestures)
         self._preload_images(video_id)
         assert len(self.image_data[video_id]) == len(
@@ -174,23 +171,19 @@ class GestureTrainSet(data.Dataset):
             else:
                 num_of_frames_to_choose = math.floor(
                     number_of_samples_per_class * temporal_augmentaion_factor)
-            gesture_dict_per_policy = self._sort_frames_by_gesture(
-                policy_index)
-            self._random_balancing(
-                num_of_frames_to_choose, gesture_dict_per_policy)
+            gesture_dict_per_policy = self._sort_frames_by_gesture(policy_index)
+            self._random_balancing(num_of_frames_to_choose, gesture_dict_per_policy)
 
     def _random_balancing(self, number_of_frames_to_choose, gesture_dict):
         for gesture in gesture_dict:
             if len(gesture_dict[gesture]) > 0:
-                selected_frames = random.choices(
-                    gesture_dict[gesture], k=number_of_frames_to_choose)
+                selected_frames = random.choices(gesture_dict[gesture], k=number_of_frames_to_choose)
                 self.ballanced_data_set = self.ballanced_data_set + selected_frames
 
     def _parse_list_files(self, list_of_list_files):
         # depands only on csv files of splits directory
         for list_file in list_of_list_files:
-            videos = [(x.strip().split(',')[0], x.strip().split(',')[1])
-                      for x in open(list_file)]
+            videos = [(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)]
             if self.debag:
                 videos = [videos[0]]
             for video in videos:
@@ -199,24 +192,20 @@ class GestureTrainSet(data.Dataset):
 
                 gestures_file = os.path.join(
                     self.transcriptions_dir, video_id + ".txt")
-                gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
-                            for x in open(gestures_file)]
+                gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
                 # [start_frame, end_frame, gesture_id]
 
                 _initial_labeled_frame = gestures[0][0]
                 _final_labaled_frame = gestures[-1][1]
                 _frame_count = frame_count
 
-                _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
-                                               'img_{:05d}.jpg'.format(_frame_count))
+                _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,'img_{:05d}.jpg'.format(_frame_count))
 
                 self.frame_num_data[video_id] = [
                     _initial_labeled_frame, _final_labaled_frame]
                 self._generate_labels_list(video_id, gestures)
-                self._preload_images(
-                    video_id, _frame_count, _final_labaled_frame)
-                assert len(self.image_data[video_id]) == len(
-                    self.labels_data[video_id])
+                self._preload_images(video_id, _frame_count, _final_labaled_frame)
+                assert len(self.image_data[video_id]) == len(self.labels_data[video_id])
 
     def _sort_frames_by_gesture(self, sampling_policy_index):
         gesture_dict = {}
@@ -224,18 +213,18 @@ class GestureTrainSet(data.Dataset):
             if gest is None:
                 continue
             gesture_dict[gest] = []
-        real_snippet_length = self._real_length_calc(
-            self.sampling_policies_list[sampling_policy_index])
+        real_snippet_length = self._real_length_calc(self.sampling_policies_list[sampling_policy_index])
         for video_id in self.labels_data:
             initial_relevant_frame_index = self.frame_num_data[video_id][0] + \
                 real_snippet_length - 1
-            frame_dict = {"video_name": video_id, "frame_index": 0,
-                          "gesture": "", "sampling_policy_index": sampling_policy_index}
+            frame_dict = {"video_name": video_id, 
+                          "frame_index": 0,
+                          "gesture": "", 
+                          "sampling_policy_index": sampling_policy_index}
             for i in range(initial_relevant_frame_index, self.frame_num_data[video_id][1]):
                 frame_dict["frame_index"] = i
                 frame_dict["gesture"] = self.labels_data[video_id][i]
-                gesture_dict[self.gesture_ids[self.labels_data[video_id][i]]].append(
-                    frame_dict.copy())
+                gesture_dict[self.gesture_ids[self.labels_data[video_id][i]]].append(frame_dict.copy())
         return gesture_dict
 
     def _generate_labels_list(self, video_id, gestures):
@@ -276,17 +265,14 @@ class GestureTrainSet(data.Dataset):
 
             tot = tot + len(self.labels_data[video])
             for i, G_x in enumerate(self.gesture_ids):
-                accessible_labels_data = self.labels_data[video][real_snippet_length +
-                                                                 self.frame_num_data[video][0] - 1:-1]
-                gesture_hist[i] = gesture_hist[i] + \
-                    accessible_labels_data.count(self.gesture_ids.index(G_x))
+                accessible_labels_data = self.labels_data[video][real_snippet_length + self.frame_num_data[video][0] - 1:-1]
+                gesture_hist[i] = gesture_hist[i] + accessible_labels_data.count(self.gesture_ids.index(G_x))
         missing_gestures = []
         for j in range(1, len(gesture_hist)):
             if gesture_hist[j] == 0:
                 missing_gestures.append(self.gesture_ids[j])
         if len(missing_gestures) > 0:
-            print("Warning! Gestures missing in dataset for policy" +
-                  str(sampling_policy), missing_gestures)
+            print("Warning! Gestures missing in dataset for policy" + str(sampling_policy), missing_gestures)
         gesture_hist = np.array(gesture_hist)
         the_minimum_number_of_frames = min(gesture_hist[gesture_hist > 0])
         return the_minimum_number_of_frames
@@ -297,8 +283,7 @@ class GestureTrainSet(data.Dataset):
         idx = snipt_info["frame_index"]
         policy_idx = snipt_info["sampling_policy_index"]
         # label = snipt_info["gesture"]
-        frame_list = self._policy_and_frame_into_frames_indices(
-            idx, policy_idx)
+        frame_list = self._policy_and_frame_into_frames_indices(idx, policy_idx)
         data = self.get_snippet(video_id, frame_list)
 
         target = self._get_snippet_labels(video_id, frame_list)
@@ -344,14 +329,21 @@ class GestureTrainSet(data.Dataset):
 
 class Sequential2DTestGestureDataSet(data.Dataset):
 
-    def __init__(self, root_path, video_id, frame_count, transcriptions_dir, gesture_ids,
+    def __init__(self, dataset, root_path, video_id, frame_count, transcriptions_dir, gesture_ids,
                  snippet_length=16, sampling_step=6,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
                  return_3D_tensor=True, return_dense_labels=True,
                  transform=None, normalize=None, resize=224, preload=True):
-
+        self.dataset = dataset
+        if self.dataset in ['JIGSAWS']:
+            self.video_freq = 30 # Hz
+            self.label_freq = 30 # Hz
+            self.root_path = root_path
+        elif self.dataset in ['SAR_RARP50']:
+            self.video_freq = 60 # Hz
+            self.label_freq = 10 # Hz
+            self.root_path = os.path.join(root_path, 'train')
         self.preload = preload
-        self.root_path = root_path
         self.video_name = video_id
         self.video_id = video_id
         self.transcriptions_dir = transcriptions_dir
@@ -378,25 +370,24 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         video_id = video_name
         _frame_count = self.frame_count
 
-        gestures_file = os.path.join(
-            self.transcriptions_dir, video_id + ".txt")
-        gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
-                    for x in open(gestures_file)]
-        # [start_frame, end_frame, gesture_id]
+        gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
+        if self.dataset == 'JIGSAWS':
+            # format [start_frame end_frame gesture_id]
+            gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
+        elif self.dataset == 'SAR_RARP50':
+            # format [start_frame,end_frame,gesture_id]
+            gestures = [[int(x.strip().split(',')[0]), int(x.strip().split(',')[1]), f"G{x.strip().split(',')[2]}"] for x in open(gestures_file)]
 
         _initial_labeled_frame = gestures[0][0]
         _final_labaled_frame = gestures[-1][1]
 
-        _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
-                                       'img_{:05d}.jpg'.format(_frame_count))
 
-        self.frame_num_data[video_id] = list(
-            range(_initial_labeled_frame, _final_labaled_frame + 1, self.sampling_step))
+
+        self.frame_num_data[video_id] = list(range(_initial_labeled_frame, _final_labaled_frame + 1, self.sampling_step))
         self._generate_labels_list(video_id, gestures)
         if self.preload:
             self._preload_images(video_id)
-        assert len(self.image_data[video_id]) == len(
-            self.labels_data[video_id])
+        assert len(self.image_data[video_id]) == len(self.labels_data[video_id])
 
     def _generate_labels_list(self, video_id, gestures):
         labels_list = []
@@ -481,13 +472,21 @@ class Sequential2DTestGestureDataSet(data.Dataset):
 
 
 class Gesture2DTrainSet(data.Dataset):
-    def __init__(self, root_path, list_of_list_files, transcriptions_dir, gesture_ids,
+    def __init__(self, dataset, root_path, list_of_list_files, transcriptions_dir, gesture_ids,
                  temporal_augmentaion_factor=0.2,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
                  transform=None, normalize=None, resize=224, number_of_samples_per_class=400, 
                  debag=False, preload=True):
+        self.dataset = dataset
+        if self.dataset in ['JIGSAWS']:
+            self.video_freq = 30 # Hz
+            self.label_freq = 30 # Hz
+            self.root_path = root_path
+        elif self.dataset in ['SAR_RARP50']:
+            self.video_freq = 60 # Hz
+            self.label_freq = 10 # Hz
+            self.root_path = os.path.join(root_path, 'train')
         self.debag = debag
-        self.root_path = root_path
         self.list_of_list_files = list_of_list_files
         self.transcriptions_dir = transcriptions_dir
         self.gesture_ids = gesture_ids
@@ -513,13 +512,13 @@ class Gesture2DTrainSet(data.Dataset):
             self._load_balanced_images()
 
     def _load_balanced_images(self):
-        for snipt_info in self.ballanced_data_set:
+        step = self.video_freq // self.label_freq
+        for snipt_info in tqdm(self.ballanced_data_set, desc="Processing balanced dataset"):
             video_id = snipt_info["video_name"]
-            idx = snipt_info["frame_index"]
+            idx = snipt_info["frame_index"] // step
             img = self.image_data[video_id][idx]
             if isinstance(img, Tuple):
-                self.image_data[video_id][idx] = self._load_image(
-                    *self.image_data[video_id][idx])[0]
+                self.image_data[video_id][idx] = self._load_image(*self.image_data[video_id][idx])[0]
 
     def _random_balancing(self, number_of_frames_to_choose, gesture_dict):
 
@@ -530,41 +529,36 @@ class Gesture2DTrainSet(data.Dataset):
 
         for gesture in gesture_dict:
             if len(gesture_dict[gesture]) > 0:
-                selected_frames = random.choices(
-                    gesture_dict[gesture], k=number_of_frames_to_choose)
+                selected_frames = random.choices(gesture_dict[gesture], k=number_of_frames_to_choose)
                 self.ballanced_data_set = self.ballanced_data_set + selected_frames
 
     def _parse_list_files(self, list_of_list_files):
         # depands only on csv files of splits directory
         for list_file in list_of_list_files:
-            videos = [(x.strip().split(',')[0], x.strip().split(',')[1])
-                      for x in open(list_file)]
+            videos = [(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)]
             if self.debag:
                 videos = [videos[0]]
             for video in videos:
                 video_id = video[0]
                 frame_count = int(video[1])
 
-                gestures_file = os.path.join(
-                    self.transcriptions_dir, video_id + ".txt")
-                gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
-                            for x in open(gestures_file)]
-                # [start_frame, end_frame, gesture_id]
+                gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
+                
+                if self.dataset == 'JIGSAWS':
+                    # format: [start_frame end_frame gesture_id]
+                    gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
+                elif self.dataset == 'SAR_RARP50':
+                    # format: [start_frame,end_frame,gesture_id]
+                    gestures = [[int(x.strip().split(',')[0]), int(x.strip().split(',')[1]), f"G{x.strip().split(',')[2]}"] for x in open(gestures_file)]
 
                 _initial_labeled_frame = gestures[0][0]
                 _final_labaled_frame = gestures[-1][1]
                 _frame_count = frame_count
 
-                _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
-                                               'img_{:05d}.jpg'.format(_frame_count))
-
-                self.frame_num_data[video_id] = [
-                    _initial_labeled_frame, _final_labaled_frame]
+                self.frame_num_data[video_id] = [_initial_labeled_frame, _final_labaled_frame]
                 self._generate_labels_list(video_id, gestures)
-                self._assert_images(video_id, _frame_count,
-                                    _final_labaled_frame)
-                assert len(self.image_data[video_id]) == len(
-                    self.labels_data[video_id])
+                self._assert_images(video_id, _frame_count, _final_labaled_frame)
+                assert len(self.image_data[video_id]) == len(self.labels_data[video_id])
 
     def _sort_frames_by_gesture(self):
         gesture_dict = {}
@@ -574,39 +568,42 @@ class Gesture2DTrainSet(data.Dataset):
             gesture_dict[gest] = []
         real_snippet_length = 1
         for video_id in self.labels_data:
-            initial_relevant_frame_index = self.frame_num_data[video_id][0] + \
-                real_snippet_length - 1
-            frame_dict = {"video_name": video_id,
-                          "frame_index": 0, "gesture": ""}
-            for i in range(initial_relevant_frame_index, self.frame_num_data[video_id][1]):
-                frame_dict["frame_index"] = i
-                frame_dict["gesture"] = self.labels_data[video_id][i]
-                gesture_dict[self.gesture_ids[self.labels_data[video_id][i]]].append(
-                    frame_dict.copy())
+            img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+            step = self.video_freq // self.label_freq
+            initial_relevant_frame_index = self.frame_num_data[video_id][0] + real_snippet_length - 1
+            frame_dict = {"video_name": video_id, "frame_index": 0, "gesture": ""}
+            for i in range(initial_relevant_frame_index, self.frame_num_data[video_id][1], step):
+                if os.path.exists(os.path.join(img_dir, self.image_tmpl.format(i))):
+                    frame_dict["frame_index"] = i
+                    frame_dict["gesture"] = self.labels_data[video_id][i // step]
+                    gesture_dict[self.gesture_ids[self.labels_data[video_id][i // step]]].append(frame_dict.copy())
         return gesture_dict
 
     def _generate_labels_list(self, video_id, gestures):
         labels_list = []
         for idx in range(gestures[0][0]-1):
-            labels_list.append(None)
+            labels_list.append(0) # for labeled 'Others'
 
+        img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
         for gesture in gestures:
             for idx in range(gesture[0], gesture[1]+1):
-                labels_list.append(self.gesture_ids.index(gesture[2]))
+                if(os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))):
+                    labels_list.append(self.gesture_ids.index(gesture[2]))
         self.labels_data[video_id] = labels_list
 
     def _assert_images(self, video_id, _frame_count, _final_labaled_frame):
         print("Asserting images from video {}...".format(video_id))
         images = []
         img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
-        for idx in range(1, _final_labaled_frame + 1):
-            imgs = [(img_dir, idx)]
-            images.extend(imgs)
+        _start_frame = 1 if self.dataset in ['JIGSAWS'] else 0
+        for idx in range(_start_frame, _final_labaled_frame + 1):
+            if(os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))):
+                imgs = [(img_dir, idx)]
+                images.extend(imgs)
         self.image_data[video_id] = images
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(
-            directory, self.image_tmpl.format(idx))).convert('RGB')
+        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
@@ -624,17 +621,14 @@ class Gesture2DTrainSet(data.Dataset):
 
             tot = tot + len(self.labels_data[video])
             for i, G_x in enumerate(self.gesture_ids):
-                accessible_labels_data = self.labels_data[video][real_snippet_length +
-                                                                 self.frame_num_data[video][0] - 1:-1]
-                gesture_hist[i] = gesture_hist[i] + \
-                    accessible_labels_data.count(self.gesture_ids.index(G_x))
+                accessible_labels_data = self.labels_data[video][real_snippet_length + self.frame_num_data[video][0] - 1:-1]
+                gesture_hist[i] = gesture_hist[i] + accessible_labels_data.count(self.gesture_ids.index(G_x))
         missing_gestures = []
         for j in range(1, len(gesture_hist)):
             if gesture_hist[j] == 0:
                 missing_gestures.append(self.gesture_ids[j])
         if len(missing_gestures) > 0:
-            print("Warning! Gestures missing in dataset for policy" +
-                  str(sampling_policy), missing_gestures)
+            print("Warning! Gestures missing in dataset for policy" + str(sampling_policy), missing_gestures)
         gesture_hist = np.array(gesture_hist)
         the_minimum_number_of_frames = min(gesture_hist[gesture_hist > 0])
         return the_minimum_number_of_frames
@@ -674,8 +668,10 @@ class Gesture2DTrainSet(data.Dataset):
         return frame_list
 
     def get_snippet(self, video_id, idx):
+        step = self.video_freq // self.label_freq
         snippet = list()
         _idx = max(idx, 0)  # padding if required
+        _idx = _idx // step
         img = self.image_data[video_id][_idx]
         if not self.preload:
             img = self._load_image(*img)[0]
@@ -715,8 +711,7 @@ def rotate_snippet(snippet, max_angle):
 def rotate_img(image, angle):
     image = np.array(image)
     num_rows, num_cols = (image.shape[:2])
-    rotation_matrix = cv2.getRotationMatrix2D(
-        (num_cols / 2, num_rows / 2), angle, 1)
+    rotation_matrix = cv2.getRotationMatrix2D((num_cols / 2, num_rows / 2), angle, 1)
     image = cv2.warpAffine(image, rotation_matrix, (num_cols, num_rows))
     image = Image.fromarray(image)
 
@@ -741,25 +736,6 @@ def Add_Gaussian_Noise(image, sigma):
     noisyRandom = random_noise(image, var=sigma ** 2)
     im = Image.fromarray((noisyRandom * 255).astype(np.uint8))
     return im
-
-
-def Pre_process_Kinematics(csv_path, select_data_type: list):
-    """
-
-    :param csv_path:
-    :param select_data_type: list of length 4 that contains 1 ot 0 for [x,y,z_posision,x,y,z_velocity,euler_angle,angular_velocity ]
-    only PSM (Patient side manipulator)!!
-    :return:
-    """
-    table = read_txt_file(csv_path)
-    print(table)
-    relevant_coordinates = []
-    if select_data_type[0] == 1:
-        relevant_coordinates = relevant_coordinates + \
-            [38, 39, 40, 38+19, 39+19, 40+19]
-
-    relevant_columns = table.iloc[:, relevant_coordinates]
-    print(relevant_columns)
 
 
 def read_txt_file(csv_path):

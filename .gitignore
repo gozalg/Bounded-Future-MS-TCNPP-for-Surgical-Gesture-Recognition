@@ -30,3 +30,4 @@ tasks/
 *task.sh
 slurm*
 *.out
+.vscode

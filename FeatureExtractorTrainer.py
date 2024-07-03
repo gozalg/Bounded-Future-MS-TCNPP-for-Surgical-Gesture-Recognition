@@ -43,7 +43,7 @@ from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils.loss import Loss
 from utils import util
 from utils.util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
-from utils.util import gestures_GTEA, splits_GTEA, splits_50salads, gestures_50salads, splits_breakfast, gestures_breakfast
+from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50
 from utils.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
@@ -51,7 +51,7 @@ wandb.login(key=WANDB_API_KEY)
 
 INPUT_MEAN = [0.485, 0.456, 0.406]
 INPUT_STD = [0.229, 0.224, 0.225]
-ACC_TRESHOLDS: List[int] = []  # [85, 92, 96, 98, 99, 99.5, 99.9]
+# ACC_TRESHOLDS: List[int] = []  # [85, 92, 96, 98, 99, 99.5, 99.9]
 
 
 def log(msg, output_folder):
@@ -117,7 +117,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
             f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
             f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
-            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1_10 {:.3f} F1_25 {:.3f} F1_50 {:.3f}"
+            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1@10 {:.3f} F1@25 {:.3f} F1@50 {:.3f}"
                 .format(val_loader.dataset.video_id, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
 
             overall_acc.append(acc)
@@ -127,16 +127,16 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             overall_f1_25.append(f1_25)
             overall_f1_50.append(f1_50)
 
-        log("Overall: Acc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1_10 {:.3f} F1_25 {:.3f} F1_50 {:.3f}".format(
+        log("Overall: Validation Acc - {:.3f} F1-Macro - {:.3f} Edit - {:.3f} F1@10 {:.3f} F1@25 {:.3f} F1@50 {:.3f}".format(
             np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit),
             np.mean(overall_f1_10), np.mean(overall_f1_25), np.mean(overall_f1_50)
         ), output_folder)
 
         overall_acc_mean = np.mean(overall_acc)
         if upload:
-            wandb.log({'validation accuracy': np.mean(overall_acc), 'Avg_F1': np.mean(overall_avg_f1), 
-                       'Edit': np.mean(overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
-                       "F1_50": np.mean(overall_f1_50)}, step=epoch)
+            wandb.log({'Validation Acc': np.mean(overall_acc), 'F1-Macro': np.mean(overall_avg_f1), 
+                       'Edit': np.mean(overall_edit), "F1@10": np.mean(overall_f1_10), "F1@25": np.mean(overall_f1_25),
+                       "F1@50": np.mean(overall_f1_50)}, step=epoch)
 
     return overall_acc_mean
 
@@ -182,9 +182,20 @@ def main(split=1, upload=False, group=None, args=None):
             os.makedirs(output_folder, exist_ok=True)
 
         else:
-            output_folder = os.path.join(args.out, args.dataset,
-                                         args.arch,
-                                         args.eval_scheme, str(args.split))
+            if args.dataset == "JIGSAWS":
+                output_folder = os.path.join(args.out, 
+                                             args.dataset,
+                                             args.arch,
+                                             args.eval_scheme, 
+                                             str(args.split))
+            elif args.dataset == "SAR_RARP50":
+                output_folder = os.path.join(args.out, 
+                                             args.dataset,
+                                             args.arch,
+                                             str(args.split))
+            else: 
+                raise NotImplementedError()
+            
 
             os.makedirs(output_folder, exist_ok=False)
 
@@ -231,9 +242,9 @@ def main(split=1, upload=False, group=None, args=None):
     if args.num_classes is not None:
         assert args.num_classes == num_class, f'Number of classes defined in \'util.py\' is {num_class} and not {args.num_classes} as defined in the arguments (--num_classes)!'
     # check epoch size and number of samples per class and batch size
-    if args.epoch_size is not None:
-        assert args.epoch_size % args.batch_size == 0, f'Epoch size must be divisible by the batch size!'
-        assert args.epoch_size == (args.number_of_samples_per_class * num_class), f'Epoch size (--epoch_size={args.epoch_size}) must be equal to the number of samples per class (--number_of_samples_per_class={args.number_of_samples_per_class}) times the number of classes (--num_classes={num_class})!'
+    # if args.epoch_size is not None:
+    #     assert args.epoch_size % args.batch_size == 0, f'Epoch size must be divisible by the batch size!'
+    #     assert args.epoch_size == (args.number_of_samples_per_class * num_class), f'Epoch size (--epoch_size={args.epoch_size}) must be equal to the number of samples per class (--number_of_samples_per_class={args.number_of_samples_per_class}) times the number of classes (--num_classes={num_class})!'
 
     if args.word_embdding_weight:
         assert args.label_embedding_path
@@ -299,8 +310,10 @@ def main(split=1, upload=False, group=None, args=None):
     splits = get_splits(args.dataset, args.eval_scheme, args.task)
 
     train_lists, val_list = train_val_split(splits, args.split)
-
-    lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
+    if args.dataset == "JIGSAWS":
+        lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
+    elif args.dataset == "SAR_RARP50":
+        lists_dir = args.video_lists_dir
     train_lists = list(map(lambda x: os.path.join(lists_dir, x), train_lists))
     val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
     # TODO Add HERE test_lists for other datasets
@@ -314,7 +327,7 @@ def main(split=1, upload=False, group=None, args=None):
                                           perspective_distortion=args.perspective_distortion,
                                           degrees=args.degrees,
                                           do_color_jitter=args.do_color_jitter)
-    train_set = Gesture2DTrainSet(args.data_path, train_lists, args.transcriptions_dir, gesture_ids,
+    train_set = Gesture2DTrainSet(args.dataset, args.data_path, train_lists, args.transcriptions_dir, gesture_ids,
                                   image_tmpl=args.image_tmpl, video_suffix=args.video_suffix,
                                   transform=train_augmentation, normalize=normalize, resize=args.input_size, debag=False,
                                   number_of_samples_per_class=args.number_of_samples_per_class, preload=args.preload)
@@ -331,10 +344,11 @@ def main(split=1, upload=False, group=None, args=None):
                                                collate_fn=no_none_collate)
     log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
-    val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size),
-                                                       GroupCenterCrop(args.input_size)])
+    val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
+    
     val_videos = list()
     for list_file in val_lists:
+        # format should be video_id, frame_count
         val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
     val_loaders = list()
 
@@ -342,7 +356,7 @@ def main(split=1, upload=False, group=None, args=None):
         val_videos = val_videos[:2]
 
     for video in val_videos:
-        data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video[0], frame_count=video[1],
+        data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, video_id=video[0], frame_count=video[1],
                                                   transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
                                                   snippet_length=args.snippet_length,
                                                   sampling_step=args.val_sampling_step,
@@ -389,8 +403,8 @@ def main(split=1, upload=False, group=None, args=None):
     max_acc_val = 0
     max_acc_train = 0
 
-    acc_tresholds = {key / 100: False for key in sorted(ACC_TRESHOLDS)}
-    finished_acc_tresholds = False
+    # acc_tresholds = {key / 100: False for key in sorted(ACC_TRESHOLDS)}
+    # finished_acc_tresholds = False
 
     for epoch in range(start_epoch, args.epochs):
         if epoch > start_epoch:
@@ -460,33 +474,32 @@ def main(split=1, upload=False, group=None, args=None):
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
             log("Start testing...", output_folder)
 
-            overall_acc_mean = eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids,
-                                    epoch, upload=upload)
+            overall_acc_mean = eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, gesture_ids, epoch, upload=upload)
+            max_acc_val = overall_acc_mean # Gabriel Gozal - No Stopping criteria
+            # if overall_acc_mean > max_acc_val and not is_test:
+            #     max_acc_val = overall_acc_mean
+            #     model_file = os.path.join(output_folder, "best_" + f"{args.split}" + ".pth")
+            #     torch.save(model.state_dict(), model_file)
+            #     log("Saved best model to " + model_file, output_folder)
 
-            if overall_acc_mean > max_acc_val and not is_test:
-                max_acc_val = overall_acc_mean
-                model_file = os.path.join(output_folder, "best_" + f"{args.split}" + ".pth")
-                torch.save(model.state_dict(), model_file)
-                log("Saved best model to " + model_file, output_folder)
+        # if train_acc.avg > max_acc_train and not is_test:
+        #     max_acc_train = train_acc.avg
+        #     model_file = os.path.join(output_folder, "best_train_" + f"{args.split}" + ".pth")
+        #     torch.save(model.state_dict(), model_file)
+        #     log("Saved best train model to " + model_file, output_folder)
 
-        if train_acc.avg > max_acc_train and not is_test:
-            max_acc_train = train_acc.avg
-            model_file = os.path.join(output_folder, "best_train_" + f"{args.split}" + ".pth")
-            torch.save(model.state_dict(), model_file)
-            log("Saved best train model to " + model_file, output_folder)
+        # for tresh, achived in acc_tresholds.items():
+        #     if achived:
+        #         continue
 
-        for tresh, achived in acc_tresholds.items():
-            if achived:
-                continue
+        #     if train_acc.avg >= tresh:
+        #         model_file = os.path.join(output_folder,
+        #                                   f"acc_{tresh * 100}_epoch_{epoch}_split_" + f"{args.split}" + ".pth")
+        #         torch.save(model.state_dict(), model_file)
+        #         log(f"Saved model with {tresh * 100} % acc to " + model_file, output_folder)
 
-            if train_acc.avg >= tresh:
-                model_file = os.path.join(output_folder,
-                                          f"acc_{tresh * 100}_epoch_{epoch}_split_" + f"{args.split}" + ".pth")
-                torch.save(model.state_dict(), model_file)
-                log(f"Saved model with {tresh * 100} % acc to " + model_file, output_folder)
-
-                acc_tresholds[tresh] = True
-                break
+        #         acc_tresholds[tresh] = True
+        #         break
 
         # early stopping when all the trsholds are achived
         # if all([achived for tresh, achived in acc_tresholds.items()]):
@@ -511,9 +524,9 @@ def main(split=1, upload=False, group=None, args=None):
         if not is_test:
             torch.save(current_state, checkpoint_file)
 
-        if finished_acc_tresholds:
-            print("acc tresholds finished")
-            break
+        # if finished_acc_tresholds:
+        #     print("acc tresholds finished")
+        #     break
 
     wandb.summary["validation accuracy"] = max_acc_val
     return max_acc_val
@@ -529,15 +542,10 @@ def get_splits(dataset, eval_scheme, task):
                 splits = splits_LOUO_NP
             else:
                 splits = splits_LOUO
-    elif dataset == "GTEA":
-        if eval_scheme == "LOUO":
-            splits = splits_GTEA
-    elif dataset == "50SALADS":
-        if eval_scheme == "LOUO":
-            splits = splits_50salads
-    elif dataset == "BREAKFAST":
-        if eval_scheme == "LOUO":
-            splits = splits_breakfast
+    elif dataset == "SAR_RARP50":
+        splits = splits_SAR_RARP50
+    else:
+        raise NotImplementedError()
 
     return splits
 
@@ -598,6 +606,8 @@ def get_gestures(dataset, task=None):
             gesture_ids = gestures_NP
         elif task == "Knot_Tying":
             gesture_ids = gestures_KT
+    elif dataset == "SAR_RARP50":
+        gesture_ids = gestures_SAR_RARP50
     else:
         raise NotImplementedError()
 
@@ -811,10 +821,12 @@ def load_model(weights_path, arch, add_layer_param_num=0,
 def run_full_LOUO(group_name=None):
     args = parser.parse_args()
 
-    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+    if args.dataset in ['VTS', 'MultiBypass140']:
         raise NotImplementedError(f"{args.dataset} not implemented")
     elif args.dataset == "JIGSAWS":
         user_num = len(splits_LOUO)
+    elif args.dataset == "SAR_RARP50":
+        user_num = len(splits_SAR_RARP50)
 
     # if group_name is None:
     # group_name = f"{args.arch} cross validation {args.dataset}"
@@ -826,7 +838,7 @@ def run_full_LOUO(group_name=None):
 def run_full_LOSO(group_name=None):
     args = parser.parse_args()
 
-    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+    if args.dataset in ['VTS', 'MultiBypass140', 'SAR_RARP50']:
         raise NotImplementedError(f"{args.dataset} not implemented")
     elif args.dataset == "JIGSAWS":
         supertrial_num = len(splits_LOSO)
@@ -842,12 +854,12 @@ def get_k_folds_splits(k=5, shuffle=True, args=None):
     if not args:
         args = parser.parse_args()
 
-    if args.dataset == "JIGSAWS":
+    if args.dataset == 'JIGSAWS':
         users = splits_LOUO
-    elif args.dataset == "GTEA":
-        users = splits_GTEA
-    elif args.dataset == "50SALADS":
-        users = splits_50salads
+    elif args.dataset == 'SAR_RARP50':
+        users = splits_SAR_RARP50
+    else: 
+        raise NotImplementedError()
 
     if shuffle:
         kfolds = KFold(n_splits=k, shuffle=shuffle, random_state=args.seed)
@@ -877,18 +889,24 @@ def run_single_split(split_idx=0):
 def run():
     args = parser.parse_args()
 
-    if args.dataset in ['VTS', 'MultiBypass140', 'RARP50']:
+    if args.dataset in ['VTS', 'MultiBypass140']:
         raise NotImplementedError(f"{args.dataset} not implemented")
 
-    elif args.dataset in ["JIGSAWS"]:
+    elif args.dataset in ['JIGSAWS', 'SAR_RARP50']:
         if args.split_num is not None:
             # main(0, split=args.split_num, upload=True)
             main(split=args.split_num, upload=True)
-        elif args.eval_scheme == "LOUO":
+        elif args.eval_scheme == "LOUO" or args.dataset == 'SAR_RARP50':
             run_full_LOUO()
         elif args.eval_scheme == "LOSO":
             run_full_LOSO()
-    # elif args.dataset == "50SALADS":
+    # elif args.dataset == 'SAR_RARP50':
+    #     if args.split_num is not None:
+    #         # main(0, split=args.split_num, upload=True)
+    #         main(split=args.split_num, upload=True)
+    #     else:
+    #         run_k_folds_validation(shuffle=False)
+    # elif args.dataset == "MultiBypass140":
 
     #     if args.split_num is not None:
 
