@@ -15,6 +15,7 @@ parser.add_argument('--arch', type=str, default='2D-EfficientNetV2-m')
 parser.add_argument('--video_lists_dir', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/Splits")
 parser.add_argument('--data_path', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/frames")
 parser.add_argument('--transcriptions_dir', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/transcriptions")
+parser.add_argument('--model_path', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor")
 parser.add_argument('--dataset', type=str, default='SAR_RARP50')  # 'JIGSAWS' or MultiBypass140
 parser.add_argument('--num_classes', type=int, default=8)  # 10 for JIGSAWS, 8 for SAR_RARP50, n for MultiBypass
 parser.add_argument('--eval_scheme', type=str, default='LOUO')  # LOUO or LOSO
@@ -197,8 +198,8 @@ if __name__ == '__main__':
 
 
         # load best model weights from output folder
-        # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
-        model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/{args.split}/model_99.pth"
+        # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
+        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_99.pth"
         model.load_state_dict(torch.load(model_loc))
 
         # model
@@ -233,4 +234,4 @@ if __name__ == '__main__':
         args.next_split()
 
     # keep results in csv file
-    results.to_csv(f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)
+    results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/test_results.csv", index=False)
