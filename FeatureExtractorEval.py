@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
         results.loc[i] = [args.split, test_acc, test_edit, test_macro_f1, test_f1_10, test_f1_25, test_f1_50]
 
-        args.next_split()
+        args.split += 1
 
     # keep results in csv file
     results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/test_results.csv", index=False)
