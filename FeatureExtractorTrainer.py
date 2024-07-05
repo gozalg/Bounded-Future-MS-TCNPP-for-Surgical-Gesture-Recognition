@@ -686,7 +686,7 @@ def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progres
 
             return self.added_fc(x), x
     else:
-        raise NotImplementedError("required architecture not implemented")
+        raise NotImplementedError(f"required architecture: {arch} - not implemented")
 
     if input_shape:
         if vae_intermediate_size is None:

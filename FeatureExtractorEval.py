@@ -185,7 +185,7 @@ if __name__ == '__main__':
             val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
                                                             shuffle=False, num_workers=args.workers,
                                                             collate_fn=no_none_collate))
-
+        print (f"args.arch:\t{args.arch}\nargs.arch[0]:\t{args.arch[0]}")
         model = get_model(  args.arch[0], 
                             num_classes=args.num_classes,
                             add_layer_param_num=0,
