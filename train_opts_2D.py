@@ -66,7 +66,7 @@ elif current_dataset=='JIGSAWS':
     parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
     parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
                                                             '_capture2', # relevant for jigsaws
-                                                           ], default='_capture2')
+                                                            'None'], default='_capture2')
     parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
@@ -87,7 +87,7 @@ elif current_dataset=='SAR_RARP50':
     parser.add_argument('--image_tmpl', default='{:09d}.png')
     parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
                                                             '_capture2', # relevant for jigsaws
-                                                           ], default='')
+                                                            'None'], default='None')
     parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")

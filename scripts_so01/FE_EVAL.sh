@@ -17,6 +17,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     LABEL_HZ=10
     NUM_CLASS=8
     IMG_TMP={:09d}.png
+    VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
     TASK=None
 else

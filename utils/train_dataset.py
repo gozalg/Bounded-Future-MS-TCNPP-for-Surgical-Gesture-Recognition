@@ -392,7 +392,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
     def _generate_labels_list(self, video_id, gestures):
         labels_list = []
         frame_nums_list = []
-        img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+        if self.dataset == 'JIGSAWS':
+            img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+        elif self.dataset == 'SAR_RARP50':
+            img_dir = os.path.join(self.root_path, video_id)
         for frame_num in self.frame_num_data[self.video_name]:
             path = os.path.join(img_dir, self.image_tmpl.format(frame_num))
             if os.path.exists(path):

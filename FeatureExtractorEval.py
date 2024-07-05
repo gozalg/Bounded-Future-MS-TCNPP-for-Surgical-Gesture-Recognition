@@ -23,7 +23,7 @@ parser.add_argument('--split', type=int, default=0)
 parser.add_argument('--snippet_length', type=int, default=1)
 parser.add_argument('--val_sampling_step', type=int, default=6) # multiply of 6 for SAR_RARP50 (60 fps video, 10 Hz labels => each 6 frames there's a label)
 parser.add_argument('--image_tmpl', type=str, choices=['img_{:05d}.jpg', '{:09d}.png'], default='{:09d}.png')
-parser.add_argument('--video_suffix', type=str, choices=['_capture1', '_capture2', ''], default='') # _capture* for JIGSAWS, '' for SAR_RARP50
+parser.add_argument('--video_suffix', type=str, choices=['_capture1', '_capture2', 'None'], default='None') # _capture* for JIGSAWS, '' for SAR_RARP50
 parser.add_argument('--input_size', type=int, default=224)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--workers', type=int, default=64)
