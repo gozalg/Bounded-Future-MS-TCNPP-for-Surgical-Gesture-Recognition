@@ -413,7 +413,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
     def _preload_images(self, video_id):
         print("Preloading images from video {}...".format(video_id))
         images = []
-        img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+        if self.dataset == 'JIGSAWS':
+            img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+        elif self.dataset == 'SAR_RARP50':
+            img_dir = os.path.join(self.root_path, video_id)
         for idx in self.frame_num_data[self.video_name]:
             try:
                 imgs = self._load_image(img_dir, idx)
@@ -453,10 +456,11 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             img = self.image_data[video_id][_idx]
         else:
             frame_num = self.image_data[video_id][_idx]
-            mg_dir = os.path.join(
-                self.root_path, video_id + self.video_suffix)
-            img = self._load_image(
-                mg_dir, frame_num)
+            if self.dataset == 'JIGSAWS':
+                mg_dir = os.path.join(self.root_path, video_id + self.video_suffix)
+            elif self.dataset == 'SAR_RARP50':
+                mg_dir = os.path.join(self.root_path, video_id)    
+            img = self._load_image(mg_dir, frame_num)
             img = img[0]
 
         snippet.append(img)

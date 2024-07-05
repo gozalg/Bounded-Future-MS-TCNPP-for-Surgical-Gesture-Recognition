@@ -35,5 +35,6 @@ python FeatureExtractorEval.py  --dataset ${DATASET} \
                                 --data_path /data/home/gabrielg/Bounded_Future_from_GIT/data/${DIR_SUFFIX}/frames \
                                 --transcriptions_dir /data/home/gabrielg/Bounded_Future_from_GIT/data/${DIR_SUFFIX}/transcriptions \
                                 --video_suffix ${VID_SUFFIX} \
+                                --workers 16 \
                                 --task ${TASK}
 
