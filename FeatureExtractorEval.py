@@ -2,41 +2,38 @@
 # Python Standard Library
 
 # Third-party libraries
-
+import argparse
 #------------------ Bounded Future Imports ------------------#
 from FeatureExtractorTrainer import *
 #------------------------------------------------------------#
 
 # args for testing the model
-class Args():
-    def __init__(self):
-        self.gpu_id = 0
-        self.arch = '2D-EfficientNetV2-m',
-        self.video_lists_dir = "/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/data/JIGSAWS/Splits/Suturing"
-        self.data_path = "/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/data/JIGSAWS/Suturing/frames"
-        self.transcriptions_dir = "/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/data/JIGSAWS/Suturing/transcriptions"
-        self.dataset = 'JIGSAWS'  # RARP50 or MultiBypass140
-        self.num_classes = 10  # 10 for JIGSAWS, n for RARP50, n for MultiBypass
-        self.eval_scheme = 'LOUO'  # LOUO or LOSO
-        self.task = 'Suturing'
-        self.split = 0
-        self.snippet_length = 1
-        self.val_sampling_step = 1
-        self.image_tmpl = 'img_{:05d}.jpg'
-        self.video_suffix = '_capture2'
-        self.input_size = 224
-        self.batch_size = 32
-        self.workers = 4
-    def next_split(self):
-        self.split += 1
-        return self.split
+parser = argparse.ArgumentParser()
 
+parser.add_argument('--gpu_id', type=int, default=0)
+parser.add_argument('--arch', type=str, default='2D-EfficientNetV2-m')
+parser.add_argument('--video_lists_dir', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/Splits")
+parser.add_argument('--data_path', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/frames")
+parser.add_argument('--transcriptions_dir', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/transcriptions")
+parser.add_argument('--dataset', type=str, default='SAR_RARP50')  # 'JIGSAWS' or MultiBypass140
+parser.add_argument('--num_classes', type=int, default=8)  # 10 for JIGSAWS, 8 for SAR_RARP50, n for MultiBypass
+parser.add_argument('--eval_scheme', type=str, default='LOUO')  # LOUO or LOSO
+parser.add_argument('--task', type=str, default='None')  # 'Suturing' for JIGSAWS and 'None' for SAR_RARP50
+parser.add_argument('--split', type=int, default=0)
+parser.add_argument('--snippet_length', type=int, default=1)
+parser.add_argument('--val_sampling_step', type=int, default=6) # multiply of 6 for SAR_RARP50 (60 fps video, 10 Hz labels => each 6 frames there's a label)
+parser.add_argument('--image_tmpl', type=str, choices=['img_{:05d}.jpg', '{:09d}.png'], default='{:09d}.png')
+parser.add_argument('--video_suffix', type=str, choices=['_capture1', '_capture2', ''], default='') # _capture* for JIGSAWS, '' for SAR_RARP50
+parser.add_argument('--input_size', type=int, default=224)
+parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--workers', type=int, default=4)
 
-args = Args()
+args = parser.parse_args()
 
 class Overall:
     def __init__(self):
         self.acc_mean = None
+        self.edit_mean = None
         self.avg_f1_mean = None
         self.f1_10_mean = None
         self.f1_25_mean = None
@@ -124,6 +121,7 @@ def test(model, val_loaders, device_gpu, device_cpu, num_class, gesture_ids, out
                         'Edit': np.mean(overall_edit), "F1_10": np.mean(overall_f1_10), "F1_25": np.mean(overall_f1_25),
                         "F1_50": np.mean(overall_f1_50)}, step=epoch)
         overall.acc_mean    = np.mean(overall_acc)
+        overall.edit_mean   = np.mean(overall_edit)
         overall.avg_f1_mean = np.mean(overall_avg_f1)
         overall.f1_10_mean  = np.mean(overall_f1_10)
         overall.f1_25_mean  = np.mean(overall_f1_25)
@@ -135,94 +133,104 @@ def no_none_collate(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
+if __name__ == '__main__':
+    # get total splits
+    if args.eval_scheme == 'LOUO':
+        if args.dataset == 'JIGSAWS':
+            total_splits = 8
+        elif args.dataset == 'SAR_RARP50':
+            total_splits = 5
+    elif args.eval_scheme == 'LOSO':
+        total_splits = 5 # only for JIGSAWS
 
-if args.eval_scheme == 'LOUO':
-    total_splits = 8
-elif args.eval_scheme == 'LOSO':
-    total_splits = 5
+    # for results.csv
+    results = pd.DataFrame(columns=["split", "test_acc", "test_edit", "test_macro_f1", "test_f1_10", "test_f1_25", "test_f1_50"])
 
-# for results.csv
-results = pd.DataFrame(columns=["split", "test_acc", "test_macro_f1", "test_f1_10", "test_f1_25", "test_f1_50"])
+    # Run for all splits
+    for i in range(total_splits):
+        print(f"=========================")
+        print(f"Testing Split Num: {i}...")
+        print(f"=========================")
+        # ===== load data =====
+        gesture_ids = get_gestures(args.dataset, args.task)
+        args.eval_batch_size = 2 * args.batch_size
+        normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
 
-# Run for all splits
-for i in range(total_splits):
-    print(f"=========================")
-    print(f"Testing Split Num: {i}...")
-    print(f"=========================")
-    # ===== load data =====
-    gesture_ids = get_gestures(args.dataset, args.task)
-    args.eval_batch_size = 2 * args.batch_size
-    normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
+        splits = get_splits(args.dataset, args.eval_scheme, args.task)
+        _, val_list = train_val_split(splits, args.split)
 
-    splits = get_splits(args.dataset, args.eval_scheme, args.task)
-    _, val_list = train_val_split(splits, args.split)
+        val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
 
-    val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
+        if args.dataset == "JIGSAWS":
+            lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
+        elif args.dataset == "SAR_RARP50":
+            lists_dir = args.video_lists_dir
 
-    lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
+        val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
 
-    val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+        val_videos = list()
+        for list_file in val_lists:
+            val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
+        val_loaders = list()
 
-    val_videos = list()
-    for list_file in val_lists:
-        val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
-    val_loaders = list()
+        for video in val_videos:
+            data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, video_id=video[0], frame_count=video[1],
+                                                        transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
+                                                        snippet_length=args.snippet_length,
+                                                        sampling_step=args.val_sampling_step,
+                                                        image_tmpl=args.image_tmpl,
+                                                        video_suffix=args.video_suffix,
+                                                        normalize=normalize, resize=args.input_size,
+                                                        transform=val_augmentation)  # augmentation are off
+            val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+                                                            shuffle=False, num_workers=args.workers,
+                                                            collate_fn=no_none_collate))
 
-    for video in val_videos:
-        data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video[0], frame_count=video[1],
-                                                    transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                                    snippet_length=args.snippet_length,
-                                                    sampling_step=args.val_sampling_step,
-                                                    image_tmpl=args.image_tmpl,
-                                                    video_suffix=args.video_suffix,
-                                                    normalize=normalize, resize=args.input_size,
-                                                    transform=val_augmentation)  # augmentation are off
-        val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                        shuffle=False, num_workers=args.workers,
-                                                        collate_fn=no_none_collate))
-
-    model = get_model(  args.arch[0], 
-                        num_classes=args.num_classes,
-                        add_layer_param_num=0,
-                        add_certainty_pred=0,
-                        input_shape=0,
-                        embedding_shape=0,
-                        vae_intermediate_size=None
-                    )      
+        model = get_model(  args.arch[0], 
+                            num_classes=args.num_classes,
+                            add_layer_param_num=0,
+                            add_certainty_pred=0,
+                            input_shape=0,
+                            embedding_shape=0,
+                            vae_intermediate_size=None
+                        )      
 
 
-    # load best model weights from output folder
-    best_model_loc = f"/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
-    model.load_state_dict(torch.load(best_model_loc))
+        # load best model weights from output folder
+        # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
+        model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/{args.split}/model_99.pth"
+        model.load_state_dict(torch.load(model_loc))
 
-    # model
-    device_gpu = torch.device(f"cuda:{args.gpu_id}")
-    model = model.to(device_gpu)
-    device_cpu = torch.device("cpu")
+        # model
+        device_gpu = torch.device(f"cuda:{args.gpu_id}")
+        model = model.to(device_gpu)
+        device_cpu = torch.device("cpu")
 
-    # val_loaders
-    splits = get_splits(args.dataset, args.eval_scheme, args.task)
-    _, val_list = train_val_split(splits, args.split)
+        # val_loaders
+        splits = get_splits(args.dataset, args.eval_scheme, args.task)
+        _, val_list = train_val_split(splits, args.split)
 
-    overall = test(model, val_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
+        overall = test(model, val_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
 
-    test_acc        = overall.acc_mean
-    test_macro_f1   = overall.avg_f1_mean
-    test_f1_10      = overall.f1_10_mean
-    test_f1_25      = overall.f1_25_mean
-    test_f1_50      = overall.f1_50_mean
+        test_acc        = overall.acc_mean
+        test_edit       = overall.edit_mean
+        test_macro_f1   = overall.avg_f1_mean
+        test_f1_10      = overall.f1_10_mean
+        test_f1_25      = overall.f1_25_mean
+        test_f1_50      = overall.f1_50_mean
 
-    # print in blue text and in yellow results including args.split
-    print("\033[94m" + "Split " + "\033[93m" + f"{args.split}" + "\033[94m" + ":" + "\033[0m")
-    print("\033[94m" + "\tTest Acc: " + "\033[93m" + f"\t{test_acc:.3f}" + "\033[0m")
-    print("\033[94m" + "\tTest Macro F1: " + "\033[93m" + f"\t{test_macro_f1:.3f}" + "\033[0m")
-    print("\033[94m" + "\tTest F1@10: " + "\033[93m" + f"\t{test_f1_10:.3f}" + "\033[0m")
-    print("\033[94m" + "\tTest F1@25: " + "\033[93m" + f"\t{test_f1_25:.3f}" + "\033[0m")
-    print("\033[94m" + "\tTest F1@50: " + "\033[93m" + f"\t{test_f1_50:.3f}")
+        # print in blue text and in yellow results including args.split
+        print("\033[94m" + "Split " + "\033[93m" + f"{args.split}" + "\033[94m" + ":" + "\033[0m")
+        print("\033[94m" + "\tTest Acc: " + "\033[93m" + f"\t{test_acc:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest Edit: " + "\033[93m" + f"\t{test_edit:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest Macro F1: " + "\033[93m" + f"\t{test_macro_f1:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest F1@10: " + "\033[93m" + f"\t{test_f1_10:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest F1@25: " + "\033[93m" + f"\t{test_f1_25:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest F1@50: " + "\033[93m" + f"\t{test_f1_50:.3f}" + "\033[0m")
 
-    results.loc[i] = [args.split, test_acc, test_macro_f1, test_f1_10, test_f1_25, test_f1_50]
+        results.loc[i] = [args.split, test_acc, test_edit, test_macro_f1, test_f1_10, test_f1_25, test_f1_50]
 
-    args.next_split()
+        args.next_split()
 
-# keep results in csv file
-results.to_csv(f"/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)
+    # keep results in csv file
+    results.to_csv(f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch[0]}/{args.eval_scheme}/test_results.csv", index=False)
