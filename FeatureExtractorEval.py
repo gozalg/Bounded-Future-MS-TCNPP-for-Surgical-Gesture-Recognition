@@ -26,7 +26,7 @@ parser.add_argument('--image_tmpl', type=str, choices=['img_{:05d}.jpg', '{:09d}
 parser.add_argument('--video_suffix', type=str, choices=['_capture1', '_capture2', ''], default='') # _capture* for JIGSAWS, '' for SAR_RARP50
 parser.add_argument('--input_size', type=int, default=224)
 parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--workers', type=int, default=4)
+parser.add_argument('--workers', type=int, default=64)
 
 args = parser.parse_args()
 
@@ -185,8 +185,8 @@ if __name__ == '__main__':
             val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
                                                             shuffle=False, num_workers=args.workers,
                                                             collate_fn=no_none_collate))
-        print (f"args.arch:\t{args.arch}\nargs.arch[0]:\t{args.arch[0]}")
-        model = get_model(  args.arch[0], 
+        
+        model = get_model(  args.arch, 
                             num_classes=args.num_classes,
                             add_layer_param_num=0,
                             add_certainty_pred=0,
