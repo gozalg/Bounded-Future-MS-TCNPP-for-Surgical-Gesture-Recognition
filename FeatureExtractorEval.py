@@ -174,20 +174,36 @@ if __name__ == '__main__':
         for list_file in test_lists:
             test_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
         test_loaders = list()
-        for video in test_videos:
-            data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', 
-                                video_id=video[0], frame_count=video[1],
-                                transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                snippet_length=args.snippet_length,
-                                sampling_step=args.val_sampling_step,
-                                image_tmpl=args.image_tmpl,
-                                video_suffix=args.video_suffix,
-                                normalize=normalize, resize=args.input_size,
-                                transform=val_augmentation)  # augmentation are off
-            test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                shuffle=False, num_workers=args.workers,
-                                collate_fn=no_none_collate)
-            test_loaders.append(test_loader)
+        # in JIGSAWS dataset, there is no test set, so we use validation set for testing.
+        # in SAR_RARP50 dataset, we use the same test set for all splits.
+        if (args.dataset == "JIGSAWS") or (args.dataset == "SAR_RARP50" and i==0):
+            data_set_list = []
+            for video in test_videos:
+                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', 
+                                    video_id=video[0], frame_count=video[1],
+                                    transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
+                                    snippet_length=args.snippet_length,
+                                    sampling_step=args.val_sampling_step,
+                                    image_tmpl=args.image_tmpl,
+                                    video_suffix=args.video_suffix,
+                                    normalize=normalize, resize=args.input_size,
+                                    transform=val_augmentation)  # augmentation are off
+                data_set_list.append(data_set)
+                test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+                                    shuffle=False, num_workers=args.workers,
+                                    collate_fn=no_none_collate)
+                test_loaders.append(test_loader)
+        elif (args.dataset == "SAR_RARP50"):
+            video_idx = 0
+            for video in test_videos:
+                data_set = data_set_list[video_idx]
+                video_idx += 1
+                test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+                                    shuffle=False, num_workers=args.workers,
+                                    collate_fn=no_none_collate)
+                test_loaders.append(test_loader)
+        else:
+            raise NotImplementedError()
             
         
         model = get_model(  args.arch, 
