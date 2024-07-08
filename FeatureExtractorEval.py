@@ -53,11 +53,11 @@ def test(model, test_loaders, device_gpu, device_cpu, num_class, gesture_ids, ou
 
         overall = Overall()  # Initialize overall as an object of Overall class
 
-        for val_loader in test_loaders:
+        for test_loader in test_loaders:
             P = np.array([], dtype=np.int64)
             Y = np.array([], dtype=np.int64)
 
-            train_loader_iter = iter(val_loader)
+            train_loader_iter = iter(test_loader)
             while True:
                 try:
                     (data, target) = next(train_loader_iter)
@@ -66,7 +66,7 @@ def test(model, test_loaders, device_gpu, device_cpu, num_class, gesture_ids, ou
                 except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
                     print(e)
 
-                # for i, batch in enumerate(val_loader):
+                # for i, batch in enumerate(test_loader):
                 # data, target = batch
                 Y = np.append(Y, target.numpy())
                 data = data.to(device_gpu)
@@ -102,7 +102,7 @@ def test(model, test_loaders, device_gpu, device_cpu, num_class, gesture_ids, ou
             f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
             if output_folder:
                 log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1_10 {:.3f} F1_25 {:.3f} F1_50 {:.3f}"
-                    .format(val_loader.dataset.video_id, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
+                    .format(test_loader.dataset.video_id, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
 
             overall_acc.append(acc)
             overall_avg_f1.append(mean_avg_f1)
@@ -174,20 +174,21 @@ if __name__ == '__main__':
         for list_file in test_lists:
             test_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
         test_loaders = list()
-        # in JIGSAWS there is no validation, so each split the test set changes
-        if (args.dataset == "JIGSAWS") or (args.dataset == "SAR_RARP50" and i==0):
-            for video in test_videos:
-                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', video_id=video[0], frame_count=video[1],
-                                                            transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                                            snippet_length=args.snippet_length,
-                                                            sampling_step=args.val_sampling_step,
-                                                            image_tmpl=args.image_tmpl,
-                                                            video_suffix=args.video_suffix,
-                                                            normalize=normalize, resize=args.input_size,
-                                                            transform=val_augmentation)  # augmentation are off
-                test_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                                shuffle=False, num_workers=args.workers,
-                                                                collate_fn=no_none_collate))
+        for video in test_videos:
+            data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', 
+                                video_id=video[0], frame_count=video[1],
+                                transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
+                                snippet_length=args.snippet_length,
+                                sampling_step=args.val_sampling_step,
+                                image_tmpl=args.image_tmpl,
+                                video_suffix=args.video_suffix,
+                                normalize=normalize, resize=args.input_size,
+                                transform=val_augmentation)  # augmentation are off
+            test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+                                shuffle=False, num_workers=args.workers,
+                                collate_fn=no_none_collate)
+            test_loaders.append(test_loader)
+            
         
         model = get_model(  args.arch, 
                             num_classes=args.num_classes,
