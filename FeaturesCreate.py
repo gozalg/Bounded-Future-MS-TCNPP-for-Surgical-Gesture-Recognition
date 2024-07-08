@@ -346,12 +346,8 @@ def run_feature_creator(get_split):
 
 if __name__ == "__main__":
 
-    # get_split = lambda filename:  "".join(os.path.splitext(filename)[0].split("_")[1:]).replace("'", "") if "best_" in filename else None 
-    # get_split = lambda filename:  os.path.splitext(filename)[0][5:].replace("'", "") if "best_[" in filename else None 
-    
-    # get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename else None 
-    get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
-
+    # get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
+    get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "model_99" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
 
     run_feature_creator(get_split)
 
