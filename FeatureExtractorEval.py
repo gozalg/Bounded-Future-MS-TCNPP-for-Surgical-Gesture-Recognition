@@ -40,7 +40,7 @@ class Overall:
         self.f1_25_mean = None
         self.f1_50_mean = None
 
-def test(model, val_loaders, device_gpu, device_cpu, num_class, gesture_ids, output_folder=None, epoch=None, upload=False):
+def test(model, test_loaders, device_gpu, device_cpu, num_class, gesture_ids, output_folder=None, epoch=None, upload=False):
     model.eval()
     with torch.no_grad():
 
@@ -53,7 +53,7 @@ def test(model, val_loaders, device_gpu, device_cpu, num_class, gesture_ids, out
 
         overall = Overall()  # Initialize overall as an object of Overall class
 
-        for val_loader in val_loaders:
+        for val_loader in test_loaders:
             P = np.array([], dtype=np.int64)
             Y = np.array([], dtype=np.int64)
 
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
 
         splits = get_splits(args.dataset, args.eval_scheme, args.task)
-        _, val_list = train_val_split(splits, args.split)
+        _, test_list = train_val_split(splits, args.split)
 
         val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
 
@@ -167,14 +167,14 @@ if __name__ == '__main__':
         elif args.dataset == "SAR_RARP50":
             lists_dir = args.video_lists_dir
 
-        val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+        test_lists = list(map(lambda x: os.path.join(lists_dir, x), test_list))
 
-        val_videos = list()
-        for list_file in val_lists:
-            val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
-        val_loaders = list()
+        test_videos = list()
+        for list_file in test_lists:
+            test_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
+        test_loaders = list()
 
-        for video in val_videos:
+        for video in test_videos:
             data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, video_id=video[0], frame_count=video[1],
                                                         transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
                                                         snippet_length=args.snippet_length,
@@ -183,7 +183,7 @@ if __name__ == '__main__':
                                                         video_suffix=args.video_suffix,
                                                         normalize=normalize, resize=args.input_size,
                                                         transform=val_augmentation)  # augmentation are off
-            val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+            test_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
                                                             shuffle=False, num_workers=args.workers,
                                                             collate_fn=no_none_collate))
         
@@ -207,11 +207,11 @@ if __name__ == '__main__':
         model = model.to(device_gpu)
         device_cpu = torch.device("cpu")
 
-        # val_loaders
+        # test_loaders
         splits = get_splits(args.dataset, args.eval_scheme, args.task)
-        _, val_list = train_val_split(splits, args.split)
+        _, test_list = train_val_split(splits, args.split)
 
-        overall = test(model, val_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
+        overall = test(model, test_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
 
         test_acc        = overall.acc_mean
         test_edit       = overall.edit_mean
