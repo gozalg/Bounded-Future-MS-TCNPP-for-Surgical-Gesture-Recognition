@@ -356,7 +356,7 @@ def main(split=1, upload=False, group=None, args=None):
         val_videos = val_videos[:2]
 
     for video in val_videos:
-        data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, video_id=video[0], frame_count=video[1],
+        data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='train', video_id=video[0], frame_count=video[1],
                                                   transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
                                                   snippet_length=args.snippet_length,
                                                   sampling_step=args.val_sampling_step,

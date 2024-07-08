@@ -157,35 +157,37 @@ if __name__ == '__main__':
         args.eval_batch_size = 2 * args.batch_size
         normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
 
-        splits = get_splits(args.dataset, args.eval_scheme, args.task)
-        _, test_list = train_val_split(splits, args.split)
-
-        val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
-
         if args.dataset == "JIGSAWS":
+            splits = get_splits(args.dataset, args.eval_scheme, args.task)
+            _, test_list = train_val_split(splits, args.split)
             lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
         elif args.dataset == "SAR_RARP50":
+            test_list = {'data_test.csv'}
             lists_dir = args.video_lists_dir
+        else:
+            raise NotImplementedError()
 
+        val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
         test_lists = list(map(lambda x: os.path.join(lists_dir, x), test_list))
 
         test_videos = list()
         for list_file in test_lists:
             test_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
         test_loaders = list()
-
-        for video in test_videos:
-            data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, video_id=video[0], frame_count=video[1],
-                                                        transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                                        snippet_length=args.snippet_length,
-                                                        sampling_step=args.val_sampling_step,
-                                                        image_tmpl=args.image_tmpl,
-                                                        video_suffix=args.video_suffix,
-                                                        normalize=normalize, resize=args.input_size,
-                                                        transform=val_augmentation)  # augmentation are off
-            test_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                            shuffle=False, num_workers=args.workers,
-                                                            collate_fn=no_none_collate))
+        # in JIGSAWS there is no validation, so each split the test set changes
+        if (args.dataset == "JIGSAWS") or (args.dataset == "SAR_RARP50" and i==0):
+            for video in test_videos:
+                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', video_id=video[0], frame_count=video[1],
+                                                            transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
+                                                            snippet_length=args.snippet_length,
+                                                            sampling_step=args.val_sampling_step,
+                                                            image_tmpl=args.image_tmpl,
+                                                            video_suffix=args.video_suffix,
+                                                            normalize=normalize, resize=args.input_size,
+                                                            transform=val_augmentation)  # augmentation are off
+                test_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
+                                                                shuffle=False, num_workers=args.workers,
+                                                                collate_fn=no_none_collate))
         
         model = get_model(  args.arch, 
                             num_classes=args.num_classes,
@@ -206,10 +208,6 @@ if __name__ == '__main__':
         device_gpu = torch.device(f"cuda:{args.gpu_id}")
         model = model.to(device_gpu)
         device_cpu = torch.device("cpu")
-
-        # test_loaders
-        splits = get_splits(args.dataset, args.eval_scheme, args.task)
-        _, test_list = train_val_split(splits, args.split)
 
         overall = test(model, test_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
 

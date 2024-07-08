@@ -329,7 +329,7 @@ class GestureTrainSet(data.Dataset):
 
 class Sequential2DTestGestureDataSet(data.Dataset):
 
-    def __init__(self, dataset, root_path, video_id, frame_count, transcriptions_dir, gesture_ids,
+    def __init__(self, dataset, root_path, sar_rarp50_sub_dir, video_id, frame_count, transcriptions_dir, gesture_ids,
                  snippet_length=16, sampling_step=6,
                  image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
                  return_3D_tensor=True, return_dense_labels=True,
@@ -342,7 +342,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         elif self.dataset in ['SAR_RARP50']:
             self.video_freq = 60 # Hz
             self.label_freq = 10 # Hz
-            self.root_path = os.path.join(root_path, 'train')
+            self.root_path = os.path.join(root_path, sar_rarp50_sub_dir) # sur_rarp50_sub_dir = 'train' or 'test'
         self.preload = preload
         self.video_name = video_id
         self.video_id = video_id
