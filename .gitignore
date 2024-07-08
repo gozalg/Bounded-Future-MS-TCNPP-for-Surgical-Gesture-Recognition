@@ -20,11 +20,11 @@ output/
 data/.vscode
 data/JIGSAWS/Suturing
 data/VTS/VTS_dataset
-data/SAR-RARP50/test
-data/SAR-RARP50/train
-data/SAR-RARP50/frames
-data/SAR-RARP50/frames/*
-data/SAR-RARP50/README.md
+data/SAR_RARP50/test
+data/SAR_RARP50/train
+data/SAR_RARP50/frames
+data/SAR_RARP50/frames/*
+data/SAR_RARP50/README.md
 # DGX
 *.sqsh
 tasks/
