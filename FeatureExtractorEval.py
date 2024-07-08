@@ -238,13 +238,13 @@ if __name__ == '__main__':
         # print in blue text and in yellow results including args.split
         print("\033[94m" + "Split " + "\033[93m" + f"{args.split}" + "\033[94m" + ":" + "\033[0m")
         print("\033[94m" + "\tTest Acc: " + "\033[93m" + f"\t{test_acc:.3f}" + "\033[0m")
-        print("\033[94m" + "\tTest Edit: " + "\033[93m" + f"\t{test_edit:.3f}" + "\033[0m")
         print("\033[94m" + "\tTest Macro F1: " + "\033[93m" + f"\t{test_macro_f1:.3f}" + "\033[0m")
+        print("\033[94m" + "\tTest Edit: " + "\033[93m" + f"\t{test_edit:.3f}" + "\033[0m")
         print("\033[94m" + "\tTest F1@10: " + "\033[93m" + f"\t{test_f1_10:.3f}" + "\033[0m")
         print("\033[94m" + "\tTest F1@25: " + "\033[93m" + f"\t{test_f1_25:.3f}" + "\033[0m")
         print("\033[94m" + "\tTest F1@50: " + "\033[93m" + f"\t{test_f1_50:.3f}" + "\033[0m")
 
-        results.loc[i] = [args.split, test_acc, test_edit, test_macro_f1, test_f1_10, test_f1_25, test_f1_50]
+        results.loc[i] = [args.split, test_acc, test_macro_f1, test_edit, test_f1_10, test_f1_25, test_f1_50]
 
         args.split += 1
 
