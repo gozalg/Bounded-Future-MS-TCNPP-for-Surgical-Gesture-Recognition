@@ -338,12 +338,15 @@ def feature_creator_split(weights_path, output_dir):
 
     if args.dataset == "JIGSAWS":
         lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
-        cur_data_path = args.data_path
-        cur_output_dir = output_dir
+        # cur_data_path = args.data_path
+        # cur_output_dir = output_dir
     else:
         lists_dir = args.video_lists_dir
-        cur_data_path = os.path.join(args.data_path, 'train')
-        cur_output_dir = os.path.join(output_dir, 'train')
+        # cur_data_path = os.path.join(args.data_path, 'train')
+        # cur_output_dir = os.path.join(output_dir, 'train')
+
+    cur_data_path = args.data_path
+    cur_output_dir = output_dir
 
     os.makedirs(cur_output_dir, exist_ok=True)
 
@@ -361,9 +364,9 @@ def feature_creator_split(weights_path, output_dir):
         np.save(path, features)
     
     if args.dataset in ['SAR_RARP50']:
-        cur_data_path = os.path.join(args.data_path, 'test')
-        cur_output_dir = os.path.join(output_dir, 'test')
-        os.makedirs(cur_output_dir, exist_ok=True)
+        # cur_data_path = os.path.join(args.data_path, 'test')
+        # cur_output_dir = os.path.join(output_dir, 'test')
+        # os.makedirs(cur_output_dir, exist_ok=True)
 
         test_list = list()
         test_list.append('data_test.csv')

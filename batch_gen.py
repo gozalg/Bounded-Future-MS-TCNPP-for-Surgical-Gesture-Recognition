@@ -1,6 +1,5 @@
 #!/usr/bin/python2.7
 
-from sympy import N
 import torch
 import numpy as np
 import random
@@ -53,7 +52,9 @@ class BatchGenerator(object):
             self.read_JIGSAWS_data()
             # foldfile_end_with = ".csv"
             # foldfile_in_name = "data_"
-        else: # MultiBypass140 or RARP150
+        elif self.dataset == "SAR_RARP50":
+            self.read_SAR_RARP50_data()
+        else: # MultiBypass140
             raise NotImplementedError
             self.read_MultiBypass140_data()
             # foldfile_end_with = ".csv"
@@ -155,7 +156,73 @@ class BatchGenerator(object):
         random.shuffle(self.list_of_train_examples)
     #----------------------------MultiBypass140---------------------------#
     #-------------------------------RARP150-------------------------------#
+    def read_SAR_RARP50_data(self):
+        self.list_of_train_examples = []
+        number_of_folds = 0
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and "valid" in filename:
+                number_of_folds = number_of_folds + 1
 
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and "valid" in filename:
+                file_path = os.path.join(self.folds_folder, filename)
+                if not os.path.exists(file_path):
+                    print(f"The file {file_path} does not exist.")
+                    raise FileNotFoundError
+                elif os.path.getsize(file_path) == 0:
+                    print(f"The file {file_path} is empty.")
+                    raise EOFError
+                else:
+                    with open(file_path, 'r') as file_ptr:
+                            contents = file_ptr.read()
+                    if '\n' not in contents:
+                        print(f"The file {file_path} does not contain any newline characters.")
+                    else:
+                        files_to_sort = contents.split('\n')[:-1]
+                    #----- Validation set -----# 
+                    if str(self.split_num) in filename:
+                        self.list_of_valid_examples = files_to_sort
+                        if not self.list_of_valid_examples:
+                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                            raise EOFError
+                        else:
+                            random.shuffle(self.list_of_valid_examples)
+                    #----- Training set -----#
+                    else:
+                        self.list_of_train_examples = self.list_of_train_examples + files_to_sort
+                        if not self.list_of_train_examples:
+                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                            raise EOFError
+                continue
+            elif filename.endswith(".txt") and "test" in filename:
+                file_path = os.path.join(self.folds_folder, filename)
+                if not os.path.exists(file_path):
+                    print(f"The file {file_path} does not exist.")
+                    raise FileNotFoundError
+                elif os.path.getsize(file_path) == 0:
+                    print(f"The file {file_path} is empty.")
+                    raise EOFError
+                else:
+                    with open(file_path, 'r') as file_ptr:
+                            contents = file_ptr.read()
+                    if '\n' not in contents:
+                        print(f"The file {file_path} does not contain any newline characters.")
+                    else:
+                        files_to_sort = contents.split('\n')[:-1]
+                        #----- Test set -----# 
+                        self.list_of_test_examples = files_to_sort
+                        if not self.list_of_test_examples:
+                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                            raise EOFError
+                        else:
+                            random.shuffle(self.list_of_test_examples)
+            else:
+                continue
+
+        random.shuffle(self.list_of_train_examples)
+    #---------------------------------------------------------------------#        
     def normalization_params_read(self):
         if self.normalization == "None":
             return
@@ -179,8 +246,11 @@ class BatchGenerator(object):
     def pars_ground_truth(self, gt_source):
         contant = []
         for line in gt_source:
-            info = line.split()
-            line_contant = [info[2]] * (int(info[1])-int(info[0]) + 1)
+            if self.dataset in ["VTS", "JIGSAWS"]:
+                info = line.split()
+            elif self.dataset in ["SAR_RARP50"]:
+                info = line.split(',')
+            line_contant = [info[2]] * (int(info[1])-int(info[0]) + 1) # TODO Maybe here I can export ref Labels
             contant = contant + line_contant
         return contant
 
