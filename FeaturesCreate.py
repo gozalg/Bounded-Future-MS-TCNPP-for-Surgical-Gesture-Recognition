@@ -140,7 +140,7 @@ class Sequential2DImageReader(data.Dataset):
                  normalize=None, 
                  resize=224, 
                  initial_frame_idx=1):
-        # TODO CONTINUE FROM HERE
+        
         self.cur_dataset = cur_dataset
         if self.cur_dataset in ['JIGSAWS']:
             self.video_freq = 30 # Hz
