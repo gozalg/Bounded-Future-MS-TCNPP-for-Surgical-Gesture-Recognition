@@ -22,7 +22,7 @@ from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_SAR_RARP
 from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
 #------------------------------------------------------------#
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-current_dataset = 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 'RARP50' #
+current_dataset = 'SAR_RARP50' # 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 
 feature_extrractor = '2D-EfficientNetV2-m'
 
 def str2bool(v):
@@ -50,7 +50,7 @@ def get_args():
         raise NotImplementedError()
         parser.add_argument('--task', type=str, choices=['None'], default='None', 
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2'], default='_capture2')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -75,7 +75,7 @@ def get_args():
         raise NotImplementedError()
         parser.add_argument('--task', type=str, choices=['None'], default='None', 
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['None'], default='_capture2')
+        parser.add_argument('--video_suffix', type=str,choices=['None'], default='None')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -87,7 +87,7 @@ def get_args():
     elif current_dataset=='SAR_RARP50':
         parser.add_argument('--task', type=str, choices=['None'], default='None',
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['None'], default='_capture2')
+        parser.add_argument('--video_suffix', type=str,choices=['None'], default='None')
         parser.add_argument('--image_tmpl', default='{:09d}.png')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -126,34 +126,52 @@ def get_args():
 
 class Sequential2DImageReader(data.Dataset):
 
-    def __init__(self, root_path, video_id, frame_count,
-                 snippet_length=16, sampling_step = 6,
-                 image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
-                 return_3D_tensor=True, return_dense_labels=True,
-                 transform=None, normalize=None, resize=224, initial_frame_idx=1):
-    
+    def __init__(self, cur_dataset, 
+                 root_path, 
+                 video_id, 
+                 frame_count,
+                 snippet_length=16, 
+                 sampling_step = 1,
+                 image_tmpl='img_{:05d}.jpg', 
+                 video_suffix="_capture2",
+                 return_3D_tensor=True, 
+                 return_dense_labels=True,
+                 transform=None, 
+                 normalize=None, 
+                 resize=224, 
+                 initial_frame_idx=1):
+        # TODO CONTINUE FROM HERE
+        self.cur_dataset = cur_dataset
+        if self.cur_dataset in ['JIGSAWS']:
+            self.video_freq = 30 # Hz
+            self.label_freq = 30 # Hz
+            self.initial_frame_idx = initial_frame_idx
+        elif self.cur_dataset in ['SAR_RARP50']:
+            self.video_freq = 60 # Hz
+            self.label_freq = 10 # Hz
+            self.initial_frame_idx = initial_frame_idx-1
+        self.sampling_step = sampling_step * (self.video_freq // self.label_freq)
         self.root_path = root_path
+        self.video_suffix = video_suffix
         self.video_name = video_id
         self.video_id = video_id
         # self.transcriptions_dir = transcriptions_dir
         # self.gesture_ids = gesture_ids
         self.snippet_length = snippet_length
-        self.sampling_step = sampling_step
         self.image_tmpl = image_tmpl
-        self.video_suffix = video_suffix
         self.return_3D_tensor = return_3D_tensor
         self.return_dense_labels = return_dense_labels #
         self.transform = transform
         self.normalize = normalize
         self.resize = resize
         self.frame_count = int(frame_count)
-        self.initial_frame_idx = initial_frame_idx
+        
 
         self.gesture_sequence_per_video = {}
         self.image_data = {}
         self.frame_num_data = {}
         # self.labels_data = {}
-        self.frame_num_data[video_id] = list(range(initial_frame_idx, initial_frame_idx + frame_count, self.sampling_step))
+        self.frame_num_data[video_id] = list(range(self.initial_frame_idx, self.initial_frame_idx + frame_count, self.sampling_step))
         self._preload_images(video_id)
 
 
@@ -249,18 +267,22 @@ def run_model(model, frames_loader):
 
 
 
-def get_dataloaders(val_lists, data_path, image_tmpl, video_suffix, batch_size, input_size, workers):
+def get_dataloaders(cur_dataset, val_lists, data_path, image_tmpl, video_suffix, batch_size, input_size, workers):
     normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
     val_augmentation = torchvision.transforms.Compose([GroupScale(input_size),
                                                        GroupCenterCrop(input_size)])   ## need to be corrected
     
+    if video_suffix == 'None':
+        video_suffix = ""
+
     val_videos = list()
     for list_file in val_lists:
         val_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
     val_loaders = list()
     for video in val_videos:
 
-        dataset = Sequential2DImageReader(root_path=data_path, 
+        dataset = Sequential2DImageReader(cur_dataset,
+                                          root_path=data_path, 
                                           video_id=video[0],
                                           frame_count=int(video[1]),
                                           snippet_length=1,
@@ -316,22 +338,45 @@ def feature_creator_split(weights_path, output_dir):
 
     if args.dataset == "JIGSAWS":
         lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
+        cur_data_path = args.data_path
+        cur_output_dir = output_dir
     else:
         lists_dir = args.video_lists_dir
+        cur_data_path = os.path.join(args.data_path, 'train')
+        cur_output_dir = os.path.join(output_dir, 'train')
+
+    os.makedirs(cur_output_dir, exist_ok=True)
 
     val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
 
 
-    val_loaders = get_dataloaders(val_lists, args.data_path, args.image_tmpl,
-                                  args.video_suffix, args.batch_size, args.input_size, workers=args.workers)
+    val_loaders = get_dataloaders(args.dataset, val_lists, cur_data_path, args.image_tmpl, args.video_suffix, args.batch_size, args.input_size, workers=args.workers)
 
     for video_name, val_loader in val_loaders:
 
-        path=os.path.join(output_dir, video_name + ".npy")
+        path=os.path.join(cur_output_dir, video_name + ".npy")
         features = run_model(model, val_loader).cpu().numpy()
         
-        path = os.path.join(output_dir, video_name)
+        path = os.path.join(cur_output_dir, video_name)
         np.save(path, features)
+    
+    if args.dataset in ['SAR_RARP50']:
+        cur_data_path = os.path.join(args.data_path, 'test')
+        cur_output_dir = os.path.join(output_dir, 'test')
+        os.makedirs(cur_output_dir, exist_ok=True)
+
+        test_list = list()
+        test_list.append('data_test.csv')
+        test_lists = list(map(lambda x: os.path.join(lists_dir, x), test_list))
+
+        test_loaders = get_dataloaders(args.dataset, test_lists, cur_data_path, args.image_tmpl, args.video_suffix, args.batch_size, args.input_size, workers=args.workers)
+        for video_name, test_loader in test_loaders:
+
+            path=os.path.join(cur_output_dir, video_name + ".npy")
+            features = run_model(model, test_loader).cpu().numpy()
+            
+            path = os.path.join(cur_output_dir, video_name)
+            np.save(path, features)
 
 def run_feature_creator(get_split):
     """function creates features based on the args recived
@@ -388,6 +433,7 @@ def run_feature_creator(get_split):
                 os.makedirs(split_dir)
 
                 feature_creator_split(weights_path=full_path, output_dir=split_dir) 
+    return out_dir
     
 
 if __name__ == "__main__":
@@ -395,7 +441,11 @@ if __name__ == "__main__":
     # get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
     get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "model_99" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
 
-    run_feature_creator(get_split)
+    out_dir = run_feature_creator(get_split)
+
+    print(f"==========================================")
+    print(f"features created successfully and saved in:\t {out_dir}")
+    print(f"==========================================")
 
 
 
