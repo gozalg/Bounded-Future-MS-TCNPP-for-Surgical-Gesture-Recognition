@@ -48,7 +48,7 @@ def get_args():
     #------------------------ VTS ------------------------
     if current_dataset=='VTS':
         raise NotImplementedError()
-        parser.add_argument('--task', type=str, choices=['None'], default='None', 
+        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None', 
                             help="JIGSAWS task to evaluate.")
         parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
@@ -60,9 +60,9 @@ def get_args():
                             "One subfolder per evaluation scheme, one file per evaluation fold.")
     #---------------------- JIGSAWS ----------------------
     elif current_dataset=='JIGSAWS':
-        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying'], default='Suturing',
+        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2'], default='_capture2')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='_capture2')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -73,9 +73,9 @@ def get_args():
     #------------------- MultiBypass140 -------------------
     elif current_dataset=='MultiBypass140':
         raise NotImplementedError()
-        parser.add_argument('--task', type=str, choices=['None'], default='None', 
+        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None', 
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['None'], default='None')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -85,9 +85,9 @@ def get_args():
                             "One subfolder per evaluation scheme, one file per evaluation fold.")
     #--------------------- SAR_RARP50 ---------------------
     elif current_dataset=='SAR_RARP50':
-        parser.add_argument('--task', type=str, choices=['None'], default='None',
+        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None',
                             help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['None'], default='None')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
         parser.add_argument('--image_tmpl', default='{:09d}.png')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
@@ -424,7 +424,7 @@ def run_feature_creator(get_split):
                     split = [int(x) if isinstance(x, str) and is_integer(x) else x for x in split if isinstance(x, int) or (isinstance(x, str) and is_integer(x))]
                     split = split[0] if len(split) == 1 else split
 
-                print(f"split {split} started")
+                print(f"Split {split} STARTED...")
 
                 full_path = os.path.join(root, dir, filename)
 
@@ -432,20 +432,17 @@ def run_feature_creator(get_split):
 
                 os.makedirs(split_dir)
 
-                feature_creator_split(weights_path=full_path, output_dir=split_dir) 
-    return out_dir
+                feature_creator_split(weights_path=full_path, output_dir=split_dir)
+
+                print(f"Split {split} DONE")
+                print(f"==========================================")
+                print(f"features created successfully and saved in:\t {split_dir}")
+                print(f"==========================================") 
     
 
 if __name__ == "__main__":
 
     # get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "best_" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
     get_split = lambda filename:  (os.path.splitext(filename)[0].split("_")[1:]) if "model_99" in filename and os.path.splitext(filename)[0].split("_")[1].isdigit() else None
-
-    out_dir = run_feature_creator(get_split)
-
-    print(f"==========================================")
-    print(f"features created successfully and saved in:\t {out_dir}")
-    print(f"==========================================")
-
-
-
+    
+    run_feature_creator(get_split)
