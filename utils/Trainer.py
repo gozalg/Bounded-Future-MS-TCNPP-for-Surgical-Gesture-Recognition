@@ -22,7 +22,8 @@ from .util import WANDB_API_KEY
 wandb.login(key=WANDB_API_KEY)
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, 
+                 RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
                  network='MS-TCN2',hyper_parameter_tuning=False,DEBUG=False):
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
@@ -97,8 +98,7 @@ class Trainer:
                         self.device), batch_target_right.to(self.device), mask.to(self.device)
                 else:
                     batch_input, batch_target_gestures, mask = batch_gen.next_batch(batch_size)
-                    batch_input, batch_target_gestures, mask = batch_input.to(self.device), batch_target_gestures.to(
-                        self.device), mask.to(self.device)
+                    batch_input, batch_target_gestures, mask = batch_input.to(self.device), batch_target_gestures.to(self.device), mask.to(self.device)
 
                 optimizer.zero_grad()
                 predictions1, predictions2, predictions3 =[],[],[]
@@ -123,12 +123,11 @@ class Trainer:
 
                 loss = 0
                 for p in predictions1:
-                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]),
-                                    batch_target_gestures.view(-1))
+                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]), batch_target_gestures.view(-1))
+
                     if self.network not in ["GRU","LSTM"]:
-                        loss += self.lambd * torch.mean(torch.clamp(
-                            self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
-                            max=self.tau))
+                        loss += self.lambd * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), 
+                                                                             F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
 
                 for p in predictions2:
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
@@ -175,25 +174,25 @@ class Trainer:
                     'bold']) + "  " + "[epoch %d]: train loss = %f,  train acc gesture = %f,  train acc right= %f,  train acc left = %f" % (
                       epoch + 1,
                       epoch_loss / len(batch_gen.list_of_train_examples),
-                      float(correct1) / total1, float(correct2) / total2, float(correct3) / total3))
+                      100.0 * (float(correct1) / total1), 100.0 * (float(correct2) / total2), 100.0 * (float(correct3) / total3)))
 
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
-                                 "train acc left": float(correct1) / total1, "train acc right": float(correct2) / total2,
-                                 "train acc gestures": float(correct3) / total3}
+                                 "train acc left": 100.0 * (float(correct1) / total1), "train acc right": 100.0 * (float(correct2) / total2),
+                                 "train acc gestures": 100.0 * (float(correct3) / total3)}
             elif self.task == "tools":
                 print(colored(dt_string, 'green', attrs=[
                     'bold']) + "  " + "[epoch %d]: train loss = %f,   train acc right = %f,  train acc left = %f" % (
                           epoch + 1,
                           epoch_loss / len(batch_gen.list_of_train_examples),
-                          float(correct2) / total2, float(correct3) / total3))
+                          100.0 * (float(correct2) / total2), 100.0 * (float(correct3) / total3)))
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
-                                 "train acc left": float(correct2) / total2,
-                                 "train acc right": float(correct3) / total3}
+                                 "train acc left": 100.0 * (float(correct2) / total2),
+                                 "train acc right": 100.0 * (float(correct3) / total3)}
             else:
                 print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d]: train loss = %f,   train acc = %f" % \
-                      (epoch + 1, epoch_loss / len(batch_gen.list_of_train_examples), float(correct1) / total1))
+                      (epoch + 1, epoch_loss / len(batch_gen.list_of_train_examples), 100.0 * (float(correct1) / total1)))
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
-                                 "train acc": float(correct1) / total1}
+                                 "train acc": 100.0 * (float(correct1) / total1)}
 
             if args.upload:
                 wandb.log(train_results, step=epoch)
@@ -203,7 +202,7 @@ class Trainer:
             if (epoch+1) % eval_rate == 0:
                 print(colored("epoch: " + str(epoch + 1) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
-                results.update(self.evaluate(eval_dict, batch_gen))
+                results.update(self.evaluate(eval_dict, batch_gen, args))
                 eval_results_list.append(results)
                 if self.task == "gestures":
                    # NOTICE: we are using the F1@50 gesture for the early stopping when there is a validation set in the dataset
@@ -249,13 +248,13 @@ class Trainer:
             #     # TODO NOTICE: There is no test set for JIGSAWS dataset
             #     test_results = None
             # else: 
-            #     test_results = self.evaluate(eval_dict, batch_gen,True)
+            #     test_results = self.evaluate(eval_dict, batch_gen,args, True)
             #     test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
-            test_results = self.evaluate(eval_dict, batch_gen,True)
+            test_results = self.evaluate(eval_dict, batch_gen, args, True)
             test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
         return best_valid_results, eval_results_list, train_results_list, test_results
 
-    def evaluate(self, eval_dict, batch_gen,is_test=False):
+    def evaluate(self, eval_dict, batch_gen, args, is_test=False):
         results = {}
         device = eval_dict["device"]
         features_path = eval_dict["features_path"]
@@ -367,25 +366,25 @@ class Trainer:
             if self.task == "multi-taks" or self.task == "gestures":
 
                 print("gestures results")
-                results1, _ = metric_calculation(ground_truth_path=ground_truth_path_gestures,
+                results1, _ = metric_calculation(args, ground_truth_path=ground_truth_path_gestures,
                                                  recognition_list=recognition1_list, list_of_videos=list_of_vids,
                                                  suffix="gesture",is_test=is_test)
 
 
                 results.update(results1)
 
-            if self.task == "multi-taks" or self.task == "tools":
+            # if self.task == "multi-taks" or self.task == "tools":
 
-                print("right hand results")
-                results2, _ = metric_calculation(ground_truth_path=ground_truth_path_right,
-                                                 recognition_list=recognition2_list, list_of_videos=list_of_vids,
-                                                 suffix="right",is_test=is_test)
-                print("left hand results")
-                results3, _ = metric_calculation(ground_truth_path=ground_truth_path_left,
-                                                 recognition_list=recognition3_list, list_of_videos=list_of_vids,
-                                                 suffix="left",is_test=is_test)
-                results.update(results2)
-                results.update(results3)
+            #     print("right hand results")
+            #     results2, _ = metric_calculation(args, ground_truth_path=ground_truth_path_right,
+            #                                      recognition_list=recognition2_list, list_of_videos=list_of_vids,
+            #                                      suffix="right",is_test=is_test)
+            #     print("left hand results")
+            #     results3, _ = metric_calculation(args, ground_truth_path=ground_truth_path_left,
+            #                                      recognition_list=recognition3_list, list_of_videos=list_of_vids,
+            #                                      suffix="left",is_test=is_test)
+            #     results.update(results2)
+            #     results.update(results3)
 
             if is_test:
                 results["list_of_seq"] = list_of_vids

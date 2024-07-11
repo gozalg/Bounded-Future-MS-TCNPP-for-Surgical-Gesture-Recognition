@@ -100,16 +100,20 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
     fn = len(y_label) - sum(hits)
     return float(tp), float(fp), float(fn)
 
-def pars_ground_truth(gt_source):
+def pars_ground_truth(args, gt_source):
     contant = []
     for line in gt_source:
-        info = line.split()
-        line_contant = [info[2]] * (int(info[1]) - int(info[0]) + 1)
+        if args.dataset == "JIGSAWS":
+            info = line.split()
+            line_contant = [info[2]] * (int(info[1]) - int(info[0]) + 1)
+        elif args.dataset == "SAR_RARP50":
+            info = line.split(',')
+            line_contant = ['G'+info[2]] * (int(info[1]) - int(info[0]) + 1)
         contant = contant + line_contant
     return contant
 
 
-def metric_calculation(ground_truth_path,recognition_list,list_of_videos,suffix="",is_test=False):
+def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,suffix="",is_test=False):
     overlap = [.1, .25, .5]
     results_dict = {"Acc "+suffix:None, "Edit "+suffix:None,"F1-macro "+suffix:None,
                     F"F1@{int(overlap[0] * 100) } "+suffix:None, F"F1@{int(overlap[1] * 100) } "+suffix:None,
@@ -131,7 +135,7 @@ def metric_calculation(ground_truth_path,recognition_list,list_of_videos,suffix=
     for i, seq in enumerate(list_of_videos):
         file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
         gt_source = file_ptr.read().split('\n')[:-1]
-        gt_content = pars_ground_truth(gt_source)
+        gt_content = pars_ground_truth(args, gt_source)
 
         gt_list.append(gt_content)
         recog_content = recognition_list[i]
@@ -279,7 +283,7 @@ def metric_calculation_backup(ground_truth_path,recognition_list,list_of_videos,
 
         file_ptr = open(ground_truth_path + seq.split('.')[0] + '.txt', 'r')
         gt_source = file_ptr.read().split('\n')[:-1]
-        gt_content = pars_ground_truth(gt_source)
+        gt_content = pars_ground_truth(args, gt_source)
 
         gt_list.append(gt_content)
         recog_content = recognition_list[i]

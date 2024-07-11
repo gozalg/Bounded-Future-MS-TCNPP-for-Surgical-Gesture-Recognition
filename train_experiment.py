@@ -29,7 +29,8 @@ parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default
                     "Only LOUO supported for TBD.")
 parser.add_argument('--task', choices=['gestures', 'tools', 'multi-taks'], default="gestures")
 parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-m", 
-                    choices=['3D-ResNet-18', '3D-ResNet-50', "2D-ResNet-18", "2D-ResNet-34",
+                    choices=['3D-ResNet-18', '3D-ResNet-50', 
+                             "2D-ResNet-18", "2D-ResNet-34",
                              "2D-EfficientNetV2-s", "2D-EfficientNetV2-m", "2D-EfficientNetV2-l"])
 parser.add_argument('--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
 parser.add_argument('--split', choices=['0', '1', '2', '3', '4', '5', '6', '7', 'all'], default='all')
@@ -39,7 +40,7 @@ parser.add_argument('--num_epochs', default=40, type=int)
 parser.add_argument('--eval_rate', default=1, type=int)
 
 # Architecture
-parser.add_argument('--w_max', default=0, type=int) # 0 for "offline", >0 for "online"
+parser.add_argument('--w_max', default=17, type=int) # 0 for "offline" (??), >0 for "online"
 parser.add_argument('--num_layers_PG', default=10, type=int)
 parser.add_argument('--num_layers_R', default=10, type=int)
 parser.add_argument('--num_f_maps', default=128, type=int)
@@ -90,7 +91,7 @@ batch_size = 2
 list_of_splits = []
 if args.split.isdigit(): # if split isn't 'all'
     list_of_splits.append(int(args.split))
-elif args.dataset == "VTS":
+elif args.dataset in ["VTS", "SAR_RARP50"]:
     list_of_splits = list(range(0, 5))
 elif args.dataset == "JIGSAWS":
     if args.eval_scheme == "LOUO":
@@ -98,7 +99,7 @@ elif args.dataset == "JIGSAWS":
     if args.eval_scheme == "LOSO":
         list_of_splits = list(range(0, 5))
 else:
-    raise NotImplemented
+    raise NotImplementedError()
 
 # the args for the model
 loss_lambda = args.loss_lambda
@@ -137,7 +138,7 @@ for split_num in list_of_splits:
     print("split number: " + str(split_num))
     args.split = str(split_num)
 
-    gt_path_gestures = os.path.join(data_dir, args.dataset, "transcriptions_gestures")
+    gt_path_gestures = os.path.join(data_dir, args.dataset, "transcriptions")
     mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
     model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
 
@@ -148,6 +149,9 @@ for split_num in list_of_splits:
     elif args.dataset == "JIGSAWS":
         features_path = os.path.join(features_path, args.split)
         folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
+    elif args.dataset == "SAR_RARP50":
+        features_path = os.path.join(features_path, args.split)
+        folds_dir = os.path.join(data_dir, args.dataset, "folds")
     else:
         raise NotImplementedError()
 
@@ -193,10 +197,21 @@ for split_num in list_of_splits:
           gt_path_gestures, sample_rate, args.normalization, args.task)
     batch_gen = BatchGenerator(args.dataset, num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, 
                                folds_dir, gt_path_gestures, sample_rate=sample_rate, normalization=args.normalization, task=args.task)
-    eval_dict = {"features_path": features_path, "actions_dict_gestures": actions_dict_gestures, "actions_dict_tools": actions_dict_tools, "device": device, "sample_rate": sample_rate, "eval_rate": eval_rate,
-                 "gt_path_gestures": gt_path_gestures, "task": args.task}
-    best_valid_results, eval_results, train_results, test_results = trainer.train(
-        model_out_dir, batch_gen, num_epochs=num_epochs, batch_size=batch_size, learning_rate=lr, eval_dict=eval_dict, args=args)
+    eval_dict = {"features_path": features_path, 
+                 "actions_dict_gestures": actions_dict_gestures, 
+                 "actions_dict_tools": actions_dict_tools, 
+                 "device": device, 
+                 "sample_rate": sample_rate, 
+                 "eval_rate": eval_rate,
+                 "gt_path_gestures": gt_path_gestures, 
+                 "task": args.task}
+    best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
+                                                                                  batch_gen, 
+                                                                                  num_epochs=num_epochs, 
+                                                                                  batch_size=batch_size, 
+                                                                                  learning_rate=lr, 
+                                                                                  eval_dict=eval_dict, 
+                                                                                  args=args)
 
     if not DEBUG:
         eval_results = pd.DataFrame(eval_results)
