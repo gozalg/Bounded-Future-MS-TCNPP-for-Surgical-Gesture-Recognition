@@ -1,6 +1,7 @@
 #!/bin/bash
 #--------- USER INPUTS ---------
 DATASET=$1
+BASE_PATH=/data/home/gabrielg/Bounded_Future_from_GIT
 #------------------------------
 
 if [ ${DATASET} == "JIGSAWS" ]; then
@@ -31,9 +32,9 @@ python FeatureExtractorEval.py  --dataset ${DATASET} \
                                 --num_classes ${NUM_CLASS} \
                                 --val_sampling_step $((FPS/LABEL_HZ)) \
                                 --image_tmpl ${IMG_TMP} \
-                                --video_lists_dir /data/home/gabrielg/Bounded_Future_from_GIT/data/${DATASET}/Splits${VID_LIST_SUFFIX} \
-                                --data_path /data/home/gabrielg/Bounded_Future_from_GIT/data/${DIR_SUFFIX}/frames \
-                                --transcriptions_dir /data/home/gabrielg/Bounded_Future_from_GIT/data/${DIR_SUFFIX}/transcriptions \
+                                --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits${VID_LIST_SUFFIX} \
+                                --data_path ${BASE_PATH}/data/${DIR_SUFFIX}/frames \
+                                --transcriptions_dir ${BASE_PATH}/data/${DIR_SUFFIX}/transcriptions \
                                 --video_suffix ${VID_SUFFIX} \
                                 --workers 16 \
                                 --task ${TASK}

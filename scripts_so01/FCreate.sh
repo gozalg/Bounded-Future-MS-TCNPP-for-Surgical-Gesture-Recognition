@@ -1,6 +1,7 @@
 #!/bin/bash
 #--------- USER INPUTS ---------
 DATASET=$1
+BASE_PATH=/data/home/gabrielg/Bounded_Future_from_GIT
 #------------------------------
 ARCH=2D-EfficientNetV2-m
 
@@ -32,9 +33,9 @@ python FeaturesCreate.py    --dataset ${DATASET} \
                             --task ${TASK} \
                             --image_tmpl ${IMG_TMP} \
                             --video_suffix ${VID_SUFFIX} \
-                            --data_path /data/home/gabrielg/Bounded_Future_from_GIT/data/${DIR_SUFFIX}/frames \
-                            --video_lists_dir /data/home/gabrielg/Bounded_Future_from_GIT/data/${DATASET}/Splits${VID_LIST_SUFFIX} \
-                            --pretrain_path /data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/${DATASET}/${ARCH} \
-                            --out /data/home/gabrielg/Bounded_Future_from_GIT/output/features/${DATASET}/${ARCH} \
+                            --data_path ${BASE_PATH}/data/${DIR_SUFFIX}/frames \
+                            --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits${VID_LIST_SUFFIX} \
+                            --pretrain_path ${BASE_PATH}/output/feature_extractor/${DATASET}/${ARCH} \
+                            --out ${BASE_PATH}/output/features/${DATASET}/${ARCH} \
                             --arch ${ARCH} \
                             --workers 16
