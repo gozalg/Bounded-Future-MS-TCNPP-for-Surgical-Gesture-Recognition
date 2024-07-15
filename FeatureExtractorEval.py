@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
         # load best model weights from output folder
         # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
-        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_9.pth"
+        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_99.pth"
         model.load_state_dict(torch.load(model_loc))
 
         # model
