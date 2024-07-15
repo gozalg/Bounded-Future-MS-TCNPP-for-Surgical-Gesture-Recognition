@@ -574,7 +574,7 @@ def train_val_split(splits, val_split, MB140=False):
         if isinstance(val_list[0], list):
             val_list = [item for val_split in val_list for item in val_split]
     elif MB140:
-        assert (val_split >= 0 and val_split < len(splits))
+        assert (val_split >= 0 and val_split < len(splits['train']))
         train_lists = splits['train'][val_split]
         val_list    = splits['val'][val_split]
     else:
