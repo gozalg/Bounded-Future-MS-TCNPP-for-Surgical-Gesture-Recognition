@@ -23,7 +23,7 @@ parser.add_argument('--task', type=str, default='None')  # 'Suturing' for JIGSAW
 parser.add_argument('--split', type=int, default=0)
 parser.add_argument('--snippet_length', type=int, default=1)
 parser.add_argument('--val_sampling_step', type=int, default=6) # multiply of 6 for SAR_RARP50 (60 fps video, 10 Hz labels => each 6 frames there's a label)
-parser.add_argument('--image_tmpl', type=str, choices=['img_{:05d}.jpg', '{:09d}.png'], default='{:09d}.png')
+parser.add_argument('--image_tmpl', type=str, choices=['img_{:05d}.jpg', '{:09d}.png', '{}_{:08d}.jpg'], default='{:09d}.png')
 parser.add_argument('--video_suffix', type=str, choices=['_capture1', '_capture2', 'None'], default='None') # _capture* for JIGSAWS, '' for SAR_RARP50
 parser.add_argument('--input_size', type=int, default=224)
 parser.add_argument('--batch_size', type=int, default=32)
@@ -141,8 +141,10 @@ if __name__ == '__main__':
             total_splits = 8
         elif args.dataset == 'SAR_RARP50':
             total_splits = 5
-    elif args.eval_scheme == 'LOSO':
-        total_splits = 5 # only for JIGSAWS
+        elif args.dataset == 'MultiBypass140':
+            total_splits = 5
+    elif args.eval_scheme == 'LOSO': # only for JIGSAWS
+        total_splits = 5 
 
     # for results.csv
     results = pd.DataFrame(columns=["split", "test_acc", "test_edit", "test_macro_f1", "test_f1_10", "test_f1_25", "test_f1_50"])
@@ -164,6 +166,9 @@ if __name__ == '__main__':
         elif args.dataset == "SAR_RARP50":
             test_list = {'data_test.csv'}
             lists_dir = args.video_lists_dir
+        elif args.dataset == "MultiBypass140":
+            test_list = {f'data_test_{i}.csv'}
+            lists_dir = args.video_lists_dir
         else:
             raise NotImplementedError()
 
@@ -176,7 +181,7 @@ if __name__ == '__main__':
         test_loaders = list()
         # in JIGSAWS dataset, there is no test set, so we use validation set for testing.
         # in SAR_RARP50 dataset, we use the same test set for all splits.
-        if (args.dataset == "JIGSAWS") or (args.dataset == "SAR_RARP50" and i==0):
+        if (args.dataset in ['JIGSAWS', 'MultiBypass140']) or (args.dataset == "SAR_RARP50" and i==0):
             data_set_list = []
             for video in test_videos:
                 data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', 
@@ -218,7 +223,7 @@ if __name__ == '__main__':
 
         # load best model weights from output folder
         # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
-        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_99.pth"
+        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_9.pth"
         model.load_state_dict(torch.load(model_loc))
 
         # model

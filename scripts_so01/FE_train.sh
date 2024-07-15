@@ -29,8 +29,8 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     DIR_SUFFIX=${DATASET}
     TASK=None
 elif [ ${DATASET} == "MultiBypass140" ]; then
-    # FPS=60
-    # LABEL_HZ=10
+    # FPS=25
+    # LABEL_HZ=25
     CLASSES_N=46
     SMP_STEP=30
     IMG_TMP={}_{:08d}.jpg
