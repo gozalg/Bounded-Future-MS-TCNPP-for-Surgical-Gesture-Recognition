@@ -23,6 +23,7 @@ data/VTS/VTS_dataset
 data/SAR_RARP50/frames/test/*
 data/SAR_RARP50/frames/train/*
 data/SAR_RARP50/README.md
+data/MultiBypass140/frames/*
 # DGX
 *.sqsh
 tasks/
