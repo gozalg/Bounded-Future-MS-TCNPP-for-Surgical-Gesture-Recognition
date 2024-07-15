@@ -118,7 +118,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
             f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
             f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
-            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1@10 {:.3f} F1@25 {:.3f} F1@50 {:.3f}"
+            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1@10 - {:.3f} - F1@25 {:.3f} F1@50 - {:.3f}"
                 .format(val_loader.dataset.video_id, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
 
             overall_acc.append(acc)
@@ -128,7 +128,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             overall_f1_25.append(f1_25)
             overall_f1_50.append(f1_50)
 
-        log("Overall: Validation Acc - {:.3f} F1-Macro - {:.3f} Edit - {:.3f} F1@10 {:.3f} F1@25 {:.3f} F1@50 {:.3f}".format(
+        log("Overall: Validation Acc - {:.3f} F1-Macro - {:.3f} Edit - {:.3f} F1@10 - {:.3f} F1@25 - {:.3f} F1@50 - {:.3f}".format(
             np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit),
             np.mean(overall_f1_10), np.mean(overall_f1_25), np.mean(overall_f1_50)
         ), output_folder)
@@ -604,7 +604,7 @@ def get_augmentation(input_size, crop_corners=True,
 
     if perspective_distortion:
         augmenations.append(GroupRandomPerspective(distortion_scale=perspective_distortion, p=0.33))
-        
+
     if degrees:
         augmenations.append(GroupRandomRotation(degrees=degrees))
 
