@@ -343,6 +343,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             self.video_freq = 60 # Hz
             self.label_freq = 10 # Hz
             self.root_path = os.path.join(root_path, sar_rarp50_sub_dir) # sur_rarp50_sub_dir = 'train' or 'test'
+        elif self.dataset in ['MultiBypass140']:
+            self.video_freq = 25 # Hz
+            self.label_freq = 25 # Hz
+            self.root_path = root_path
         self.preload = preload
         self.video_name = video_id
         self.video_id = video_id
@@ -351,7 +355,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         self.snippet_length = snippet_length
         self.sampling_step = sampling_step
         self.image_tmpl = image_tmpl
-        self.video_suffix = video_suffix
+        if video_suffix == "None":
+            self.video_suffix = ""
+        else:
+            self.video_suffix = video_suffix
         self.return_3D_tensor = return_3D_tensor
         self.return_dense_labels = return_dense_labels
         self.transform = transform
@@ -371,7 +378,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         _frame_count = self.frame_count
 
         gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
-        if self.dataset == 'JIGSAWS':
+        if self.dataset in ['JIGSAWS', 'MultiBypass140']:
             # format [start_frame end_frame gesture_id]
             gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
         elif self.dataset == 'SAR_RARP50':
@@ -394,10 +401,14 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         frame_nums_list = []
         if self.dataset == 'JIGSAWS':
             img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
-        elif self.dataset == 'SAR_RARP50':
+        elif self.dataset in ['SAR_RARP50', 'MultiBypass140']:
             img_dir = os.path.join(self.root_path, video_id)
         for frame_num in self.frame_num_data[self.video_name]:
-            path = os.path.join(img_dir, self.image_tmpl.format(frame_num))
+            if self.dataset in ['JIGSAWS', 'SAR_RARP50']:
+                path_to_join = os.path.join(img_dir, self.image_tmpl.format(frame_num))
+            elif self.dataset in ['MultiBypass140']:
+                path_to_join = os.path.join(img_dir, self.image_tmpl.format(video_id, frame_num))
+            path = path_to_join
             if os.path.exists(path):
                 frame_nums_list.append(frame_num)
                 for gesture in gestures:
@@ -415,7 +426,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         images = []
         if self.dataset == 'JIGSAWS':
             img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
-        elif self.dataset == 'SAR_RARP50':
+        elif self.dataset in ['SAR_RARP50', 'MultiBypass140']:
             img_dir = os.path.join(self.root_path, video_id)
         for idx in self.frame_num_data[self.video_name]:
             try:
@@ -428,8 +439,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             self.image_data[video_id] = images
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(
-            directory, self.image_tmpl.format(idx))).convert('RGB')
+        if self.dataset in ['JIGSAWS', 'SAR_RARP50']:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        elif self.dataset in ['MultiBypass140']:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
         img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
@@ -458,7 +471,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             frame_num = self.image_data[video_id][_idx]
             if self.dataset == 'JIGSAWS':
                 mg_dir = os.path.join(self.root_path, video_id + self.video_suffix)
-            elif self.dataset == 'SAR_RARP50':
+            elif self.dataset in ['SAR_RARP50', 'MultiBypass140']:
                 mg_dir = os.path.join(self.root_path, video_id)    
             img = self._load_image(mg_dir, frame_num)
             img = img[0]
@@ -493,12 +506,19 @@ class Gesture2DTrainSet(data.Dataset):
             self.video_freq = 60 # Hz
             self.label_freq = 10 # Hz
             self.root_path = os.path.join(root_path, 'train')
+        elif self.dataset in ['MultiBypass140']:
+            self.video_freq = 25 # Hz
+            self.label_freq = 25 # Hz
+            self.root_path = root_path
         self.debag = debag
         self.list_of_list_files = list_of_list_files
         self.transcriptions_dir = transcriptions_dir
         self.gesture_ids = gesture_ids
         self.image_tmpl = image_tmpl
-        self.video_suffix = video_suffix
+        if video_suffix == "None":
+            self.video_suffix = ""
+        else:
+            self.video_suffix = video_suffix
         self.transform = transform
         self.normalize = normalize
         self.resize = resize
@@ -551,7 +571,7 @@ class Gesture2DTrainSet(data.Dataset):
 
                 gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
                 
-                if self.dataset == 'JIGSAWS':
+                if self.dataset in ['JIGSAWS', 'MultiBypass140']:
                     # format: [start_frame end_frame gesture_id]
                     gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]] for x in open(gestures_file)]
                 elif self.dataset == 'SAR_RARP50':
@@ -579,11 +599,17 @@ class Gesture2DTrainSet(data.Dataset):
             step = self.video_freq // self.label_freq
             initial_relevant_frame_index = self.frame_num_data[video_id][0] + real_snippet_length - 1
             frame_dict = {"video_name": video_id, "frame_index": 0, "gesture": ""}
-            for i in range(initial_relevant_frame_index, self.frame_num_data[video_id][1], step):
-                if os.path.exists(os.path.join(img_dir, self.image_tmpl.format(i))):
-                    frame_dict["frame_index"] = i
-                    frame_dict["gesture"] = self.labels_data[video_id][i // step]
-                    gesture_dict[self.gesture_ids[self.labels_data[video_id][i // step]]].append(frame_dict.copy())
+            for idx in range(initial_relevant_frame_index, self.frame_num_data[video_id][1], step):
+                # set the if below condition based on the dataset
+                if(self.dataset in ['JIGSAWS', 'SAR_RARP50']):
+                    if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))
+                elif(self.dataset in ['MultiBypass140']):
+                    if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(video_id, idx)))
+                # the if condition is set above, based on the dataset
+                if (if_condition):
+                    frame_dict["frame_index"] = idx
+                    frame_dict["gesture"] = self.labels_data[video_id][idx // step]
+                    gesture_dict[self.gesture_ids[self.labels_data[video_id][idx // step]]].append(frame_dict.copy())
         return gesture_dict
 
     def _generate_labels_list(self, video_id, gestures):
@@ -594,7 +620,13 @@ class Gesture2DTrainSet(data.Dataset):
         img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
         for gesture in gestures:
             for idx in range(gesture[0], gesture[1]+1):
-                if(os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))):
+                # set the if below condition based on the dataset
+                if(self.dataset in ['JIGSAWS', 'SAR_RARP50']):
+                    if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))
+                elif(self.dataset in ['MultiBypass140']):
+                    if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(video_id, idx)))
+                # the if condition is set above, based on the dataset
+                if(if_condition):
                     labels_list.append(self.gesture_ids.index(gesture[2]))
         self.labels_data[video_id] = labels_list
 
@@ -604,13 +636,20 @@ class Gesture2DTrainSet(data.Dataset):
         img_dir = os.path.join(self.root_path, video_id + self.video_suffix)
         _start_frame = 1 if self.dataset in ['JIGSAWS'] else 0
         for idx in range(_start_frame, _final_labaled_frame + 1):
-            if(os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))):
+            # set the if below condition based on the dataset
+            if(self.dataset in ['JIGSAWS', 'SAR_RARP50']):
+                if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(idx)))
+            elif(self.dataset in ['MultiBypass140']):
+                if_condition = os.path.exists(os.path.join(img_dir, self.image_tmpl.format(video_id, idx)))
+            # the if condition is set above, based on the dataset
+            if(if_condition):
                 imgs = [(img_dir, idx)]
                 images.extend(imgs)
         self.image_data[video_id] = images
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB') if self.dataset in ['JIGSAWS', 'SAR_RARP50'] else \
+              Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
         img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 

@@ -49,6 +49,7 @@ parser.add_argument('--number_of_samples_per_class', type=int, default=400,
                     help="Number of samples taken from each class for training")
 #------------------------ VTS ------------------------
 if current_dataset=='VTS':
+    raise NotImplementedError("VTS dataset is not supported in the Repository")
     parser.add_argument('--num_classes', type=int,
                         default=6, help="Number of classes.")
     parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
@@ -77,9 +78,30 @@ elif current_dataset=='JIGSAWS':
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
     parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying'], default='Suturing',
                     help="JIGSAWS task to evaluate.")
+    parser.add_argument('--val_sampling_step', type=int, default=80,
+                    help="Describes how the validation video data has been downsampled from the original temporal "
+                         "resolution (by taking every <video_sampling_step>th frame).")
 #------------------- MultiBypass140 -------------------
 elif current_dataset=='MultiBypass140':
-    raise NotImplementedError()
+    parser.add_argument('--num_classes', type=int,
+                        default=46, help="Number of classes.")
+    parser.add_argument('--image_tmpl', default='{}_{:08d}.jpg') # 1st arg is dir name, 2nd arg is frame number
+    parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
+                                                            '_capture2', # relevant for jigsaws
+                                                            'None'], default='None')
+    parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
+                        help="Path to data folder, which contains the extracted images for each video. "
+                             "One subfolder per video.")
+    parser.add_argument('--transcriptions_dir', type=str, default=os.path.join(data_dir, current_dataset, "transcriptions"),
+                        help="Path to folder containing the transcription files (gesture annotations). One file per video.")
+    parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
+                    help="Path to directory containing information about each video in the form of video list files. "
+                         "One subfolder per evaluation scheme, one file per evaluation fold.")
+    parser.add_argument('--task', type=str, choices=['None'], default='None',
+                    help="JIGSAWS task to evaluate.")
+    parser.add_argument('--val_sampling_step', type=int, default=30,
+                    help="Describes how the validation video data has been downsampled from the original temporal "
+                         "resolution (by taking every <video_sampling_step>th frame).")
 #--------------------- SAR_RARP50 ---------------------
 elif current_dataset=='SAR_RARP50':
     parser.add_argument('--num_classes', type=int,
@@ -98,12 +120,12 @@ elif current_dataset=='SAR_RARP50':
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
     parser.add_argument('--task', type=str, choices=['None'], default='None',
                     help="JIGSAWS task to evaluate.")
-
+    parser.add_argument('--val_sampling_step', type=int, default=60,
+                    help="Describes how the validation video data has been downsampled from the original temporal "
+                         "resolution (by taking every <video_sampling_step>th frame).")
+#------------------------------------------------------
 parser.add_argument('--video_sampling_step', type=int, default=1,
                     help="Describes how the available video data has been downsampled from the original temporal "
-                         "resolution (by taking every <video_sampling_step>th frame).")
-parser.add_argument('--val_sampling_step', type=int, default=60,
-                    help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 parser.add_argument('--do_horizontal_flip', type='bool', default=True,
                     help="Whether data augmentation should include a random horizontal flip.")

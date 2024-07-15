@@ -28,6 +28,7 @@ from torch.nn.modules.linear import Identity
 import torchvision
 from torchvision.transforms.functional import InterpolationMode
 from timm.models.efficientnet import EfficientNet
+import shutil
 from sklearn.model_selection import KFold
 import tqdm
 import wandb
@@ -43,7 +44,7 @@ from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils.loss import Loss
 from utils import util
 from utils.util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
-from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50
+from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, gestures_MultiBypass140
 from utils.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
@@ -182,21 +183,24 @@ def main(split=1, upload=False, group=None, args=None):
             os.makedirs(output_folder, exist_ok=True)
 
         else:
-            if args.dataset == "JIGSAWS":
+            if args.dataset in ['JIGSAWS', 'SAR_RARP50', 'MultiBypass140']:
                 output_folder = os.path.join(args.out, 
                                              args.dataset,
                                              args.arch,
                                              args.eval_scheme, 
                                              str(args.split))
-            elif args.dataset == "SAR_RARP50":
-                output_folder = os.path.join(args.out, 
-                                             args.dataset,
-                                             args.arch,
-                                             str(args.split))
             else: 
                 raise NotImplementedError()
             
 
+            if os.path.exists(output_folder):
+                print("Output folder already exists. Do you want to delete it? (y/n)")
+                user_input = input()
+                if user_input.lower() == 'y':
+                    shutil.rmtree(output_folder)
+                else:
+                    print("Please delete the existing folder before running the code.")
+                    return
             os.makedirs(output_folder, exist_ok=False)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
@@ -307,15 +311,22 @@ def main(split=1, upload=False, group=None, args=None):
 
     # ===== load data =====
 
-    splits = get_splits(args.dataset, args.eval_scheme, args.task)
-
-    train_lists, val_list = train_val_split(splits, args.split)
     if args.dataset == "JIGSAWS":
         lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
-    elif args.dataset == "SAR_RARP50":
+    elif args.dataset in ['SAR_RARP50', 'MultiBypass140']:
         lists_dir = args.video_lists_dir
-    train_lists = list(map(lambda x: os.path.join(lists_dir, x), train_lists))
-    val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+    
+    splits = get_splits(args.dataset, args.eval_scheme, args.task)
+    
+    if args.dataset in ['JIGSAWS', 'SAR_RARP50']:
+        train_lists, val_list = train_val_split(splits, args.split)
+        train_lists = list(map(lambda x: os.path.join(lists_dir, x), train_lists))
+        val_lists   = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+    elif args.dataset == "MultiBypass140":
+        train_lists, val_list = train_val_split(splits, args.split, MB140=True)
+        train_lists = list(map(lambda x: os.path.join(lists_dir, x), train_lists.split()))
+        val_lists   = list(map(lambda x: os.path.join(lists_dir, x), val_list.split()))
+    
     # TODO Add HERE test_lists for other datasets
     log("Splits in train set :" + str(train_lists), output_folder)
     log("Splits in valid set :" + str(val_lists), output_folder)
@@ -544,14 +555,16 @@ def get_splits(dataset, eval_scheme, task):
                 splits = splits_LOUO
     elif dataset == "SAR_RARP50":
         splits = splits_SAR_RARP50
+    elif dataset == "MultiBypass140":
+        splits = splits_MultiBypass140
     else:
         raise NotImplementedError()
 
     return splits
 
 
-def train_val_split(splits, val_split):
-    if isinstance(val_split, int):
+def train_val_split(splits, val_split, MB140=False):
+    if isinstance(val_split, int) and (not MB140):
         assert (val_split >= 0 and val_split < len(splits))
         train_lists = splits[0:val_split] + splits[val_split + 1:]
         val_list = splits[val_split:val_split + 1]
@@ -560,7 +573,10 @@ def train_val_split(splits, val_split):
             train_lists = [item for train_split in train_lists for item in train_split]
         if isinstance(val_list[0], list):
             val_list = [item for val_split in val_list for item in val_split]
-
+    elif MB140:
+        assert (val_split >= 0 and val_split < len(splits))
+        train_lists = splits['train'][val_split]
+        val_list    = splits['val'][val_split]
     else:
         assert isinstance(val_split, List)
         assert all((s in splits) for s in val_split)
@@ -587,8 +603,8 @@ def get_augmentation(input_size, crop_corners=True,
         augmenations.append(GroupRandomVerticalFlip())
 
     if perspective_distortion:
-        augmenations.append(GroupRandomPerspective(distortion_scale=perspective_distortion,
-                                                   p=0.33))
+        augmenations.append(GroupRandomPerspective(distortion_scale=perspective_distortion, p=0.33))
+        
     if degrees:
         augmenations.append(GroupRandomRotation(degrees=degrees))
 
@@ -608,6 +624,8 @@ def get_gestures(dataset, task=None):
             gesture_ids = gestures_KT
     elif dataset == "SAR_RARP50":
         gesture_ids = gestures_SAR_RARP50
+    elif dataset == "MultiBypass140":
+        gesture_ids = gestures_MultiBypass140
     else:
         raise NotImplementedError()
 
@@ -821,13 +839,14 @@ def load_model(weights_path, arch, add_layer_param_num=0,
 def run_full_LOUO(group_name=None):
     args = parser.parse_args()
 
-    if args.dataset in ['VTS', 'MultiBypass140']:
-        raise NotImplementedError(f"{args.dataset} not implemented")
+    if args.dataset == "MultiBypass140":
+        user_num = len(splits_MultiBypass140['train'])
     elif args.dataset == "JIGSAWS":
         user_num = len(splits_LOUO)
     elif args.dataset == "SAR_RARP50":
         user_num = len(splits_SAR_RARP50)
-
+    else: # 'VTS'
+        raise NotImplementedError(f"{args.dataset} not implemented")
     # if group_name is None:
     # group_name = f"{args.arch} cross validation {args.dataset}"
 
@@ -889,14 +908,14 @@ def run_single_split(split_idx=0):
 def run():
     args = parser.parse_args()
 
-    if args.dataset in ['VTS', 'MultiBypass140']:
+    if args.dataset in ['VTS']:
         raise NotImplementedError(f"{args.dataset} not implemented")
 
-    elif args.dataset in ['JIGSAWS', 'SAR_RARP50']:
+    elif args.dataset in ['JIGSAWS', 'SAR_RARP50', 'MultiBypass140']:
         if args.split_num is not None:
             # main(0, split=args.split_num, upload=True)
             main(split=args.split_num, upload=True)
-        elif args.eval_scheme == "LOUO" or args.dataset == 'SAR_RARP50':
+        elif args.eval_scheme == "LOUO" or args.dataset in ['SAR_RARP50', 'MultiBypass140']:
             run_full_LOUO()
         elif args.eval_scheme == "LOSO":
             run_full_LOSO()

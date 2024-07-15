@@ -22,7 +22,7 @@ date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='JIGSAWS', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'RARP50'],
+parser.add_argument('--dataset', type=str, default='SAR_RARP50', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
                     help="Name of the dataset to use.")
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
