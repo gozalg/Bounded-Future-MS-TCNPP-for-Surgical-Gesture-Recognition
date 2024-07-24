@@ -48,6 +48,6 @@ python ${BASE_PATH}/FeatureExtractorEval.py  \
                         --data_path ${BASE_PATH}/data/${DIR_SUFFIX}/frames \
                         --transcriptions_dir ${BASE_PATH}/data/${DIR_SUFFIX}/transcriptions \
                         --video_suffix ${VID_SUFFIX} \
-                        --workers 16 \
+                        --workers 32 \
                         --task ${TASK}
 

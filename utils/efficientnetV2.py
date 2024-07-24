@@ -11,7 +11,7 @@ class EfficientnetV2(nn.Module):
         self.input_size = input_size
         self.input_mean = [0.485, 0.456, 0.406]
         self.input_std = [0.229, 0.224, 0.225]
-        self.arch = "EfficientnetV2"
+        self.arch = "EfficientNetV2"
 
 
 

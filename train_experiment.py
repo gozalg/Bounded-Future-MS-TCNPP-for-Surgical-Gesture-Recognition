@@ -40,8 +40,8 @@ parser.add_argument('--num_epochs', default=40, type=int)
 parser.add_argument('--eval_rate', default=1, type=int)
 
 # Architecture
-parser.add_argument('--w_max', default=17, type=int) # 0 for "offline" (??), >0 for "online"
-parser.add_argument('--num_layers_PG', default=10, type=int)
+parser.add_argument('--w_max', default=17, type=int) # Relevant for BF-MS-TCN: 0 for "fully online".
+parser.add_argument('--num_layers_PG', default=10, type=int) 
 parser.add_argument('--num_layers_R', default=10, type=int)
 parser.add_argument('--num_f_maps', default=128, type=int)
 
@@ -49,7 +49,7 @@ parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewi
 parser.add_argument('--num_R', default=3, type=int)
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--RR_not_BF_mode', default=False, type=bool) #True for RR-MS-TCN, False for BF-MS-TCN
+parser.add_argument('--RR_not_BF_mode', default=False, type=bool) #True for RR-MS-TCN ("offline"), False for BF-MS-TCN ("online")
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
@@ -58,7 +58,7 @@ parser.add_argument('--dropout_TCN', default=0.5, type=float)
 parser.add_argument('--project', default="RR-MS-TCN_JIGSAWS_LOUO_wmax=0_so01", type=str) # default="Offline RNN nets Sensor paper Final"
 parser.add_argument('--group', default=date_str + " ", type=str)
 parser.add_argument('--use_gpu_num', default="1", type=str)
-parser.add_argument('--upload', default=True, type=bool)
+parser.add_argument('--upload', default=False, type=bool)
 parser.add_argument('--DEBUG', default=False, type=bool)
 parser.add_argument('--hyper_parameter_tuning', default=False, type=bool)
 

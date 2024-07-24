@@ -118,7 +118,7 @@ def eval(model, val_loaders, device_gpu, device_cpu, num_class, output_folder, g
             f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
             f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
             f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
-            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1@10 - {:.3f} - F1@25 {:.3f} F1@50 - {:.3f}"
+            log("Trial {}:\tAcc - {:.3f} Avg_F1 - {:.3f} Edit - {:.3f} F1@10 - {:.3f} F1@25 - {:.3f} F1@50 - {:.3f}"
                 .format(val_loader.dataset.video_id, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
 
             overall_acc.append(acc)
@@ -229,10 +229,16 @@ def main(split=1, upload=False, group=None, args=None):
     args_dict = {}
     for arg in vars(args):
         args_dict[str(arg)] = getattr(args, arg)
-
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    random.seed(args.seed)
+    # 16-07-2024 - Gabriel Gozal - Added seed for reproducibility
+    # torch.manual_seed(args.seed)
+    # np.random.seed(args.seed)
+    # random.seed(args.seed)
+    seed = 1538574472
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    # 16-07-2024 - Gabriel Gozal - Added seed for reproducibility
 
     if checkpoint:
         torch.set_rng_state(checkpoint['rng'])
@@ -577,11 +583,11 @@ def train_val_split(splits, val_split, MB140=False):
         assert (val_split >= 0 and val_split < len(splits['train']))
         train_lists = splits['train'][val_split]
         val_list    = splits['val'][val_split]
-    else:
-        assert isinstance(val_split, List)
-        assert all((s in splits) for s in val_split)
-        train_lists = [s for s in splits if s not in val_split]
-        val_list = [s for s in splits if s in val_split]
+    # else:
+    #     assert isinstance(val_split, List)
+    #     assert all((s in splits) for s in val_split)
+    #     train_lists = [s for s in splits if s not in val_split]
+    #     val_list = [s for s in splits if s in val_split]
 
     return train_lists, val_list
 

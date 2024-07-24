@@ -329,11 +329,18 @@ class GestureTrainSet(data.Dataset):
 
 class Sequential2DTestGestureDataSet(data.Dataset):
 
-    def __init__(self, dataset, root_path, sar_rarp50_sub_dir, video_id, frame_count, transcriptions_dir, gesture_ids,
-                 snippet_length=16, sampling_step=6,
-                 image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
-                 return_3D_tensor=True, return_dense_labels=True,
-                 transform=None, normalize=None, resize=224, preload=True):
+    def __init__(self, 
+                 dataset, 
+                 root_path, 
+                 sar_rarp50_sub_dir, 
+                 video_id, 
+                 frame_count, 
+                 transcriptions_dir, 
+                 gesture_ids,
+                 snippet_length=16, 
+                 sampling_step=6,
+                 image_tmpl='img_{:05d}.jpg', video_suffix="_capture2", 
+                 return_3D_tensor=True, return_dense_labels=True, transform=None, normalize=None, resize=224, preload=True):
         self.dataset = dataset
         if self.dataset in ['JIGSAWS']:
             self.video_freq = 30 # Hz
@@ -443,7 +450,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         elif self.dataset in ['MultiBypass140']:
             img = Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
-        img = torchvision.transforms.Resize((self.resize, self.resize))(img)
+        # img = torchvision.transforms.Resize((self.resize, self.resize))(img) # 21-07-2024 gabriel commented. It's already implemented in efficientnetV2.py
         return [img]
 
     def __getitem__(self, index):
@@ -650,7 +657,7 @@ class Gesture2DTrainSet(data.Dataset):
     def _load_image(self, directory, idx):
         img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB') if self.dataset in ['JIGSAWS', 'SAR_RARP50'] else \
               Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
-        img = torchvision.transforms.Resize((self.resize, self.resize))(img)
+        # img = torchvision.transforms.Resize((self.resize, self.resize))(img) # 21-07-2024 gabriel commented. It's already implemented in efficientnetV2.py
         return [img]
 
     def _real_length_calc(self, policy_list):
@@ -723,7 +730,7 @@ class Gesture2DTrainSet(data.Dataset):
             img = self._load_image(*img)[0]
         snippet.append(img)
         snippet = rotate_snippet(snippet, 0.5)
-        snippet = [torchvision.transforms.Resize((self.resize, self.resize))(img) for img in snippet]
+        # snippet = [torchvision.transforms.Resize((self.resize, self.resize))(img) for img in snippet] # 21-07-2024 gabriel commented. It's already implemented in efficientnetV2.py
         snippet = self.transform(snippet)
         snippet = [torchvision.transforms.ToTensor()(img) for img in snippet]
         snippet = snippet[0]
