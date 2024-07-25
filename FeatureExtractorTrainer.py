@@ -44,7 +44,7 @@ from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils.loss import Loss
 from utils import util
 from utils.util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
-from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, steps_MultiBypass130
+from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, steps_MultiBypass130, phases_MultiBypass130
 from utils.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
@@ -176,9 +176,12 @@ def main(split=1, upload=False, group=None, args=None):
         # output_folder = os.path.join(args.out, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
         #                              args.eval_scheme, str(args.split), datetime.datetime.now().strftime("%H%M"))
         if is_test:
-            output_folder = os.path.join(args.out, args.dataset,
-                                         args.arch, "test-" + args.exp + "-test",
-                                         args.eval_scheme, str(args.split))
+            output_folder = os.path.join(args.out, 
+                                         args.dataset,
+                                         args.arch, 
+                                         "test-" + args.exp + "-test",
+                                         args.eval_scheme, 
+                                         str(args.split))
 
             os.makedirs(output_folder, exist_ok=True)
 
@@ -187,7 +190,8 @@ def main(split=1, upload=False, group=None, args=None):
                 output_folder = os.path.join(args.out, 
                                              args.dataset,
                                              args.arch,
-                                             args.eval_scheme, 
+                                             args.eval_scheme,
+                                             args.task, 
                                              str(args.split))
             else: 
                 raise NotImplementedError()
@@ -265,12 +269,12 @@ def main(split=1, upload=False, group=None, args=None):
     else:
         embedding_shape = 0
 
-    model = get_model(args.arch, num_classes=num_class,
-                      add_layer_param_num=args.additional_param_num,
-                      add_certainty_pred=args.certainty_weight,
-                      input_shape=args.input_size if args.decoder_weight else 0,
-                      embedding_shape=embedding_shape,
-                      vae_intermediate_size=args.vae_intermediate_size)
+    model = get_model(args.arch, num_classes    = num_class,
+                      add_layer_param_num       = args.additional_param_num,
+                      add_certainty_pred        = args.certainty_weight,
+                      input_shape               = args.input_size if args.decoder_weight else 0,
+                      embedding_shape           = embedding_shape,
+                      vae_intermediate_size     = args.vae_intermediate_size)
 
     if checkpoint:
         # load model weights
@@ -288,15 +292,14 @@ def main(split=1, upload=False, group=None, args=None):
     # # # Count the number of FLOPs
     # count_ops(model, inp_for_test)
 
-    criterion = Loss(decoder_weight=args.decoder_weight,
-                     certainty_weight=args.certainty_weight,
-                     word_embdding_weight=args.word_embdding_weight,
-                     class_criterion_weight=args.class_criterion_weight,
-                     word_embdding_loss_param={"positive_aggregator": args.positive_aggregator,
-                                               "margin": args.margin,
-                                               "label_embedding": label_embedding.to(
-                                                   device_gpu) if args.word_embdding_weight else None},
-                     vae_loss_param={"x_sigma2": args.x_sigma2}
+    criterion = Loss(decoder_weight             = args.decoder_weight,
+                     certainty_weight           = args.certainty_weight,
+                     word_embdding_weight       = args.word_embdding_weight,
+                     class_criterion_weight     = args.class_criterion_weight,
+                     word_embdding_loss_param   = {"positive_aggregator": args.positive_aggregator,
+                                                   "margin"             : args.margin,
+                                                   "label_embedding"    : label_embedding.to(device_gpu) if args.word_embdding_weight else None},
+                     vae_loss_param             = {"x_sigma2"           : args.x_sigma2}
                      )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -338,16 +341,27 @@ def main(split=1, upload=False, group=None, args=None):
     log("Splits in valid set :" + str(val_lists), output_folder)
 
     normalize = GroupNormalize(INPUT_MEAN, INPUT_STD)
-    train_augmentation = get_augmentation(args.input_size, crop_corners=args.corner_cropping,
-                                          do_horizontal_flip=args.do_horizontal_flip,
-                                          do_vertical_flip=args.do_vertical_flip,
-                                          perspective_distortion=args.perspective_distortion,
-                                          degrees=args.degrees,
-                                          do_color_jitter=args.do_color_jitter)
-    train_set = Gesture2DTrainSet(args.dataset, args.data_path, train_lists, args.transcriptions_dir, gesture_ids,
-                                  image_tmpl=args.image_tmpl, video_suffix=args.video_suffix,
-                                  transform=train_augmentation, normalize=normalize, resize=args.input_size, debag=False,
-                                  number_of_samples_per_class=args.number_of_samples_per_class, preload=args.preload)
+    train_augmentation = get_augmentation(args.input_size, 
+                                          crop_corners          = args.corner_cropping,
+                                          do_horizontal_flip    = args.do_horizontal_flip,
+                                          do_vertical_flip      = args.do_vertical_flip,
+                                          perspective_distortion= args.perspective_distortion,
+                                          degrees               = args.degrees,
+                                          do_color_jitter       = args.do_color_jitter)
+    train_set = Gesture2DTrainSet(args.dataset, 
+                                  args.data_path, 
+                                  train_lists, 
+                                  args.transcriptions_dir, 
+                                  args.task,
+                                  gesture_ids,
+                                  image_tmpl                    = args.image_tmpl, 
+                                  video_suffix                  = args.video_suffix,
+                                  transform                     = train_augmentation, 
+                                  normalize                     = normalize, 
+                                  resize                        = args.input_size, 
+                                  debag                         = False,
+                                  number_of_samples_per_class   = args.number_of_samples_per_class, 
+                                  preload                       = args.preload)
 
     def no_none_collate(batch):
         batch = list(filter(lambda x: x is not None, batch))
@@ -356,9 +370,12 @@ def main(split=1, upload=False, group=None, args=None):
     def init_train_loader_worker(worker_id):
         np.random.seed(int((torch.initial_seed() + worker_id) % (2 ** 32)))  # account for randomness
 
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
-                                               num_workers=args.workers, worker_init_fn=init_train_loader_worker,
-                                               collate_fn=no_none_collate)
+    train_loader = torch.utils.data.DataLoader(train_set, 
+                                               batch_size       = args.batch_size, 
+                                               shuffle          = True,
+                                               num_workers      = args.workers, 
+                                               worker_init_fn   = init_train_loader_worker,
+                                               collate_fn       = no_none_collate)
     log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
     val_augmentation = torchvision.transforms.Compose([GroupScale(args.input_size), GroupCenterCrop(args.input_size)])
@@ -373,17 +390,26 @@ def main(split=1, upload=False, group=None, args=None):
         val_videos = val_videos[:2]
 
     for video in val_videos:
-        data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='train', video_id=video[0], frame_count=video[1],
-                                                  transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                                  snippet_length=args.snippet_length,
-                                                  sampling_step=args.val_sampling_step,
-                                                  image_tmpl=args.image_tmpl,
-                                                  video_suffix=args.video_suffix,
-                                                  normalize=normalize, resize=args.input_size,
-                                                  transform=val_augmentation)  # augmentation are off
-        val_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                       shuffle=False, num_workers=args.workers,
-                                                       collate_fn=no_none_collate))
+        data_set = Sequential2DTestGestureDataSet(dataset           = args.dataset, 
+                                                  root_path         = args.data_path, 
+                                                  sar_rarp50_sub_dir= 'train', 
+                                                  video_id          = video[0], 
+                                                  frame_count       = video[1],
+                                                  transcriptions_dir= args.transcriptions_dir,
+                                                  mb140_labels_sub_dir= args.task, 
+                                                  gesture_ids       = gesture_ids,
+                                                  snippet_length    = args.snippet_length,
+                                                  sampling_step     = args.val_sampling_step,
+                                                  image_tmpl        = args.image_tmpl,
+                                                  video_suffix      = args.video_suffix,
+                                                  normalize         = normalize, 
+                                                  resize            = args.input_size,
+                                                  transform         = val_augmentation)  # augmentation are off
+        val_loaders.append(torch.utils.data.DataLoader(data_set, 
+                                                       batch_size   = args.eval_batch_size,
+                                                       shuffle      = False, 
+                                                       num_workers  = args.workers,
+                                                       collate_fn   = no_none_collate))
 
     log("Validation set: ", output_folder)
     for val_loader in val_loaders:
@@ -402,10 +428,14 @@ def main(split=1, upload=False, group=None, args=None):
         elif len([t for t in string.Formatter().parse(group)]) == 2:
             group = group.format(args.arch, args.dataset)
 
-        wandb.init(project=project_name, config=configuration,
-                   id=run_id, resume=checkpoint, group=group,
-                   name=f"{args.arch}_{args.eval_scheme}_{split}", reinit=True,
-                   dir=os.path.dirname(os.path.abspath(__file__)))
+        wandb.init(project  =project_name, 
+                   config   =configuration,
+                   id       =run_id, 
+                   resume   =checkpoint, 
+                   group    =group,
+                   name     = f"{args.arch}_{args.eval_scheme}_{split}", 
+                   reinit   = True,
+                   dir      = os.path.dirname(os.path.abspath(__file__)))
 
     # ===== train model =====
 
@@ -631,16 +661,27 @@ def get_gestures(dataset, task=None):
     elif dataset == "SAR_RARP50":
         gesture_ids = gestures_SAR_RARP50
     elif dataset == "MultiBypass140":
-        gesture_ids = steps_MultiBypass130
+        if task == "steps":
+            gesture_ids = steps_MultiBypass130
+        elif task == "phases":
+            gesture_ids = phases_MultiBypass130
     else:
         raise NotImplementedError()
 
     return gesture_ids
 
 
-def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progress=True,
-              add_layer_param_num=0, input_shape=0, add_certainty_pred=False, legacy=False,
-              embedding_shape=0, vae_intermediate_size=None):
+def get_model(arch, 
+              num_classes           = 1000, 
+              remove_end            = False, 
+              pretrained            = True, 
+              progress              = True,
+              add_layer_param_num   = 0, 
+              input_shape           = 0, 
+              add_certainty_pred    = False, 
+              legacy                = False,
+              embedding_shape       = 0, 
+              vae_intermediate_size = None):
     """create a model based on the pararamters given and return it
 
     :param arch: base architecture of the model
@@ -764,8 +805,7 @@ def get_model(arch, num_classes=1000, remove_end=False, pretrained=True, progres
     return model
 
 
-def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, progress=True,
-                     add_layer_param_num=0):
+def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, progress=True, add_layer_param_num=0):
     """create a model based on the pararamters given and return it
 
     :param arch: base architecture of the model

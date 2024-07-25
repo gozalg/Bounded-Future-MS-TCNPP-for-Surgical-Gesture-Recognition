@@ -1,10 +1,12 @@
 #!/bin/bash
 #--------- USER INPUTS ---------
 DATASET=$1
+TASK=$2
 BASE_PATH=/data/home/gabrielg/Bounded_Future_from_GIT
 #------------------------------
 ARCH=2D-EfficientNetV2-m
 # ARCH=EfficientNetV2
+SRV=so01
 SMP_PER_CLASS=400
 EPOCHS_NUM=10
 EVAL_FREQ=1
@@ -28,21 +30,28 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     IMG_TMP={:09d}.png
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
-    TASK=None
+    TASK=gesture
     GPU=1
 elif [ ${DATASET} == "MultiBypass140" ]; then
     # FPS=25
     # LABEL_HZ=25
-    CLASSES_N=46
+    if [ ${TASK} == "steps" ]; then
+        CLASSES_N=46
+    elif [ ${TASK} == "phases" ]; then
+        CLASSES_N=14
+    else
+        echo "Invalid argument (TASK): Choices: [gesture, instrument]"
+        echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
+        exit
+    fi
     SMP_STEP=1 # 30
     IMG_TMP={}_{:08d}.jpg
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
-    TASK=None
     GPU=1
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
-    echo "Usage: FE_EVAL.sh [DATASET]"
+    echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
     exit
 fi
 
@@ -52,6 +61,7 @@ fi
 #                     --upload True \
 python ${BASE_PATH}/FeatureExtractorTrainer.py \
                     --out ${BASE_PATH}/output/feature_extractor/TEST \
+                    --project_name ${DATASET}_Feature_Extractor_${TASK}_${SRV} \
                     --dataset ${DATASET} \
                     --task ${TASK} \
                     --num_classes ${CLASSES_N} \

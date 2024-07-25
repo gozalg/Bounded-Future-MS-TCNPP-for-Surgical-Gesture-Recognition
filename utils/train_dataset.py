@@ -335,48 +335,58 @@ class Sequential2DTestGestureDataSet(data.Dataset):
                  sar_rarp50_sub_dir, 
                  video_id, 
                  frame_count, 
-                 transcriptions_dir, 
+                 transcriptions_dir,
+                 mb140_labels_sub_dir, 
                  gesture_ids,
-                 snippet_length=16, 
-                 sampling_step=6,
-                 image_tmpl='img_{:05d}.jpg', video_suffix="_capture2", 
-                 return_3D_tensor=True, return_dense_labels=True, transform=None, normalize=None, resize=224, preload=True):
+                 snippet_length     = 16, 
+                 sampling_step      = 6,
+                 image_tmpl         = 'img_{:05d}.jpg', 
+                 video_suffix       = "_capture2", 
+                 return_3D_tensor   = True, 
+                 return_dense_labels= True, 
+                 transform          = None, 
+                 normalize          = None, 
+                 resize             = 224, 
+                 preload            = True):
         self.dataset = dataset
         if self.dataset in ['JIGSAWS']:
-            self.video_freq = 30 # Hz
-            self.label_freq = 30 # Hz
-            self.root_path = root_path
+            self.video_freq     = 30 # Hz
+            self.label_freq     = 30 # Hz
+            self.root_path      = root_path
+            self.transcriptions_dir = transcriptions_dir
         elif self.dataset in ['SAR_RARP50']:
-            self.video_freq = 60 # Hz
-            self.label_freq = 10 # Hz
-            self.root_path = os.path.join(root_path, sar_rarp50_sub_dir) # sur_rarp50_sub_dir = 'train' or 'test'
+            self.video_freq     = 60 # Hz
+            self.label_freq     = 10 # Hz
+            self.root_path      = os.path.join(root_path, sar_rarp50_sub_dir) # sur_rarp50_sub_dir = 'train' or 'test'
+            self.transcriptions_dir = transcriptions_dir
         elif self.dataset in ['MultiBypass140']:
-            self.video_freq = 25 # Hz
-            self.label_freq = 25 # Hz
-            self.root_path = root_path
-        self.preload = preload
-        self.video_name = video_id
-        self.video_id = video_id
-        self.transcriptions_dir = transcriptions_dir
-        self.gesture_ids = gesture_ids
-        self.snippet_length = snippet_length
-        self.sampling_step = sampling_step
-        self.image_tmpl = image_tmpl
+            self.video_freq     = 25 # Hz
+            self.label_freq     = 25 # Hz
+            self.root_path      = root_path
+            self.transcriptions_dir = os.path.join(transcriptions_dir, mb140_labels_sub_dir) # mb140_labels_sub_dir = 'steps' or 'phases'
+        self.task               = mb140_labels_sub_dir   
+        self.preload            = preload
+        self.video_name         = video_id
+        self.video_id           = video_id
+        self.gesture_ids        = gesture_ids
+        self.snippet_length     = snippet_length
+        self.sampling_step      = sampling_step
+        self.image_tmpl         = image_tmpl
         if video_suffix == "None":
-            self.video_suffix = ""
+            self.video_suffix   = ""
         else:
-            self.video_suffix = video_suffix
-        self.return_3D_tensor = return_3D_tensor
+            self.video_suffix   = video_suffix
+        self.return_3D_tensor   = return_3D_tensor
         self.return_dense_labels = return_dense_labels
-        self.transform = transform
-        self.normalize = normalize
-        self.resize = resize
-        self.frame_count = int(frame_count)
+        self.transform          = transform
+        self.normalize          = normalize
+        self.resize             = resize
+        self.frame_count        = int(frame_count)
 
         self.gesture_sequence_per_video = {}
-        self.image_data = {}
+        self.image_data     = {}
         self.frame_num_data = {}
-        self.labels_data = {}
+        self.labels_data    = {}
         self._parse_list_files(video_id)
 
     def _parse_list_files(self, video_name):
@@ -499,27 +509,41 @@ class Sequential2DTestGestureDataSet(data.Dataset):
 
 
 class Gesture2DTrainSet(data.Dataset):
-    def __init__(self, dataset, root_path, list_of_list_files, transcriptions_dir, gesture_ids,
-                 temporal_augmentaion_factor=0.2,
-                 image_tmpl='img_{:05d}.jpg', video_suffix="_capture2",
-                 transform=None, normalize=None, resize=224, number_of_samples_per_class=400, 
-                 debag=False, preload=True):
+    def __init__(self, 
+                 dataset, 
+                 root_path, 
+                 list_of_list_files, 
+                 transcriptions_dir, 
+                 mb140_labels_sub_dir,
+                 gesture_ids,
+                 temporal_augmentaion_factor    = 0.2,
+                 image_tmpl                     = 'img_{:05d}.jpg', 
+                 video_suffix                   = "_capture2",
+                 transform                      = None, 
+                 normalize                      = None, 
+                 resize                         = 224, 
+                 number_of_samples_per_class    = 400, 
+                 debag                          = False, 
+                 preload                        = True):
         self.dataset = dataset
         if self.dataset in ['JIGSAWS']:
-            self.video_freq = 30 # Hz
-            self.label_freq = 30 # Hz
-            self.root_path = root_path
+            self.video_freq         = 30 # Hz
+            self.label_freq         = 30 # Hz
+            self.root_path          = root_path
+            self.transcriptions_dir = transcriptions_dir
         elif self.dataset in ['SAR_RARP50']:
-            self.video_freq = 60 # Hz
-            self.label_freq = 10 # Hz
-            self.root_path = os.path.join(root_path, 'train')
+            self.video_freq         = 60 # Hz
+            self.label_freq         = 10 # Hz
+            self.root_path          = os.path.join(root_path, 'train')
+            self.transcriptions_dir = transcriptions_dir
         elif self.dataset in ['MultiBypass140']:
-            self.video_freq = 25 # Hz
-            self.label_freq = 25 # Hz
-            self.root_path = root_path
+            self.video_freq         = 25 # Hz
+            self.label_freq         = 25 # Hz
+            self.root_path          = root_path
+            self.transcriptions_dir = os.path.join(transcriptions_dir, mb140_labels_sub_dir) # mb140_labels_sub_dir = 'steps' or 'phases'
+        self.task                   = mb140_labels_sub_dir
         self.debag = debag
         self.list_of_list_files = list_of_list_files
-        self.transcriptions_dir = transcriptions_dir
         self.gesture_ids = gesture_ids
         self.image_tmpl = image_tmpl
         if video_suffix == "None":

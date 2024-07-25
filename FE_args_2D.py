@@ -21,7 +21,7 @@ class Range(object):
         yield self
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-current_dataset = 'JIGSAWS' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBypass140' # 
+current_dataset = 'SAR_RARP50' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBypass140' # 
 current_server  = 'so1' # 'DGX' #
 
 
