@@ -60,7 +60,7 @@ fi
 #                     --out ${BASE_PATH}/output \
 #                     --upload True \
 python ${BASE_PATH}/FeatureExtractorTrainer.py \
-                    --out ${BASE_PATH}/output/feature_extractor/TEST \
+                    --out ${BASE_PATH}/output/feature_extractor \
                     --project_name ${DATASET}_Feature_Extractor_${TASK}_${SRV} \
                     --dataset ${DATASET} \
                     --task ${TASK} \
