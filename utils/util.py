@@ -21,7 +21,7 @@ gestures_KT = ['G1', 'G11', 'G12', 'G13', 'G14', 'G15']
 splits_MultiBypass140 = {'train':   ['data_train_0.csv', 'data_train_1.csv', 'data_train_2.csv', 'data_train_3.csv', 'data_train_4.csv'],
                          'val':     ['data_val_0.csv', 'data_val_1.csv', 'data_val_2.csv', 'data_val_3.csv', 'data_val_4.csv'],
                          'test':    ['data_test_0.csv', 'data_test_1.csv', 'data_test_2.csv', 'data_test_3.csv', 'data_test_4.csv']}
-gestures_MultiBypass140 = [f'S{i}' for i in range(0, 46)]
+steps_MultiBypass130 = [f'S{i}' for i in range(0, 46)]
 #-------------------------------------- RARP50 --------------------------------------
 splits_SAR_RARP50   = ['data_1.csv', 'data_2.csv', 'data_3.csv', 'data_4.csv', 'data_5.csv']
 gestures_SAR_RARP50 = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']

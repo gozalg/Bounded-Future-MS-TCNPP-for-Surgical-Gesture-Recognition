@@ -1,4 +1,4 @@
-gestures = {
+steps = {
 	"Null step"				                            : "S0",
 	"Cavity exploration"				                : "S1",
 	"Trocar placement"				                    : "S2",

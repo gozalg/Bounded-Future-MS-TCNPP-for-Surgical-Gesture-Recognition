@@ -1,0 +1,16 @@
+phases = {
+	"Preparation"										: "P0",
+	"Gastric pouch creation"							: "P1",			
+	"Omentum division"									: "P2",		
+	"Gastrojejunal anastomosis"							: "P3",				
+	"Anastomosis test"									: "P4",		
+	"Jejunal separation"								: "P5",		
+	"Closure petersen space"							: "P6",			
+	"Jejunojejunal anastomosis"							: "P7",				
+	"Closure mesenteric_defect"							: "P8",				
+	"Cleaning coagulation"								: "P9",			
+	"Disassembling"										: "P10",	
+	"Other intervention"								: "P11",		
+	"Out of body"										: "P12",
+	"Severe index"										: "P13"
+	}
