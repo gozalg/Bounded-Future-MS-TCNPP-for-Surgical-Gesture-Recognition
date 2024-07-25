@@ -3,8 +3,8 @@
 DATASET=$1
 BASE_PATH=/data/home/gabrielg/Bounded_Future_from_GIT
 #------------------------------
-# ARCH=2D-EfficientNetV2-m
-ARCH=EfficientNetV2
+ARCH=2D-EfficientNetV2-m
+# ARCH=EfficientNetV2
 SMP_PER_CLASS=400
 EPOCHS_NUM=10
 EVAL_FREQ=1
@@ -19,7 +19,7 @@ if [ ${DATASET} == "JIGSAWS" ]; then
     DIR_SUFFIX=${DATASET}/Suturing
     VID_LIST_SUFFIX=/Suturing
     TASK=Suturing
-    
+    GPU=0
 elif [ ${DATASET} == "SAR_RARP50" ]; then
     # FPS=60
     # LABEL_HZ=10
@@ -29,6 +29,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
     TASK=None
+    GPU=1
 elif [ ${DATASET} == "MultiBypass140" ]; then
     # FPS=25
     # LABEL_HZ=25
@@ -38,6 +39,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
     TASK=None
+    GPU=1
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
     echo "Usage: FE_EVAL.sh [DATASET]"
@@ -45,10 +47,11 @@ else
 fi
 
 # This script is used create the features for the dataset, by splits models.
-# python ${BASE_PATH}/FeatureExtractorTrainer.py \
-# --out ${BASE_PATH}/output/feature_extractor \
-python ${BASE_PATH}/FE_trainer_2D.py \
-                    --upload True \
+# python ${BASE_PATH}/FE_trainer_2D.py \
+#                     --out ${BASE_PATH}/output \
+#                     --upload True \
+python ${BASE_PATH}/FeatureExtractorTrainer.py \
+                    --out ${BASE_PATH}/output/feature_extractor/TEST \
                     --dataset ${DATASET} \
                     --task ${TASK} \
                     --num_classes ${CLASSES_N} \
@@ -59,8 +62,8 @@ python ${BASE_PATH}/FE_trainer_2D.py \
                     --data_path ${BASE_PATH}/data/${DIR_SUFFIX}/frames \
                     --transcriptions_dir ${BASE_PATH}/data/${DATASET}/transcriptions \
                     --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits${VID_LIST_SUFFIX} \
-                    --out ${BASE_PATH}/output \
                     --epochs ${EPOCHS_NUM} \
                     --eval_freq ${EVAL_FREQ} \
                     --arch ${ARCH} \
+                    --gpu_id ${GPU} \
                     --workers 16

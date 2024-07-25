@@ -439,11 +439,11 @@ def main(split =3, upload =False, save_features=False):
     def init_train_loader_worker(worker_id):
         np.random.seed(int((torch.initial_seed() + worker_id) % (2**32)))  # account for randomness
     train_loader = torch.utils.data.DataLoader(train_set, 
-                                               batch_size   = args.batch_size, 
-                                               shuffle=True,
-                                               num_workers=args.workers, 
-                                               worker_init_fn=init_train_loader_worker,
-                                               collate_fn=no_none_collate)
+                                               batch_size       = args.batch_size, 
+                                               shuffle          = True,
+                                               num_workers      = args.workers, 
+                                               worker_init_fn   = init_train_loader_worker,
+                                               collate_fn       = no_none_collate)
     log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
     # 16-07-2024 gabriel commented the following lines #
@@ -554,9 +554,9 @@ def main(split =3, upload =False, save_features=False):
                    dir=os.path.dirname(os.path.abspath(__file__)))
 
     # ===== train model =====
-
+    log("=========================")
     log("Start training...", output_folder)
-
+    log("=========================")
     model = model.to(device_gpu)
 
     start_epoch = 0
@@ -630,7 +630,9 @@ def main(split =3, upload =False, save_features=False):
             wandb.log({'Train Acc': train_acc.avg, 'Train loss': train_loss.avg})
 
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
+            log("=========================")
             log("Start evaluation...", output_folder)
+            log("=========================")
 
             acc, f1, _ = eval(model, val_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids, epoch, upload)
             all_eval_results.append([split, epoch, acc, f1])
@@ -669,7 +671,9 @@ def main(split =3, upload =False, save_features=False):
     # ===== model results =====
     model.load_state_dict(torch.load(model_file))
     log("",output_folder)
+    log("=========================")
     log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
+    log("=========================")
     # In JIGSAWS the dataset is split in train and test only
     if args.dataset == "JIGSAWS":
         _, _, test_per_video = eval(model, val_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids, best_epoch)
@@ -681,24 +685,44 @@ def main(split =3, upload =False, save_features=False):
     full_test_results.to_csv(output_folder + "/" + "test_results.csv", index=False)
 
     if save_features is True:
+        log("=========================")
         log("Start  features saving...", output_folder)
+        log("=========================")
 
     ### extract Features
         all_loaders =[]
         # 16-07-2024 gabriel commented the following line #
         # all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
         if args.dataset == "JIGSAWS":
-            all_videos = train_list + val_list
+            all_videos_list = train_list + val_list
         else:
-            all_videos = train_list + val_list + test_list
+            all_videos_list = train_list + val_list + test_list
+
+        all_videos = list()
+        for list_file in all_videos_list:
+            # format should be video_id, frame_count
+            all_videos.extend([(x.strip().split(',')[0], x.strip().split(',')[1]) for x in open(list_file)])
+        all_loaders = list()
+
+        if args.dataset in ['JIGSAWS', 'MultiBypass140']:
+            sampling_step = 1
+        elif args.dataset == 'SAR_RARP50':
+            sampling_step = 6
 
         for video in all_videos:
-            data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, 
-                                                      video_id=video,
+            if 'test' in video:
+                sar_rarp50_sub_dir = 'test'
+            else:
+                sar_rarp50_sub_dir = 'train'
+            data_set = Sequential2DTestGestureDataSet(dataset               = args.dataset,
+                                                      root_path             = args.data_path,
+                                                      sar_rarp50_sub_dir    = sar_rarp50_sub_dir, 
+                                                      video_id              = video[0],         
+                                                      frame_count           = video[1],
                                                       transcriptions_dir    = args.transcriptions_dir,
                                                       gesture_ids           = gesture_ids,
                                                       snippet_length        = 1,
-                                                      sampling_step         = 1,
+                                                      sampling_step         = sampling_step,
                                                       image_tmpl            = args.image_tmpl,
                                                       video_suffix          = args.video_suffix,
                                                       normalize             = normalize,

@@ -49,5 +49,6 @@ python ${BASE_PATH}/FeatureExtractorEval.py  \
                         --transcriptions_dir ${BASE_PATH}/data/${DIR_SUFFIX}/transcriptions \
                         --video_suffix ${VID_SUFFIX} \
                         --workers 32 \
+                        --gpu_id 1 \
                         --task ${TASK}
 
