@@ -816,20 +816,31 @@ def get_model_legacy(arch, num_classes=1000, remove_end=False, pretrained=True, 
     return model
 
 
-def load_model(weights_path, arch, add_layer_param_num=0,
-               remove_linear=True, add_certainty_pred=False,
-               num_classes=1000, decoder_input_size=0, vae_intermediate_size=0):
-    model = get_model(arch, remove_end=remove_linear,
-                      pretrained=False, add_layer_param_num=add_layer_param_num,
-                      add_certainty_pred=add_certainty_pred, num_classes=num_classes,
-                      input_shape=decoder_input_size,
-                      vae_intermediate_size=vae_intermediate_size)
+def load_model(weights_path, 
+               arch, 
+               add_layer_param_num          = 0,
+               remove_linear                = True, 
+               add_certainty_pred           = False,
+               num_classes                  = 1000, 
+               decoder_input_size           = 0, 
+               vae_intermediate_size        = 0):
+    model = get_model(arch, 
+                      remove_end            = remove_linear,
+                      pretrained            = False, 
+                      add_layer_param_num   = add_layer_param_num,
+                      add_certainty_pred    = add_certainty_pred, 
+                      num_classes           = num_classes,
+                      input_shape           = decoder_input_size,
+                      vae_intermediate_size = vae_intermediate_size)
 
     incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
     if len(incompatible_keys[0]) != 0:  # support for legacy code
-        model = get_model(arch, remove_end=remove_linear, pretrained=False,
-                          add_layer_param_num=add_layer_param_num, legacy=True)
+        model = get_model(arch, 
+                          remove_end        = remove_linear, 
+                          pretrained        = False,
+                          add_layer_param_num = add_layer_param_num,    
+                          legacy            = True)
         incompatible_keys = model.load_state_dict(torch.load(weights_path), strict=False)
 
         if len(incompatible_keys[0]) != 0:
@@ -874,41 +885,6 @@ def run_full_LOSO(group_name=None):
     for i in range(supertrial_num):
         # main(0, split=i, upload=True, group=group_name)
         main(split=i, upload=True, group=group_name)
-
-def get_k_folds_splits(k=5, shuffle=True, args=None):
-    if not args:
-        args = parser.parse_args()
-
-    if args.dataset == 'JIGSAWS':
-        users = splits_LOUO
-    elif args.dataset == 'SAR_RARP50':
-        users = splits_SAR_RARP50
-    else: 
-        raise NotImplementedError()
-
-    if shuffle:
-        kfolds = KFold(n_splits=k, shuffle=shuffle, random_state=args.seed)
-    else:
-        kfolds = KFold(n_splits=k, shuffle=shuffle)
-
-    for train, test in kfolds.split(users):
-        split = [users[i] for i in test]
-        yield split
-
-
-def run_k_folds_validation(k=5, shuffle=True, group_name=None):
-    args = parser.parse_args()
-
-    for split in get_k_folds_splits(k, shuffle=shuffle):
-        # main(0, split=split, upload=True, group=group_name)
-        main(split=split, upload=True, group=group_name)
-
-
-def run_single_split(split_idx=0):
-    args = parser.parse_args()
-    group_name = f"{args.arch} {args.dataset}"
-    # main(0, split=split_idx, upload=True, group=group_name)
-    main(split=split_idx, upload=True, group=group_name)
 
 
 def run():
@@ -957,3 +933,38 @@ if __name__ == '__main__':
     # Experiment_name ="Exp_name"
     # study = optuna.create_study(study_name="Exp_name", load_if_exists=True, storage=os.path.join("sqlite:///", Experiment_name))
     # study.optimize(main, n_trials=10)
+
+# def get_k_folds_splits(k=5, shuffle=True, args=None):
+#     if not args:
+#         args = parser.parse_args()
+
+#     if args.dataset == 'JIGSAWS':
+#         users = splits_LOUO
+#     elif args.dataset == 'SAR_RARP50':
+#         users = splits_SAR_RARP50
+#     else: 
+#         raise NotImplementedError()
+
+#     if shuffle:
+#         kfolds = KFold(n_splits=k, shuffle=shuffle, random_state=args.seed)
+#     else:
+#         kfolds = KFold(n_splits=k, shuffle=shuffle)
+
+#     for train, test in kfolds.split(users):
+#         split = [users[i] for i in test]
+#         yield split
+
+
+# def run_k_folds_validation(k=5, shuffle=True, group_name=None):
+#     args = parser.parse_args()
+
+#     for split in get_k_folds_splits(k, shuffle=shuffle):
+#         # main(0, split=split, upload=True, group=group_name)
+#         main(split=split, upload=True, group=group_name)
+
+
+# def run_single_split(split_idx=0):
+#     args = parser.parse_args()
+#     group_name = f"{args.arch} {args.dataset}"
+#     # main(0, split=split_idx, upload=True, group=group_name)
+#     main(split=split_idx, upload=True, group=group_name)
