@@ -44,7 +44,7 @@ from utils.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils.loss import Loss
 from utils import util
 from utils.util import AverageMeter, splits_LOSO, splits_LOUO, splits_LOUO_NP, gestures_SU, gestures_NP, gestures_KT
-from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, gestures_MultiBypass140
+from utils.util import splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, steps_MultiBypass130
 from utils.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
@@ -631,7 +631,7 @@ def get_gestures(dataset, task=None):
     elif dataset == "SAR_RARP50":
         gesture_ids = gestures_SAR_RARP50
     elif dataset == "MultiBypass140":
-        gesture_ids = gestures_MultiBypass140
+        gesture_ids = steps_MultiBypass130
     else:
         raise NotImplementedError()
 
