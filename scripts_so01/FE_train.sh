@@ -15,7 +15,7 @@ if [ ${DATASET} == "JIGSAWS" ]; then
     # FPS=30
     # LABEL_HZ=30
     CLASSES_N=10
-    SMP_STEP=1 # 80
+    SMP_STEP=80 # 1
     IMG_TMP=img_{:05d}.jpg
     VID_SUFFIX=_capture2
     DIR_SUFFIX=${DATASET}/Suturing
@@ -26,12 +26,12 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     # FPS=60
     # LABEL_HZ=10
     CLASSES_N=8
-    SMP_STEP=6 # 60
+    SMP_STEP=60 # 6
     IMG_TMP={:09d}.png
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
     TASK=gesture
-    GPU=1
+    GPU=0
 elif [ ${DATASET} == "MultiBypass140" ]; then
     # FPS=25
     # LABEL_HZ=25
@@ -44,11 +44,11 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
         echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
         exit
     fi
-    SMP_STEP=1 # 30
+    SMP_STEP=30 # 1
     IMG_TMP={}_{:08d}.jpg
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
-    GPU=1
+    GPU=0
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
     echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
