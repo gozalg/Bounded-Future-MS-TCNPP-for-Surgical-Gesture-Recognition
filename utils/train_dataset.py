@@ -766,8 +766,13 @@ class Gesture2DTrainSet(data.Dataset):
         return len(self.ballanced_data_set)
     # randomize the data set for each epoch
     def randomize(self):
-        self.ballanced_data_set = [] # clear the data set
+        # clear the data set
+        self.ballanced_data_set = [] 
+        self._parse_list_files(self.list_of_list_files)
+        
+        # generate a new balanced data set
         self._random_balancing(self.num_of_frames_to_choose, self.gesture_dict)
+        
         if self.preload:
             print("Preloading images from balanced dataset...")
             self._load_balanced_images()
