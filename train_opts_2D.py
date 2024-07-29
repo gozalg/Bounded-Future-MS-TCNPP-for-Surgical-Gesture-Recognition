@@ -187,7 +187,7 @@ parser.add_argument('--input_size', type=int, default=224,
 # ----------------------
 parser.add_argument('--split_num', type=int, default=None,
                     help="split number to use as validation set. If None, apply cross validation")
-parser.add_argument('--eval_freq', '-ef', type=int, default=10, help="Validate model every <eval_freq> epochs.")
+parser.add_argument('--eval_freq', '-ef', type=int, default=1, help="Validate model every <eval_freq> epochs.")
 parser.add_argument('--save_freq', '-sf', type=int, default=10, help="Save checkpoint every <save_freq> epochs.")
 parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "feature_extractor"),
                     help="Path to output folder, where all models and results will be stored.")
