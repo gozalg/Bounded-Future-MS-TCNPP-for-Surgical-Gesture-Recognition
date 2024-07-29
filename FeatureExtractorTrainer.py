@@ -461,7 +461,7 @@ def main(split=1, upload=False, group=None, args=None):
         train_acc = AverageMeter()
         model.train()
 
-        with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}) {"progress"}', total=int(len(train_loader))) as pbar:
+        with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}/{args.epochs}) {"progress"}', total=int(len(train_loader))) as pbar:
 
             # for batch_i, (data, target) in enumerate(train_loader):
 
