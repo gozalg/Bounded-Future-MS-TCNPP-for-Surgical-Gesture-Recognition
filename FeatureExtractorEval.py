@@ -17,9 +17,9 @@ parser.add_argument('--data_path', type=str, default="/data/home/gabrielg/Bounde
 parser.add_argument('--transcriptions_dir', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/data/SAR_RARP50/transcriptions")
 parser.add_argument('--model_path', type=str, default="/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor")
 parser.add_argument('--dataset', type=str, default='SAR_RARP50')  # 'JIGSAWS' or MultiBypass140
-parser.add_argument('--num_classes', type=int, default=8)  # 10 for JIGSAWS, 8 for SAR_RARP50, n for MultiBypass
+parser.add_argument('--num_classes', type=int, default=8)  # 10 for JIGSAWS, 8 for SAR_RARP50, 14 for MultiBypass140+'phases' 46 for MultiBypass140+'steps'
 parser.add_argument('--eval_scheme', type=str, default='LOUO')  # LOUO or LOSO
-parser.add_argument('--task', type=str, default='None')  # 'Suturing' for JIGSAWS and 'None' for SAR_RARP50
+parser.add_argument('--task', type=str, default='gesture')  # 'Suturing' for JIGSAWS and 'gesture' for SAR_RARP50, and 'steps' or 'phases' for MultiBypass140
 parser.add_argument('--split', type=int, default=0)
 parser.add_argument('--snippet_length', type=int, default=1)
 parser.add_argument('--val_sampling_step', type=int, default=6) # multiply of 6 for SAR_RARP50 (60 fps video, 10 Hz labels => each 6 frames there's a label)
@@ -184,15 +184,20 @@ if __name__ == '__main__':
         if (args.dataset in ['JIGSAWS', 'MultiBypass140']) or (args.dataset == "SAR_RARP50" and i==0):
             data_set_list = []
             for video in test_videos:
-                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, root_path=args.data_path, sar_rarp50_sub_dir='test', 
-                                    video_id=video[0], frame_count=video[1],
-                                    transcriptions_dir=args.transcriptions_dir, gesture_ids=gesture_ids,
-                                    snippet_length=args.snippet_length,
-                                    sampling_step=args.val_sampling_step,
-                                    image_tmpl=args.image_tmpl,
-                                    video_suffix=args.video_suffix,
-                                    normalize=normalize, resize=args.input_size,
-                                    transform=val_augmentation)  # augmentation are off
+                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, 
+                                                          root_path=args.data_path, 
+                                                          sar_rarp50_sub_dir='test', 
+                                                          video_id=video[0], 
+                                                          frame_count=video[1],
+                                                          transcriptions_dir=args.transcriptions_dir, 
+                                                          mb140_labels_sub_dir= args.task,
+                                                          gesture_ids=gesture_ids,
+                                                          snippet_length=args.snippet_length,
+                                                          sampling_step=args.val_sampling_step,
+                                                          image_tmpl=args.image_tmpl,
+                                                          video_suffix=args.video_suffix,
+                                                          normalize=normalize, resize=args.input_size,
+                                                          transform=val_augmentation)  # augmentation are off
                 data_set_list.append(data_set)
                 test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
                                     shuffle=False, num_workers=args.workers,
@@ -204,8 +209,9 @@ if __name__ == '__main__':
                 data_set = data_set_list[video_idx]
                 video_idx += 1
                 test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                    shuffle=False, num_workers=args.workers,
-                                    collate_fn=no_none_collate)
+                                                          shuffle=False, 
+                                                          num_workers=args.workers,
+                                                          collate_fn=no_none_collate)
                 test_loaders.append(test_loader)
         else:
             raise NotImplementedError()
@@ -254,4 +260,7 @@ if __name__ == '__main__':
         args.split += 1
 
     # keep results in csv file
-    results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/test_results.csv", index=False)
+    if args.dataset == 'MultiBypass140':
+        results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.task}/test_results.csv", index=False)
+    else:
+        results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/test_results.csv", index=False)

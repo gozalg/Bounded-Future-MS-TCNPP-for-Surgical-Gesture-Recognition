@@ -8,7 +8,7 @@ ARCH=2D-EfficientNetV2-m
 # ARCH=EfficientNetV2
 SRV=so01
 SMP_PER_CLASS=400
-EPOCHS_NUM=10
+EPOCHS_NUM=1
 EVAL_FREQ=1
 
 if [ ${DATASET} == "JIGSAWS" ]; then
