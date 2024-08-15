@@ -38,7 +38,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     elif [ ${TASK} == "phases" ]; then
         CLASSES_N=14
     else
-        echo "Invalid argument (TASK): Choices: [gesture, instrument]"
+        echo "Invalid argument (TASK): Choices: [Suturing, gesture, steps, phases]"
         echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
         exit
     fi

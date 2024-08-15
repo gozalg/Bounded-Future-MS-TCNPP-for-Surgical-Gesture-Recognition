@@ -229,7 +229,7 @@ if __name__ == '__main__':
 
         # load best model weights from output folder
         # best_model_loc = f"/data/home/gabrielg/Bounded_Future_from_GIT/output/feature_extractor/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/best_{args.split}.pth"
-        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.split}/model_99.pth"
+        model_loc = f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.task}/{args.split}/model_99.pth"
         model.load_state_dict(torch.load(model_loc))
 
         # model
@@ -260,7 +260,5 @@ if __name__ == '__main__':
         args.split += 1
 
     # keep results in csv file
-    if args.dataset == 'MultiBypass140':
-        results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.task}/test_results.csv", index=False)
-    else:
-        results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/test_results.csv", index=False)
+
+    results.to_csv(f"{args.model_path}/{args.dataset}/{args.arch}/{args.eval_scheme}/{args.task}/test_results.csv", index=False)
