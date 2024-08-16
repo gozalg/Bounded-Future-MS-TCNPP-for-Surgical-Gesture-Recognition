@@ -18,11 +18,12 @@ import torch.nn as nn
 # Local application/library specific imports
 from utils.transforms import GroupScale, GroupCenterCrop, GroupNormalize
 from utils.train_dataset import rotate_snippet, Add_Gaussian_Noise_to_snippet
-from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_SAR_RARP50
-from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, get_gestures, get_k_folds_splits, load_model
+from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_SAR_RARP50, splits_MultiBypass140
+from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, load_model
 #------------------------------------------------------------#
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-current_dataset = 'SAR_RARP50' # 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 
+current_dataset = 'MultiBypass140' # 'SAR_RARP50' # 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 
+current_task = 'steps' # 'Suturing' # 'gesture' # 'steps' # 'phases' #
 feature_extrractor = '2D-EfficientNetV2-m'
 
 def str2bool(v):
@@ -37,7 +38,7 @@ def is_integer(s):
 
 def get_args():
     
-    parser = argparse.ArgumentParser(description="create 2d features for video-based gesture recognition.")
+    parser = argparse.ArgumentParser(description="create 2D features for video-based action recognition.")
     parser.register('type', 'bool', str2bool)
     parser.add_argument('--dataset', type=str, default=current_dataset, 
                         choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'], help="Name of the dataset to use.")
@@ -48,8 +49,10 @@ def get_args():
     #------------------------ VTS ------------------------
     if current_dataset=='VTS':
         raise NotImplementedError()
-        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None', 
-                            help="JIGSAWS task to evaluate.")
+        parser.add_argument('--task', type=str, choices=['Suturing', 'gesture', 'steps', 'phases'], default='gesture', 
+                            help =  "['Suturing', 'Needle_Passing', 'Knot_Tying'] - JIGSAWS task to evaluate.\n" +
+                                    "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
+                                    "'gesture' - VTS & SAR_RARP50 task to evaluate.")
         parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
@@ -60,10 +63,14 @@ def get_args():
                             "One subfolder per evaluation scheme, one file per evaluation fold.")
     #---------------------- JIGSAWS ----------------------
     elif current_dataset=='JIGSAWS':
-        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
-                            help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='_capture2')
+        parser.add_argument('--task', type=str, choices=['Suturing', 'gesture', 'steps', 'phases'], default='Suturing',
+                            help =  "['Suturing', 'Needle_Passing', 'Knot_Tying'] - JIGSAWS task to evaluate.\n" +
+                                    "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
+                                    "'gesture' - VTS & SAR_RARP50 task to evaluate.")
         parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
+                                                                '_capture2', # relevant for jigsaws
+                                                                'None'], default='_capture2')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
                             "One subfolder per video.")
@@ -72,23 +79,30 @@ def get_args():
                             "One subfolder per evaluation scheme, one file per evaluation fold.")
     #------------------- MultiBypass140 -------------------
     elif current_dataset=='MultiBypass140':
-        raise NotImplementedError()
-        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None', 
-                            help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
-        parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
-        parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "Suturing", "frames"),
+        parser.add_argument('--task', type=str, choices=['Suturing', 'gesture', 'steps', 'phases'], default=current_task, 
+                            help =  "['Suturing', 'Needle_Passing', 'Knot_Tying'] - JIGSAWS task to evaluate.\n" +
+                                    "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
+                                    "'gesture' - VTS & SAR_RARP50 task to evaluate.")
+        parser.add_argument('--image_tmpl', default='{}_{:08d}.jpg') # 1st arg is dir name, 2nd arg is frame number
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
+                                                                '_capture2', # relevant for jigsaws
+                                                                'None'], default='None')
+        parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
                             "One subfolder per video.")
-        parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits", "Suturing"),
+        parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
                             help="Path to directory containing information about each video in the form of video list files. "
                             "One subfolder per evaluation scheme, one file per evaluation fold.")
     #--------------------- SAR_RARP50 ---------------------
     elif current_dataset=='SAR_RARP50':
-        parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='None',
-                            help="JIGSAWS task to evaluate.")
-        parser.add_argument('--video_suffix', type=str,choices=['_capture1', '_capture2', 'None'], default='None')
+        parser.add_argument('--task', type=str, choices=['Suturing', 'gesture', 'steps', 'phases'], default='gesture',
+                            help =  "['Suturing', 'Needle_Passing', 'Knot_Tying'] - JIGSAWS task to evaluate.\n" +
+                                    "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
+                                    "'gesture' - VTS & SAR_RARP50 task to evaluate.")
         parser.add_argument('--image_tmpl', default='{:09d}.png')
+        parser.add_argument('--video_suffix', type=str,choices=['_capture1', # relevant for jigsaws
+                                                                '_capture2', # relevant for jigsaws
+                                                                'None'], default='None')
         parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, current_dataset, "frames"),
                             help="Path to data folder, which contains the extracted images for each video. "
                             "One subfolder per video.")
@@ -114,11 +128,11 @@ def get_args():
     parser.add_argument('-j', '--workers', type=int, default=48, help="Number of threads used for data loading.")
     parser.add_argument('-b', '--batch_size', type=int, default=32, help="Batch size.")
     parser.add_argument('--input_size', type=int, default=224,
-                    help="Target size (width/ height) of each frame.")
+                        help="Target size (width/ height) of each frame.")
     parser.add_argument('--pretrain_path', type=str, required=False, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', 'feature_extractor', current_dataset, feature_extrractor),
                         help="Path to root folder containing pretrained models weights")
     parser.add_argument('--gpu_id', type=int, default=0, help="Device id of gpu to use.")
-    parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output',  'features', current_dataset, feature_extrractor),
+    parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output',  'features', current_dataset, feature_extrractor, 'LOUO', current_task),
                         help="Path to output folder, where all logs and features will be stored.")
     parser.add_argument('--seed', type=int, default=42, help="Random seed.")
 
@@ -150,6 +164,10 @@ class Sequential2DImageReader(data.Dataset):
             self.video_freq = 60 # Hz
             self.label_freq = 10 # Hz
             self.initial_frame_idx = initial_frame_idx-1
+        elif self.cur_dataset in ['MultiBypass140']:
+            self.video_freq     = 25 # Hz
+            self.label_freq     = 25 # Hz
+            self.initial_frame_idx = initial_frame_idx
         self.sampling_step = sampling_step * (self.video_freq // self.label_freq)
         self.root_path = root_path
         self.video_suffix = video_suffix
@@ -186,7 +204,10 @@ class Sequential2DImageReader(data.Dataset):
         self.image_data[video_id] = images
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        if self.cur_dataset in ['JIGSAWS', 'SAR_RARP50']:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        elif self.cur_dataset in ['MultiBypass140']:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
         img = torchvision.transforms.Resize((self.resize, self.resize))(img)
         return [img]
 
@@ -300,7 +321,7 @@ def get_dataloaders(cur_dataset, val_lists, data_path, image_tmpl, video_suffix,
 
 
 
-def feature_creator_split(weights_path, output_dir):
+def feature_creator_split(weights_path, output_dir, split):
 
     args = get_args()
 
@@ -322,7 +343,7 @@ def feature_creator_split(weights_path, output_dir):
     elif args.dataset == "VTS":
         raise NotImplementedError()
     elif args.dataset == "MultiBypass140":
-        raise NotImplementedError()
+        splits = [splits_MultiBypass140['train'][split], splits_MultiBypass140['val'][split], splits_MultiBypass140['test'][split]]
     else:
         raise NotImplementedError()
 
@@ -336,21 +357,30 @@ def feature_creator_split(weights_path, output_dir):
     # else:
     #     raise NotImplementedError("split parameter must by of type int or list")
 
-    if args.dataset == "JIGSAWS":
+    if args.dataset in ["JIGSAWS"]:
         lists_dir = os.path.join(args.video_lists_dir, args.eval_scheme)
         cur_data_path = args.data_path
         # cur_output_dir = output_dir
-    else:
+    elif args.dataset in ["SAR_RARP50"]:
         lists_dir = args.video_lists_dir
         cur_data_path = os.path.join(args.data_path, 'train')
         # cur_output_dir = os.path.join(output_dir, 'train')
+    elif args.dataset in ["MultiBypass140"]:
+        lists_dir = args.video_lists_dir
+        cur_data_path = args.data_path
+        # cur_output_dir = output_dir
+    else:
+        raise NotImplementedError()
 
     # cur_data_path = args.data_path
     cur_output_dir = output_dir
 
     os.makedirs(cur_output_dir, exist_ok=True)
 
-    val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+    if args.dataset in ['JIGSAWS', 'SAR_RARP50']:
+        val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))
+    else: #TODO CONTINUE HERE 15/08/2024
+        val_lists = list(map(lambda x: os.path.join(lists_dir, x), val_list))#.split()))
 
 
     val_loaders = get_dataloaders(args.dataset, val_lists, cur_data_path, args.image_tmpl, args.video_suffix, args.batch_size, args.input_size, workers=args.workers)
@@ -396,7 +426,8 @@ def run_feature_creator(get_split):
     # elif args.dataset == "50SALADS":
     #     user_num = len(splits_50salads)
 
-    out_dir = os.path.join(args.out, args.eval_scheme)
+    # out_dir = os.path.join(args.out, args.eval_scheme) # 15/08/2024 gabriel commented
+    out_dir = args.out
     
     if os.path.isdir(out_dir):
         val = None
@@ -411,7 +442,7 @@ def run_feature_creator(get_split):
     os.makedirs(out_dir)
 
 
-    for root, dirs, _ in os.walk(os.path.join(args.pretrain_path, args.eval_scheme)):
+    for root, dirs, _ in os.walk(os.path.join(args.pretrain_path, args.eval_scheme, args.task)):
         dirs.sort()
         for dir in dirs:
             for filename in os.walk(os.path.join(root, dir)).__next__()[2]:
@@ -435,7 +466,7 @@ def run_feature_creator(get_split):
 
                 os.makedirs(split_dir)
 
-                feature_creator_split(weights_path=full_path, output_dir=split_dir)
+                feature_creator_split(weights_path=full_path, output_dir=split_dir, split=split)
 
                 print(f"Split {split} DONE")
                 print(f"==========================================")
