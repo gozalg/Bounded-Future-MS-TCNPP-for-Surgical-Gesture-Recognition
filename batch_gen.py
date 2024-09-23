@@ -26,24 +26,24 @@ class BatchGenerator(object):
         :param normalization: None - no normalization, min-max - Min-max feature scaling, Standard - Standard score	 or Z-score Normalization
         ## https://en.wikipedia.org/wiki/Normalization_(statistics)
         """""
-        self.dataset = dataset
-        self.task = task
-        self.normalization = normalization
-        self.folds_folder = folds_folder
-        self.split_num = split_num
+        self.dataset                = dataset
+        self.task                   = task
+        self.normalization          = normalization
+        self.folds_folder           = folds_folder
+        self.split_num              = split_num
         self.list_of_train_examples = list()
         self.list_of_valid_examples = list()
-        self.list_of_test_examples = list()
-        self.index = 0
-        self.num_classes_gestures = num_classes_gestures
-        self.num_classes_tools = num_classes_tools
-        self.actions_dict_gestures = actions_dict_gestures
-        self.action_dict_tools = actions_dict_tools
-        self.gt_path_gestures = gt_path_gestures
-        self.gt_path_tools_left = gt_path_tools_left
-        self.gt_path_tools_right = gt_path_tools_right
-        self.features_path = features_path
-        self.sample_rate = sample_rate
+        self.list_of_test_examples  = list()
+        self.index                  = 0
+        self.num_classes_gestures   = num_classes_gestures
+        self.num_classes_tools      = num_classes_tools
+        self.actions_dict_gestures  = actions_dict_gestures
+        self.action_dict_tools      = actions_dict_tools
+        self.gt_path_gestures       = gt_path_gestures
+        self.gt_path_tools_left     = gt_path_tools_left
+        self.gt_path_tools_right    = gt_path_tools_right
+        self.features_path          = features_path
+        self.sample_rate            = sample_rate
         if self.dataset == "VTS":
             self.read_VTS_data()
             # foldfile_end_with = ".txt"
@@ -55,10 +55,8 @@ class BatchGenerator(object):
         elif self.dataset == "SAR_RARP50":
             self.read_SAR_RARP50_data()
         else: # MultiBypass140
-            raise NotImplementedError
             self.read_MultiBypass140_data()
-            # foldfile_end_with = ".csv"
-            # foldfile_in_name = "data_"
+
         self.normalization_params_read()
 
     #---------------------------------VTS---------------------------------#
@@ -155,6 +153,55 @@ class BatchGenerator(object):
 
         random.shuffle(self.list_of_train_examples)
     #----------------------------MultiBypass140---------------------------#
+    def read_MultiBypass140_data(self):
+        self.list_of_train_examples = []
+        number_of_folds = 0
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and "val" in filename:
+                number_of_folds = number_of_folds + 1
+
+        for file in sorted(os.listdir(self.folds_folder)):
+            filename = os.fsdecode(file)
+            if filename.endswith(".txt") and str(self.split_num) in filename:
+                file_path = os.path.join(self.folds_folder, filename)
+                if not os.path.exists(file_path):
+                    print(f"The file {file_path} does not exist.")
+                    raise FileNotFoundError
+                elif os.path.getsize(file_path) == 0:
+                    print(f"The file {file_path} is empty.")
+                    raise EOFError
+                else:
+                    with open(file_path, 'r') as file_ptr:
+                        contents = file_ptr.read()
+                    if '\n' not in contents:
+                        print(f"The file {file_path} does not contain any newline characters.")
+                    else:
+                        files_to_sort = contents.split('\n')[:-1]
+                if "val" in filename:
+                    #----- Validation set -----# 
+                    self.list_of_valid_examples = files_to_sort
+                    if not self.list_of_valid_examples:
+                        print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                        raise EOFError
+                    else:
+                        random.shuffle(self.list_of_valid_examples)
+                elif "train" in filename:
+                    #----- Training set -----#
+                    self.list_of_train_examples = files_to_sort
+                    if not self.list_of_train_examples:
+                        print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                        raise EOFError
+                    else:
+                        random.shuffle(self.list_of_train_examples)
+                elif "test" in filename:
+                    #----- Test set -----# 
+                    self.list_of_test_examples = files_to_sort
+                    if not self.list_of_test_examples:
+                        print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                        raise EOFError
+                    else:
+                        random.shuffle(self.list_of_test_examples)
     #-------------------------------RARP150-------------------------------#
     def read_SAR_RARP50_data(self):
         self.list_of_train_examples = []
@@ -246,7 +293,7 @@ class BatchGenerator(object):
     def pars_ground_truth(self, gt_source):
         contant = []
         for line in gt_source:
-            if self.dataset in ["VTS", "JIGSAWS"]:
+            if self.dataset in ["VTS", "JIGSAWS", "MultiBypass140"]:
                 info = line.split()
                 line_contant = [info[2]] * (int(info[1])-int(info[0]) + 1) 
             elif self.dataset in ["SAR_RARP50"]:
@@ -289,8 +336,11 @@ class BatchGenerator(object):
 
             batch_input.append(features[:, ::self.sample_rate])
 
-            if self.task == "gestures":
-                file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
+            if self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "gesture":
+                    file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
+                else:
+                    file_ptr = open(os.path.join(self.gt_path_gestures, self.task, seq.split('.')[0] + '.txt'), 'r')
                 gt_source = file_ptr.read().split('\n')[:-1]
                 content = self.pars_ground_truth(gt_source)
                 classes_size = min(np.shape(features)[1], len(content))
@@ -361,7 +411,7 @@ class BatchGenerator(object):
 
                 batch_target_left.append(classes_left[::self.sample_rate])
 
-        if self.task == "gestures":
+        if self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
             length_of_sequences = list(map(len, batch_target_gestures))
             batch_input_tensor = torch.zeros(len(batch_input), np.shape(batch_input[0])[0], max(length_of_sequences), dtype=torch.float)
             batch_target_tensor = torch.ones(len(batch_input), max(length_of_sequences), dtype=torch.long)*(-100)

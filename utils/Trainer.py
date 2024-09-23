@@ -23,7 +23,7 @@ wandb.login(key=WANDB_API_KEY)
 
 class Trainer:
     def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, 
-                 RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gestures", device="cuda",
+                 RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gesture", device="cuda",
                  network='MS-TCN2',hyper_parameter_tuning=False,DEBUG=False):
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
@@ -85,8 +85,7 @@ class Trainer:
 
             while batch_gen.has_next():
                 if self.task == "multi-taks":
-                    batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_gen.next_batch(
-                        batch_size)
+                    batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_gen.next_batch(batch_size)
                     batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_input.to(
                         self.device), batch_target_left.to(self.device), batch_target_right.to(
                         self.device), batch_target_gestures.to(self.device), mask_gesture.to(self.device),mask_tools.to(self.device)
@@ -148,7 +147,7 @@ class Trainer:
                 epoch_loss += loss.item()
                 loss.backward()
                 optimizer.step()
-                if self.task == "multi-taks" or self.task == "gestures":
+                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1)
                     for i in range(len(lengths)):
 
@@ -204,16 +203,29 @@ class Trainer:
                 results = {"epoch": epoch + 1}
                 results.update(self.evaluate(eval_dict, batch_gen, args))
                 eval_results_list.append(results)
-                if self.task == "gestures":
+                if self.task == "gesture":
                    # NOTICE: we are using the F1@50 gesture for the early stopping when there is a validation set in the dataset
                    #         In the case of JIGSAWS, there is no validation set, so we always update the model.
-                   if (args.dataset in ['JIGSAWS']) or (results['F1@50 gesture'] >= Max_F1_50):
-                    Max_F1_50 =results['F1@50 gesture']
+                   if (args.dataset in ['JIGSAWS']) or (results['F1@50 gestures'] >= Max_F1_50):
+                    Max_F1_50 =results['F1@50 gestures']
                     best_valid_results = results
                     if not self.DEBUG and not self.hyper_parameter_tuning:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
-
+                elif self.task == "steps":
+                    if results['F1@50 steps'] >= Max_F1_50:
+                        Max_F1_50 = results['F1@50 steps']
+                        best_valid_results = results
+                        if not self.DEBUG and not self.hyper_parameter_tuning:
+                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                elif self.task == "phases":
+                    if results['F1@50 phases'] >= Max_F1_50:
+                        Max_F1_50 = results['F1@50 phases']
+                        best_valid_results = results
+                        if not self.DEBUG and not self.hyper_parameter_tuning:
+                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 # elif self.task == "tools":
                 #    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
                 #     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
@@ -331,7 +343,7 @@ class Trainer:
                     else:
                         predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))[0]
 
-                if self.task == "multi-taks" or self.task == "gestures":
+                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1)
                     predicted1 = predicted1.squeeze()
 
@@ -344,7 +356,7 @@ class Trainer:
                 recognition1 = []
                 recognition2 = []
                 recognition3 = []
-                if self.task == "multi-taks" or self.task == "gestures":
+                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     for i in range(len(predicted1)):
                         recognition1 = np.concatenate((recognition1, [list(actions_dict_gesures.keys())[
                                                                           list(actions_dict_gesures.values()).index(
@@ -363,12 +375,19 @@ class Trainer:
                                                                           list(actions_dict.values()).index(
                                                                               predicted3[i].item())]] * sample_rate))
                     recognition3_list.append(recognition3)
-            if self.task == "multi-taks" or self.task == "gestures":
-
-                print("gestures results")
-                results1, _ = metric_calculation(args, ground_truth_path=ground_truth_path_gestures,
-                                                 recognition_list=recognition1_list, list_of_videos=list_of_vids,
-                                                 suffix="gesture",is_test=is_test)
+            if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "gesture":
+                    print("gestures results")
+                    suffix = "gestures"
+                else:
+                    print(f"{self.task} results")
+                    suffix = self.task
+                results1, _ = metric_calculation(args, 
+                                                 ground_truth_path  = ground_truth_path_gestures,
+                                                 recognition_list   = recognition1_list, 
+                                                 list_of_videos     = list_of_vids,
+                                                 suffix             = suffix,
+                                                 is_test            = is_test)
 
 
                 results.update(results1)

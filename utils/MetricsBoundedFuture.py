@@ -103,7 +103,7 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
 def pars_ground_truth(args, gt_source):
     contant = []
     for line in gt_source:
-        if args.dataset == "JIGSAWS":
+        if args.dataset in ["JIGSAWS", "MultiBypass140"]:
             info = line.split()
             line_contant = [info[2]] * (int(info[1]) - int(info[0]) + 1)
         elif args.dataset == "SAR_RARP50":
@@ -133,7 +133,10 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
     f1_50_list= []
 
     for i, seq in enumerate(list_of_videos):
-        file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
+        if args.dataset == "MultiBypass140":
+            file_ptr = open(os.path.join(ground_truth_path, args.task, seq.split('.')[0] + '.txt'), 'r')
+        else:
+            file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
         gt_source = file_ptr.read().split('\n')[:-1]
         gt_content = pars_ground_truth(args, gt_source)
 

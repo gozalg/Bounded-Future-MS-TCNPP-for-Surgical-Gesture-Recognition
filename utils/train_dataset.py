@@ -18,8 +18,6 @@ from PIL import Image
 from skimage.util import random_noise
 #------------------ Bounded Future Imports ------------------#
 # Local application/library specific imports
-from utils.transforms import Stack, ToTorchFormatTensor
-# import parser
 #------------------------------------------------------------#
 
 class SequentialTestGestureDataSet(data.Dataset):
@@ -460,7 +458,7 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         elif self.dataset in ['MultiBypass140']:
             img = Image.open(os.path.join(directory, self.image_tmpl.format(directory.split('/')[-1], idx))).convert('RGB')
-        img = torchvision.transforms.Resize((self.resize, self.resize))(img) # 15-08-2024 gabriel uncommented for RAM # 21-07-2024 gabriel commented. It's already implemented in efficientnetV2.py
+        img = torchvision.transforms.Resize((self.resize, self.resize))(img) # TODO 15-08-2024 gabriel uncommented for RAM # 21-07-2024 gabriel commented. It's already implemented in efficientnetV2.py
         return [img]
 
     def __getitem__(self, index):

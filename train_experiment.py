@@ -22,12 +22,12 @@ date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='SAR_RARP50', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
+parser.add_argument('--dataset', type=str, default='MultiBypass140', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
                     help="Name of the dataset to use.")
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
                     "Only LOUO supported for TBD.")
-parser.add_argument('--task', choices=['gestures', 'tools', 'multi-taks'], default="gestures")
+parser.add_argument('--task', default="phases", choices=['gesture', 'steps', 'phases', 'tools', 'multi-taks'])
 parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-m", 
                     choices=['3D-ResNet-18', '3D-ResNet-50', 
                              "2D-ResNet-18", "2D-ResNet-34",
@@ -91,7 +91,7 @@ batch_size = 2
 list_of_splits = []
 if args.split.isdigit(): # if split isn't 'all'
     list_of_splits.append(int(args.split))
-elif args.dataset in ["VTS", "SAR_RARP50"]:
+elif args.dataset in ["VTS", "SAR_RARP50", "MultiBypass140"]:
     list_of_splits = list(range(0, 5))
 elif args.dataset == "JIGSAWS":
     if args.eval_scheme == "LOUO":
@@ -119,7 +119,7 @@ hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
 
 
-summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, experiment_name) 
+summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, args.task, experiment_name) 
 
 
 if not DEBUG:
@@ -132,14 +132,17 @@ full_train_results = pd.DataFrame()
 full_test_results = pd.DataFrame()
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme)
+models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme, args.task)
 for split_num in list_of_splits:
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme)
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme, args.task)
     print("split number: " + str(split_num))
     args.split = str(split_num)
 
     gt_path_gestures = os.path.join(data_dir, args.dataset, "transcriptions")
-    mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
+    if args.dataset == "MultiBypass140":
+        mapping_gestures_file = os.path.join(data_dir, args.dataset, f"mapping_{args.task}.txt")
+    else:
+        mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
     model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
 
     if args.dataset == "VTS":
@@ -149,7 +152,7 @@ for split_num in list_of_splits:
     elif args.dataset == "JIGSAWS":
         features_path = os.path.join(features_path, args.split)
         folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
-    elif args.dataset == "SAR_RARP50":
+    elif args.dataset in ["SAR_RARP50", "MultiBypass140"]:
         features_path = os.path.join(features_path, args.split)
         folds_dir = os.path.join(data_dir, args.dataset, "folds")
     else:
@@ -178,7 +181,7 @@ for split_num in list_of_splits:
 
     num_classes_gestures = len(actions_dict_gestures)
 
-    if args.task == "gestures":
+    if args.task in ["gesture", "steps", "phases"]:
         num_classes_list = [num_classes_gestures]
     elif args.dataset == "VTS" and args.task == "tools":
         num_classes_list = [num_classes_tools, num_classes_tools]
@@ -187,16 +190,45 @@ for split_num in list_of_splits:
                             num_classes_tools, num_classes_tools]
 
     # initializes the Trainer - does not train
-    trainer = Trainer(num_layers_PG, num_layers_R, args.num_R, num_f_maps, features_dim, num_classes_list,
-                      RR_not_BF_mode=RR_not_BF_mode, w_max=args.w_max,
-                      tau=loss_tau, lambd=loss_lambda,
-                      dropout_TCN=args.dropout_TCN, task=args.task, device=device,
-                      network=args.network,
-                      hyper_parameter_tuning=hyper_parameter_tuning, DEBUG=DEBUG)
-    print(num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, folds_dir,
-          gt_path_gestures, sample_rate, args.normalization, args.task)
-    batch_gen = BatchGenerator(args.dataset, num_classes_gestures, num_classes_tools, actions_dict_gestures, actions_dict_tools, features_path, split_num, 
-                               folds_dir, gt_path_gestures, sample_rate=sample_rate, normalization=args.normalization, task=args.task)
+    trainer = Trainer(num_layers_PG, 
+                      num_layers_R, 
+                      args.num_R, 
+                      num_f_maps, 
+                      features_dim, 
+                      num_classes_list,
+                      RR_not_BF_mode            = RR_not_BF_mode, 
+                      w_max                     = args.w_max,
+                      tau                       = loss_tau, 
+                      lambd                     = loss_lambda,
+                      dropout_TCN               = args.dropout_TCN, 
+                      task                      = args.task, 
+                      device                    = device,
+                      network                   = args.network,
+                      hyper_parameter_tuning    = hyper_parameter_tuning, 
+                      DEBUG                     = DEBUG)
+    print(num_classes_gestures, 
+          num_classes_tools, 
+          actions_dict_gestures, 
+          actions_dict_tools, 
+          features_path, 
+          split_num, 
+          folds_dir,
+          gt_path_gestures, 
+          sample_rate, 
+          args.normalization, 
+          args.task)
+    batch_gen = BatchGenerator(args.dataset, 
+                               num_classes_gestures, 
+                               num_classes_tools, 
+                               actions_dict_gestures, 
+                               actions_dict_tools, 
+                               features_path, 
+                               split_num, 
+                               folds_dir, 
+                               gt_path_gestures, 
+                               sample_rate      = sample_rate, 
+                               normalization    = args.normalization, 
+                               task             = args.task)
     eval_dict = {"features_path": features_path, 
                  "actions_dict_gestures": actions_dict_gestures, 
                  "actions_dict_tools": actions_dict_tools, 
@@ -207,11 +239,11 @@ for split_num in list_of_splits:
                  "task": args.task}
     best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
                                                                                   batch_gen, 
-                                                                                  num_epochs=num_epochs, 
-                                                                                  batch_size=batch_size, 
-                                                                                  learning_rate=lr, 
-                                                                                  eval_dict=eval_dict, 
-                                                                                  args=args)
+                                                                                  num_epochs    = num_epochs, 
+                                                                                  batch_size    = batch_size, 
+                                                                                  learning_rate = lr, 
+                                                                                  eval_dict     = eval_dict, 
+                                                                                  args          = args)
 
     if not DEBUG:
         eval_results = pd.DataFrame(eval_results)
