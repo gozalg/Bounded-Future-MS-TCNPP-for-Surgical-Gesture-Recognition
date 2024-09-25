@@ -49,7 +49,7 @@ parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewi
 parser.add_argument('--num_R', default=3, type=int)
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--RR_not_BF_mode', default=False, type=bool) #True for RR-MS-TCN ("offline"), False for BF-MS-TCN ("online")
+parser.add_argument('--RR_or_BF_mode', default="RR", type=str, choices=["RR", "BF"]) #True for RR-MS-TCN ("offline"), False for BF-MS-TCN ("online")
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
@@ -108,12 +108,12 @@ num_epochs = args.num_epochs
 eval_rate = args.eval_rate
 features_dim = args.features_dim
 lr = args.lr
-RR_not_BF_mode = args.RR_not_BF_mode
+RR_not_BF_mode = True if args.RR_or_BF_mode == "RR" else False
 num_layers_PG = args.num_layers_PG
 num_layers_R = args.num_layers_R
 num_f_maps = args.num_f_maps
 experiment_name = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-                  args.network + " is RR_not_BF_mode: " + str(args.RR_not_BF_mode) + " w_max: " + str(args.w_max)
+                  args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max)
 args.group = experiment_name
 hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
