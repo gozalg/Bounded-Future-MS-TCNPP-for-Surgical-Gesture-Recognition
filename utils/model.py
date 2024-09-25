@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as func
 import copy
 from torch.nn.utils.rnn import pack_padded_sequence
 
@@ -28,9 +28,9 @@ class MST_TCN2_late(nn.Module):
         if self.num_R >0:
             for k,R in enumerate(self.Rs):
                 if k != len(self.Rs):
-                    outs = R(F.softmax(out, dim=1),0, self.RR_not_BF_mode)
+                    outs = R(func.softmax(out, dim=1),0, self.RR_not_BF_mode)
                 else:
-                    outs = R(F.softmax(out, dim=1),self.window_dim, self.RR_not_BF_mode)
+                    outs = R(func.softmax(out, dim=1),self.window_dim, self.RR_not_BF_mode)
 
 
                 out = torch.cat(outs, 1)
@@ -59,7 +59,7 @@ class MST_TCN2_early(nn.Module):
 
         if self.num_R >0:
             for R in self.Rs:
-                outs = R(F.softmax(out, dim=1),0, self.RR_not_BF_mode)
+                outs = R(func.softmax(out, dim=1),0, self.RR_not_BF_mode)
                 out = torch.cat(outs, 1)
                 for i, output in enumerate(outputs):
                     outputs[i] = torch.cat((output, outs[i].unsqueeze(0)), dim=0)
@@ -87,7 +87,7 @@ class MST_TCN2(nn.Module):
 
         if self.num_R > 0:
             for R in self.Rs:
-                outs = R(F.softmax(out, dim=1),self.w_max, self.RR_not_BF_mode)
+                outs = R(func.softmax(out, dim=1),self.w_max, self.RR_not_BF_mode)
                 out = torch.cat(outs, 1)
                 for i, output in enumerate(outputs):
                     outputs[i] = torch.cat((output, outs[i].unsqueeze(0)), dim=0)
@@ -146,7 +146,7 @@ class MT_Prediction_Generation_many_heads(nn.Module):
         for i in range(self.num_layers):
             f_in = f
             f = self.conv_fusion[i](torch.cat([self.conv_dilated_1[i](f, w_max, offline_mod), self.conv_dilated_2[i](f, w_max, offline_mod)], 1))
-            f = F.relu(f)
+            f = func.relu(f)
             f = self.dropout(f)
             f = f + f_in
             if i in self.layers_heads:
@@ -197,7 +197,7 @@ class MT_Prediction_Generation(nn.Module):
         for i in range(self.num_layers):
             f_in = f
             f = self.conv_fusion[i](torch.cat([self.conv_dilated_1[i](f, w_max, RR_not_BF_mode), self.conv_dilated_2[i](f, w_max, RR_not_BF_mode)], 1))
-            f = F.relu(f)
+            f = func.relu(f)
             f = self.dropout(f)
             f = f + f_in
         for conv_out in self.conv_outs:
@@ -211,9 +211,7 @@ class MT_Refinement(nn.Module):  # refinement stage
         super(MT_Refinement, self).__init__()
         self.conv_1x1 = nn.Conv1d(dim, num_f_maps, 1)
         self.layers = nn.ModuleList([copy.deepcopy(DilatedResidualLayer(2**i, num_f_maps, num_f_maps,dropout=dropout)) for i in range(num_layers)])
-        self.conv_outs = nn.ModuleList([copy.deepcopy(
-            nn.Conv1d(num_f_maps, num_classes_list[s], 1))
-            for s in range(len(num_classes_list))])
+        self.conv_outs = nn.ModuleList([copy.deepcopy(nn.Conv1d(num_f_maps, num_classes_list[s], 1)) for s in range(len(num_classes_list))])
 
     def forward(self, x, w_max, RR_not_BF_mode):
         outs = []
@@ -266,7 +264,7 @@ class DilatedResidualLayer(nn.Module):
         else:
             out = self.window_padding(x, self.dilation, w_max)
 
-        out = F.relu(self.conv_dilated(out))
+        out = func.relu(self.conv_dilated(out))
         out = self.conv_1x1(out)
         out = self.dropout(out)
         return x + out

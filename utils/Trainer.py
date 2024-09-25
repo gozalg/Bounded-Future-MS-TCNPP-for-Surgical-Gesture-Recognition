@@ -125,15 +125,15 @@ class Trainer:
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]), batch_target_gestures.view(-1))
 
                     if self.network not in ["GRU","LSTM"]:
-                        loss += self.lambd * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), 
-                                                                             F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
+                        loss += self.lambd * torch.mean(torch.clamp(self.mse(func.log_softmax(p[:, :, 1:], dim=1), 
+                                                                             func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
 
                 for p in predictions2:
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
                                     batch_target_right.view(-1))
                     if self.network not in ["GRU","LSTM"]:
                         loss += self.lambd * torch.mean(torch.clamp(
-                            self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
+                            self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
                             max=self.tau))
 
                 for p in predictions3:
@@ -141,7 +141,7 @@ class Trainer:
                                     batch_target_left.view(-1))
                     if self.network not in ["GRU","LSTM"]:
                         loss += self.lambd * torch.mean(torch.clamp(
-                            self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
+                            self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
                             max=self.tau))
 
                 epoch_loss += loss.item()
@@ -267,15 +267,15 @@ class Trainer:
         return best_valid_results, eval_results_list, train_results_list, test_results
 
     def evaluate(self, eval_dict, batch_gen, args, is_test=False):
-        results = {}
-        device = eval_dict["device"]
-        features_path = eval_dict["features_path"]
-        sample_rate = eval_dict["sample_rate"]
-        actions_dict = eval_dict["actions_dict_tools"]
-        actions_dict_gesures = eval_dict["actions_dict_gestures"]
-        # ground_truth_path_right = eval_dict["gt_path_tools_right"]
-        # ground_truth_path_left = eval_dict["gt_path_tools_left"]
-        ground_truth_path_gestures = eval_dict["gt_path_gestures"]
+        results                     = {}
+        device                      = eval_dict["device"]
+        features_path               = eval_dict["features_path"]
+        sample_rate                 = eval_dict["sample_rate"]
+        actions_dict                = eval_dict["actions_dict_tools"]
+        actions_dict_gesures        = eval_dict["actions_dict_gestures"]
+        # ground_truth_path_right     = eval_dict["gt_path_tools_right"]
+        # ground_truth_path_left      = eval_dict["gt_path_tools_left"]
+        ground_truth_path_gestures  = eval_dict["gt_path_gestures"]
 
         self.model.eval()
         with torch.no_grad():
@@ -340,11 +340,11 @@ class Trainer:
                         predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))
                         predictions1 = predictions1[0].unsqueeze_(0)
                         predictions1 = torch.nn.Softmax(dim=2)(predictions1)
-                    else:
+                    else: 
                         predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))[0]
 
                 if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
-                    _, predicted1 = torch.max(predictions1[-1].data, 1)
+                    _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage
                     predicted1 = predicted1.squeeze()
 
                 if self.task == "multi-taks" or self.task == "tools":

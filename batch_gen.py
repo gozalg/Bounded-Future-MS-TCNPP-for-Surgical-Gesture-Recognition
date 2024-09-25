@@ -112,6 +112,9 @@ class BatchGenerator(object):
             filename = os.fsdecode(file)
             if filename.endswith(".txt") and "valid" in filename:
                 file_path = os.path.join(self.folds_folder, filename)
+                #-------------------------------------------#
+                # check if the file exists and is not empty #
+                #-------------------------------------------#
                 if not os.path.exists(file_path):
                     print(f"The file {file_path} does not exist.")
                     raise FileNotFoundError
@@ -125,6 +128,7 @@ class BatchGenerator(object):
                         print(f"The file {file_path} does not contain any newline characters.")
                     else:
                         files_to_sort = contents.split('\n')[:-1]
+                #-------------------------------------------#
                     #----- Validation set -----# NOTICE: There is no Validation set in JIGSAWS dataset
                     if str(self.split_num) in filename:
                         self.list_of_valid_examples = files_to_sort
@@ -165,6 +169,9 @@ class BatchGenerator(object):
             filename = os.fsdecode(file)
             if filename.endswith(".txt") and str(self.split_num) in filename:
                 file_path = os.path.join(self.folds_folder, filename)
+                #-------------------------------------------#
+                # check if the file exists and is not empty #
+                #-------------------------------------------#
                 if not os.path.exists(file_path):
                     print(f"The file {file_path} does not exist.")
                     raise FileNotFoundError
@@ -178,6 +185,7 @@ class BatchGenerator(object):
                         print(f"The file {file_path} does not contain any newline characters.")
                     else:
                         files_to_sort = contents.split('\n')[:-1]
+                #-------------------------------------------#
                 if "val" in filename:
                     #----- Validation set -----# 
                     self.list_of_valid_examples = files_to_sort
@@ -202,7 +210,7 @@ class BatchGenerator(object):
                         raise EOFError
                     else:
                         random.shuffle(self.list_of_test_examples)
-    #-------------------------------RARP150-------------------------------#
+    #-----------------------------SAR-RARP50------------------------------#
     def read_SAR_RARP50_data(self):
         self.list_of_train_examples = []
         number_of_folds = 0
@@ -213,8 +221,11 @@ class BatchGenerator(object):
 
         for file in sorted(os.listdir(self.folds_folder)):
             filename = os.fsdecode(file)
-            if filename.endswith(".txt") and "valid" in filename:
+            if filename.endswith(".txt"):
                 file_path = os.path.join(self.folds_folder, filename)
+                #-------------------------------------------#
+                # check if the file exists and is not empty #
+                #-------------------------------------------#
                 if not os.path.exists(file_path):
                     print(f"The file {file_path} does not exist.")
                     raise FileNotFoundError
@@ -228,6 +239,8 @@ class BatchGenerator(object):
                         print(f"The file {file_path} does not contain any newline characters.")
                     else:
                         files_to_sort = contents.split('\n')[:-1]
+                #-------------------------------------------#
+                if "valid" in filename:
                     #----- Validation set -----# 
                     if str(self.split_num) in filename:
                         self.list_of_valid_examples = files_to_sort
@@ -242,29 +255,14 @@ class BatchGenerator(object):
                         if not self.list_of_train_examples:
                             print(f"The file {file_path} only contains empty lines or ends with a newline.")
                             raise EOFError
-                continue
-            elif filename.endswith(".txt") and "test" in filename:
-                file_path = os.path.join(self.folds_folder, filename)
-                if not os.path.exists(file_path):
-                    print(f"The file {file_path} does not exist.")
-                    raise FileNotFoundError
-                elif os.path.getsize(file_path) == 0:
-                    print(f"The file {file_path} is empty.")
-                    raise EOFError
-                else:
-                    with open(file_path, 'r') as file_ptr:
-                            contents = file_ptr.read()
-                    if '\n' not in contents:
-                        print(f"The file {file_path} does not contain any newline characters.")
+                elif "test" in filename:
+                    #----- Test set -----# 
+                    self.list_of_test_examples = files_to_sort
+                    if not self.list_of_test_examples:
+                        print(f"The file {file_path} only contains empty lines or ends with a newline.")
+                        raise EOFError
                     else:
-                        files_to_sort = contents.split('\n')[:-1]
-                        #----- Test set -----# 
-                        self.list_of_test_examples = files_to_sort
-                        if not self.list_of_test_examples:
-                            print(f"The file {file_path} only contains empty lines or ends with a newline.")
-                            raise EOFError
-                        else:
-                            random.shuffle(self.list_of_test_examples)
+                        random.shuffle(self.list_of_test_examples)
             else:
                 continue
 
