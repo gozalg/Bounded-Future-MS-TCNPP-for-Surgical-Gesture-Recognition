@@ -22,8 +22,8 @@ from utils.util import splits_LOSO, splits_LOUO, splits_LOUO_NP, splits_SAR_RARP
 from FeatureExtractorTrainer import INPUT_MEAN, INPUT_STD, load_model
 #------------------------------------------------------------#
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-current_dataset = 'MultiBypass140' # 'SAR_RARP50' # 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 
-current_task = 'steps' # 'Suturing' # 'gesture' # 'steps' # 'phases' #
+current_dataset = 'SAR_RARP50' # 'SAR_RARP50' # 'JIGSAWS' # 'VTS' # 'MultiBypass140' # 
+current_task = 'gesture' # 'Suturing' # 'gesture' # 'steps' # 'phases' #
 feature_extrractor = '2D-EfficientNetV2-m'
 
 def str2bool(v):
@@ -189,7 +189,7 @@ class Sequential2DImageReader(data.Dataset):
         self.image_data = {}
         self.frame_num_data = {}
         # self.labels_data = {}
-        self.frame_num_data[video_id] = list(range(self.initial_frame_idx, self.initial_frame_idx + frame_count, self.sampling_step))
+        self.frame_num_data[video_id] = list(range(self.initial_frame_idx, (self.initial_frame_idx + frame_count)*(self.video_freq // self.label_freq), self.sampling_step))
         self._preload_images(video_id)
 
 
