@@ -547,7 +547,7 @@ if __name__ == "__main__":
     #     findToolConditiondOnGesture(all_recogs3, all_gt3, all_gt1)
     if args.task == "multi-taks" or args.task == "gestures":
         results_gesture = metric_calculation_analysis(
-            all_gt1, all_recogs1, eval_sampling)
+            args, all_gt1, all_recogs1, eval_sampling)
         metadata.update(results_gesture)
         for i in range(len(all_gt1)):
             for j in range(len(all_gt1[i])):

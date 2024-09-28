@@ -124,6 +124,15 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
                     F"F1@{int(overlap[2] * 100)} "+suffix:None
                     }
 
+    if args.dataset == "JIGSAWS":
+        video_freq = 30
+        label_freq = 30
+    elif args.dataset == "SAR_RARP50":
+        video_freq = 60
+        label_freq = 10
+    elif args.dataset == "MultiBypass140":
+        video_freq = 25
+        label_freq = 25
     gt_list =[]
     acc_list = []
     f1_macro_list =[]
@@ -139,8 +148,11 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
             file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
         gt_source = file_ptr.read().split('\n')[:-1]
         gt_content = pars_ground_truth(args, gt_source)
-
+        # keep the gt_content for further analysis
         gt_list.append(gt_content)
+        # gt_content = every (video_freq / label_freq) index from the gt_content to fairly compare with the recognition
+        gt_content = gt_content[::int(video_freq / label_freq)]
+
         recog_content = recognition_list[i]
         number_of_frames_to_compare = min(len(gt_content),len(recog_content))
         acc_list.append(100*(sum(gt_content[:number_of_frames_to_compare] == recog_content[:number_of_frames_to_compare]) / number_of_frames_to_compare))
@@ -192,7 +204,7 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
         return results_dict_of_lists, gt_list
 
 
-def metric_calculation_analysis(gt_list,recognition_list,sampling=1,suffix=""):
+def metric_calculation_analysis(args, gt_list,recognition_list,sampling=1,suffix=""):
     overlap = [.1, .25, .5]
     results_dict = {"Acc "+suffix:None, "Edit "+suffix:None,"F1-macro "+suffix:None,
                     F"F1@{int(overlap[0] * 100) } "+suffix:None, F"F1@{int(overlap[1] * 100) } "+suffix:None,
@@ -203,6 +215,16 @@ def metric_calculation_analysis(gt_list,recognition_list,sampling=1,suffix=""):
                     F"F1@{int(overlap[2] * 100)} "+suffix:None
                     }
 
+    if args.dataset == "JIGSAWS":
+        video_freq = 30
+        label_freq = 30
+    elif args.dataset == "SAR_RARP50":
+        video_freq = 60
+        label_freq = 10
+    elif args.dataset == "MultiBypass140":
+        video_freq = 25
+        label_freq = 25
+
     acc_list = []
     f1_macro_list =[]
     edit_list = []
@@ -211,7 +233,8 @@ def metric_calculation_analysis(gt_list,recognition_list,sampling=1,suffix=""):
     f1_50_list= []
 
     for i in range(len(recognition_list)):
-        gt_content_ = gt_list[i]
+        # gt_content = every (video_freq / label_freq) index from the gt_content to fairly compare with the recognition
+        gt_content_ = gt_list[i][::int(video_freq / label_freq)]
         recog_content_ = recognition_list[i]
 
 

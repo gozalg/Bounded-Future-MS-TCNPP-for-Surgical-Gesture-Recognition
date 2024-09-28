@@ -22,9 +22,23 @@ from .util import WANDB_API_KEY
 wandb.login(key=WANDB_API_KEY)
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes_list, 
-                 RR_not_BF_mode=False,w_max= 0, tau=16, lambd=0.15, dropout_TCN=0.5, task="gesture", device="cuda",
-                 network='MS-TCN2',hyper_parameter_tuning=False,DEBUG=False):
+    def __init__(self,  
+                 num_layers_PG, 
+                 num_layers_R, 
+                 num_R, 
+                 num_f_maps, 
+                 dim, 
+                 num_classes_list, 
+                 RR_not_BF_mode         = False,
+                 w_max                  = 0, 
+                 tau                    = 16, 
+                 lambd                  = 0.15, 
+                 dropout_TCN            = 0.5, 
+                 task                   = "gesture", 
+                 device                 = "cuda",
+                 network                = 'MS-TCN2',
+                 hyper_parameter_tuning = False,
+                 DEBUG                  = False):
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
         elif network == 'MS-TCN2 late':
@@ -35,7 +49,6 @@ class Trainer:
         else:
             raise NotImplemented
         self.number_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-
 
         self.w_max = w_max
         self.model.w_max = w_max
@@ -52,7 +65,7 @@ class Trainer:
         self.hyper_parameter_tuning =hyper_parameter_tuning
 
 
-    def train(self, save_dir, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
+    def train(self, save_dir, sum_dir, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
         best_valid_results =None
         Max_F1_50 = 0
         number_of_seqs = len(batch_gen.list_of_train_examples)
@@ -63,7 +76,7 @@ class Trainer:
         print(args.dataset + " " + args.group + " " + args.dataset + " dataset " + "split: " + args.split)
 
         if args.upload is True:
-            wandb.init(project=args.project, group= args.group,
+            wandb.init(project=args.project, group= args.group, 
                        name="split: " + args.split,
                        reinit=True)
             delattr(args, 'split')
@@ -75,13 +88,13 @@ class Trainer:
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         for epoch in range(num_epochs):
             pbar = tqdm.tqdm(total=number_of_batches)
-            epoch_loss = 0
-            correct1 = 0
-            total1 = 0
-            correct2 = 0
-            total2 = 0
-            correct3 = 0
-            total3 = 0
+            epoch_loss  = 0
+            correct1    = 0
+            total1      = 0
+            correct2    = 0
+            total2      = 0
+            correct3    = 0
+            total3      = 0
 
             while batch_gen.has_next():
                 if self.task == "multi-taks":
@@ -201,7 +214,7 @@ class Trainer:
             if (epoch+1) % eval_rate == 0:
                 print(colored("epoch: " + str(epoch + 1) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
-                results.update(self.evaluate(eval_dict, batch_gen, args))
+                results.update(self.evaluate(sum_dir, eval_dict, batch_gen, args))
                 eval_results_list.append(results)
                 if self.task == "gesture":
                    # NOTICE: we are using the F1@50 gesture for the early stopping when there is a validation set in the dataset
@@ -262,11 +275,11 @@ class Trainer:
             # else: 
             #     test_results = self.evaluate(eval_dict, batch_gen,args, True)
             #     test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
-            test_results = self.evaluate(eval_dict, batch_gen, args, True)
+            test_results = self.evaluate(sum_dir, eval_dict, batch_gen, args, True)
             test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
         return best_valid_results, eval_results_list, train_results_list, test_results
 
-    def evaluate(self, eval_dict, batch_gen, args, is_test=False):
+    def evaluate(self, sum_dir, eval_dict, batch_gen, args, is_test=False):
         results                     = {}
         device                      = eval_dict["device"]
         features_path               = eval_dict["features_path"]
@@ -382,15 +395,51 @@ class Trainer:
                 else:
                     print(f"{self.task} results")
                     suffix = self.task
-                results1, _ = metric_calculation(args, 
-                                                 ground_truth_path  = ground_truth_path_gestures,
-                                                 recognition_list   = recognition1_list, 
-                                                 list_of_videos     = list_of_vids,
-                                                 suffix             = suffix,
-                                                 is_test            = is_test)
+                results1, gt_list = metric_calculation(args, 
+                                                       ground_truth_path  = ground_truth_path_gestures,
+                                                       recognition_list   = recognition1_list, 
+                                                       list_of_videos     = list_of_vids,
+                                                       suffix             = suffix,
+                                                       is_test            = is_test)
 
 
                 results.update(results1)
+
+            if args.dataset == "JIGSAWS":
+                video_freq = 30
+                label_freq = 30
+            elif args.dataset == "SAR_RARP50":
+                video_freq = 60
+                label_freq = 10
+            elif args.dataset == "MultiBypass140":
+                video_freq = 25
+                label_freq = 25
+            # per video file, print the predictions and the ground truth to a txt file for further analysis
+            if not is_test:
+                # if dir does not exist, create it
+                if not os.path.exists(f"{sum_dir}/validation"):
+                    os.makedirs(f"{sum_dir}/validation")
+                for i in range(len(gt_list)):
+                    with open(f"{sum_dir}/validation/{args.network}_{list_of_vids[i]}", "w") as f:
+                        f.write("predictions\tground_truth\n")
+                        # write the predictions in the first column and the ground truth in the second column
+                        for j in range(min(len(recognition1_list[i]), len(gt_list[i]))):
+                            # upsample the predictions to match the ground truth
+                            for k in range(int(video_freq/label_freq)):
+                                f.write(f"{recognition1_list[i][j]}\t{gt_list[i][j+k]}\n")
+            else:
+                # if dir does not exist, create it
+                if not os.path.exists(f"{sum_dir}/test"):
+                    os.makedirs(f"{sum_dir}/test")
+                for i in range(len(gt_list)):
+                    with open(f"{sum_dir}/test/{args.network}_{list_of_vids[i]}", "w") as f:
+                        f.write("predictions\tground_truth\n")
+                        # write the predictions in the first column and the ground truth in the second column
+                        for j in range(min(len(recognition1_list[i]), len(gt_list[i]))):
+                            # upsample the predictions to match the ground truth
+                            for k in range(int(video_freq/label_freq)):
+                                f.write(f"{recognition1_list[i][j]}\t{gt_list[i][j+k]}\n")
+
 
             # if self.task == "multi-taks" or self.task == "tools":
 

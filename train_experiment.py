@@ -238,6 +238,7 @@ for split_num in list_of_splits:
                  "gt_path_gestures": gt_path_gestures, 
                  "task": args.task}
     best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
+                                                                                  summaries_dir,
                                                                                   batch_gen, 
                                                                                   num_epochs    = num_epochs, 
                                                                                   batch_size    = batch_size, 
