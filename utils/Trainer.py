@@ -286,6 +286,8 @@ class Trainer:
             best_epoch = best_valid_results['epoch']
             # write the validation predictions and the ground truth to a txt file for further analysis
             self.write_pred_and_gt(args, best_valid_results, os.path.join(sum_dir, f"split_{split_num}", f"val_epoch_{best_epoch}"))
+            best_valid_results.pop("pred_list")
+            best_valid_results.pop("gt_list")
             print(colored("model testing based on epoch: " + str(best_epoch), 'green', attrs=['bold']))
 
             self.model.load_state_dict(torch.load(save_dir + "/"+self.network+"_"+self.task + ".model"))
@@ -297,7 +299,9 @@ class Trainer:
             #     test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
             test_results = self.evaluate(eval_dict, batch_gen, args, True)
             # write the test predictions and the ground truth to a txt file for further analysis
-            self.write_pred_and_gt(args, best_valid_results, os.path.join(sum_dir, f"split_{split_num}", f"tst_epoch_{best_epoch}"))
+            self.write_pred_and_gt(args, test_results, os.path.join(sum_dir, f"split_{split_num}", f"tst_epoch_{best_epoch}"))
+            test_results.pop("pred_list")
+            test_results.pop("gt_list")
             test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
         return best_valid_results, eval_results_list, train_results_list, test_results
 
