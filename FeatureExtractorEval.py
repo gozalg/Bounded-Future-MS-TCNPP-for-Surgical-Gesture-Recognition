@@ -19,7 +19,7 @@ parser.add_argument('--model_path', type=str, default="/data/home/gabrielg/Bound
 parser.add_argument('--dataset', type=str, default='SAR_RARP50')  # 'JIGSAWS' or MultiBypass140
 parser.add_argument('--num_classes', type=int, default=8)  # 10 for JIGSAWS, 8 for SAR_RARP50, 14 for MultiBypass140+'phases' 46 for MultiBypass140+'steps'
 parser.add_argument('--eval_scheme', type=str, default='LOUO')  # LOUO or LOSO
-parser.add_argument('--task', type=str, default='gesture')  # 'Suturing' for JIGSAWS and 'gesture' for SAR_RARP50, and 'steps' or 'phases' for MultiBypass140
+parser.add_argument('--task', type=str, default='gestures')  # 'Suturing' for JIGSAWS and 'gestures' for SAR_RARP50, and 'steps' or 'phases' for MultiBypass140
 parser.add_argument('--split', type=int, default=0)
 parser.add_argument('--snippet_length', type=int, default=1)
 parser.add_argument('--val_sampling_step', type=int, default=6) # multiply of 6 for SAR_RARP50 (60 fps video, 10 Hz labels => each 6 frames there's a label)
@@ -139,9 +139,7 @@ if __name__ == '__main__':
     if args.eval_scheme == 'LOUO':
         if args.dataset == 'JIGSAWS':
             total_splits = 8
-        elif args.dataset == 'SAR_RARP50':
-            total_splits = 5
-        elif args.dataset == 'MultiBypass140':
+        elif args.dataset in ['VTS', 'MultiBypass140', 'SAR_RARP50']:
             total_splits = 5
     elif args.eval_scheme == 'LOSO': # only for JIGSAWS
         total_splits = 5 
@@ -184,46 +182,54 @@ if __name__ == '__main__':
         if (args.dataset in ['JIGSAWS', 'MultiBypass140']) or (args.dataset == "SAR_RARP50" and i==0):
             data_set_list = []
             for video in test_videos:
-                data_set = Sequential2DTestGestureDataSet(dataset=args.dataset, 
-                                                          root_path=args.data_path, 
-                                                          sar_rarp50_sub_dir='test', 
-                                                          video_id=video[0], 
-                                                          frame_count=video[1],
-                                                          transcriptions_dir=args.transcriptions_dir, 
-                                                          mb140_labels_sub_dir= args.task,
-                                                          gesture_ids=gesture_ids,
-                                                          snippet_length=args.snippet_length,
-                                                          sampling_step=args.val_sampling_step,
-                                                          image_tmpl=args.image_tmpl,
-                                                          video_suffix=args.video_suffix,
-                                                          normalize=normalize, resize=args.input_size,
-                                                          transform=val_augmentation)  # augmentation are off
+                data_set = Sequential2DTestGestureDataSet(dataset               = args.dataset, 
+                                                          root_path             = args.data_path, 
+                                                          sar_rarp50_sub_dir    = 'test', 
+                                                          video_id              = video[0], 
+                                                          frame_count           = video[1],
+                                                          transcriptions_dir    = args.transcriptions_dir, 
+                                                          mb140_labels_sub_dir  = args.task,
+                                                          gesture_ids           = gesture_ids,
+                                                          snippet_length        = args.snippet_length,
+                                                          sampling_step         = args.val_sampling_step, # TODO 27/09/2024 check this for SAR_RARP50
+                                                          image_tmpl            = args.image_tmpl,
+                                                          video_suffix          = args.video_suffix,
+                                                          normalize             = normalize, 
+                                                          resize                = args.input_size,
+                                                          transform             = val_augmentation)  # augmentation are off
                 data_set_list.append(data_set)
-                test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                    shuffle=False, num_workers=args.workers,
-                                    collate_fn=no_none_collate)
+                test_loader = torch.utils.data.DataLoader(data_set, 
+                                                          batch_size    = args.eval_batch_size,
+                                                          shuffle       = False, 
+                                                          num_workers   = args.workers,
+                                                          collate_fn    = no_none_collate)
                 test_loaders.append(test_loader)
+                print("Data loaded successfully.")
         elif (args.dataset == "SAR_RARP50"):
             video_idx = 0
             for video in test_videos:
                 data_set = data_set_list[video_idx]
                 video_idx += 1
-                test_loader = torch.utils.data.DataLoader(data_set, batch_size=args.eval_batch_size,
-                                                          shuffle=False, 
-                                                          num_workers=args.workers,
-                                                          collate_fn=no_none_collate)
+                test_loader = torch.utils.data.DataLoader(data_set, 
+                                                          batch_size    = args.eval_batch_size,
+                                                          shuffle       = False, 
+                                                          num_workers   = args.workers,
+                                                          collate_fn    = no_none_collate)
                 test_loaders.append(test_loader)
         else:
             raise NotImplementedError()
             
-        
+        # ===== load model =====
+        print(f"==========================================")
+        print(f"Loading Split {i} Feature Extractor Model...")
+        print(f"==========================================")
         model = get_model(  args.arch, 
-                            num_classes=args.num_classes,
-                            add_layer_param_num=0,
-                            add_certainty_pred=0,
-                            input_shape=0,
-                            embedding_shape=0,
-                            vae_intermediate_size=None
+                            num_classes             = args.num_classes,
+                            add_layer_param_num     = 0,
+                            add_certainty_pred      = 0,
+                            input_shape             = 0,
+                            embedding_shape         = 0,
+                            vae_intermediate_size   = None
                         )      
 
 
@@ -233,11 +239,22 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(model_loc))
 
         # model
-        device_gpu = torch.device(f"cuda:{args.gpu_id}")
-        model = model.to(device_gpu)
-        device_cpu = torch.device("cpu")
-
-        overall = test(model, test_loaders, device_gpu, device_cpu, args.num_classes, gesture_ids, output_folder=None, epoch=None, upload=False)
+        device_gpu  = torch.device(f"cuda:{args.gpu_id}")
+        model       = model.to(device_gpu)
+        device_cpu  = torch.device("cpu")
+        # ===== test model =====
+        print("==================================")
+        print("Testing Feature Extractor Model...")
+        print("==================================")
+        overall     = test(model, 
+                           test_loaders, 
+                           device_gpu, 
+                           device_cpu, 
+                           args.num_classes, 
+                           gesture_ids, 
+                           output_folder= None, 
+                           epoch        = None, 
+                           upload       = False)
 
         test_acc        = overall.acc_mean
         test_edit       = overall.edit_mean

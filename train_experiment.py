@@ -27,7 +27,7 @@ parser.add_argument('--dataset', type=str, default='MultiBypass140', choices=['V
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
                     "Only LOUO supported for TBD.")
-parser.add_argument('--task', default="phases", choices=['gesture', 'steps', 'phases', 'tools', 'multi-taks'])
+parser.add_argument('--task', default="gestures", choices=['gestures', 'steps', 'phases', 'tools', 'multi-taks'])
 parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-m", 
                     choices=['3D-ResNet-18', '3D-ResNet-50', 
                              "2D-ResNet-18", "2D-ResNet-34",
@@ -35,30 +35,30 @@ parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-
 parser.add_argument('--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
 parser.add_argument('--split', choices=['0', '1', '2', '3', '4', '5', '6', '7', 'all'], default='all')
 parser.add_argument('--features_dim', default=1280, type=int)
-parser.add_argument('--lr', default='0.0010351748096577', type=float)
-parser.add_argument('--num_epochs', default=40, type=int)
+parser.add_argument('--lr', default='0.0010351748096577', type=float) # 0.0010351748096577
+parser.add_argument('--num_epochs', default=40, type=int) # 40
 parser.add_argument('--eval_rate', default=1, type=int)
 
 # Architecture
-parser.add_argument('--w_max', default=17, type=int) # Relevant for BF-MS-TCN: 0 for "fully online".
-parser.add_argument('--num_layers_PG', default=10, type=int) 
-parser.add_argument('--num_layers_R', default=10, type=int)
+parser.add_argument('--w_max', default=20, type=int) # Relevant for BF-MS-TCN: 0 for "fully online".
+parser.add_argument('--num_layers_PG', default=10, type=int) # 10
+parser.add_argument('--num_layers_R', default=10, type=int) # 10
 parser.add_argument('--num_f_maps', default=128, type=int)
 
 parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewise_SD', 'None'], default='None', type=str)
-parser.add_argument('--num_R', default=3, type=int)
+parser.add_argument('--num_R', default=3, type=int) # 3
 
 parser.add_argument('--sample_rate', default=1, type=int)
-parser.add_argument('--RR_or_BF_mode', default="RR", type=str, choices=["RR", "BF"]) #True for RR-MS-TCN ("offline"), False for BF-MS-TCN ("online")
+parser.add_argument('--RR_or_BF_mode', default="BF", type=str, choices=["RR", "BF"]) #True for RR-MS-TCN ("offline"), False for BF-MS-TCN ("online")
 
 
 parser.add_argument('--loss_tau', default=16, type=float)
 parser.add_argument('--loss_lambda', default=1, type=float)
 parser.add_argument('--dropout_TCN', default=0.5, type=float)
-parser.add_argument('--project', default="RR-MS-TCN_JIGSAWS_LOUO_wmax=0_so01", type=str) # default="Offline RNN nets Sensor paper Final"
+parser.add_argument('--project', default="TEST_MS_TCN_DGX", type=str) # default="Offline RNN nets Sensor paper Final"
 parser.add_argument('--group', default=date_str + " ", type=str)
 parser.add_argument('--use_gpu_num', default="1", type=str)
-parser.add_argument('--upload', default=False, type=bool)
+parser.add_argument('--upload', default=True, type=bool)
 parser.add_argument('--DEBUG', default=False, type=bool)
 parser.add_argument('--hyper_parameter_tuning', default=False, type=bool)
 
@@ -145,14 +145,10 @@ for split_num in list_of_splits:
         mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
     model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
 
-    if args.dataset == "VTS":
-        raise NotImplementedError()
-        features_path = os.path.join(data_dir, args.dataset, "features", "fold " + str(split_num))
-        folds_dir = os.path.join(data_dir, args.dataset, "folds")
-    elif args.dataset == "JIGSAWS":
+    if args.dataset == "JIGSAWS":
         features_path = os.path.join(features_path, args.split)
         folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
-    elif args.dataset in ["SAR_RARP50", "MultiBypass140"]:
+    elif args.dataset in ["VTS", "SAR_RARP50", "MultiBypass140"]:
         features_path = os.path.join(features_path, args.split)
         folds_dir = os.path.join(data_dir, args.dataset, "folds")
     else:
@@ -181,11 +177,13 @@ for split_num in list_of_splits:
 
     num_classes_gestures = len(actions_dict_gestures)
 
-    if args.task in ["gesture", "steps", "phases"]:
+    if args.task in ["gestures", "steps", "phases"]:
         num_classes_list = [num_classes_gestures]
     elif args.dataset == "VTS" and args.task == "tools":
+        raise NotImplementedError()
         num_classes_list = [num_classes_tools, num_classes_tools]
     elif args.dataset == "VTS" and args.task == "multi-taks":
+        raise NotImplementedError()
         num_classes_list = [num_classes_gestures,
                             num_classes_tools, num_classes_tools]
 
@@ -239,6 +237,7 @@ for split_num in list_of_splits:
                  "task": args.task}
     best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
                                                                                   summaries_dir,
+                                                                                  split_num
                                                                                   batch_gen, 
                                                                                   num_epochs    = num_epochs, 
                                                                                   batch_size    = batch_size, 

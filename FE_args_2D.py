@@ -64,7 +64,7 @@ if current_dataset=='VTS':
     parser.add_argument('--transcriptions_dir', type=str,
                         default=os.path.join(data_dir, current_dataset, "transcriptions_gestures"),
                         help="Path to folder containing the transcription files (gesture annotations). One file per video.")
-    parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
+    parser.add_argument('--task', type=str, gestureschoices=['Suturing', 'gestures', 'steps', 'phases'], default='gestures',
                     help="JIGSAWS task to evaluate.")
 #---------------------- JIGSAWS ----------------------
 elif current_dataset=='JIGSAWS':
@@ -82,7 +82,7 @@ elif current_dataset=='JIGSAWS':
     parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits", "Suturing"),
                     help="Path to directory containing information about each video in the form of video list files. "
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
-    parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
+    parser.add_argument('--task', type=str, gestureschoices=['Suturing', 'gestures', 'steps', 'phases'], default='Suturing',
                     help="JIGSAWS task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=30,
                     help="Describes how the validation video data has been downsampled from the original temporal "
@@ -103,7 +103,7 @@ elif current_dataset=='MultiBypass140':
     parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
                     help="Path to directory containing information about each video in the form of video list files. "
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
-    parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
+    parser.add_argument('--task', type=str, gestureschoices=['Suturing', 'gestures', 'steps', 'phases'], default='steps',
                     help="JIGSAWS task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=30,
                     help="Describes how the validation video data has been downsampled from the original temporal "
@@ -124,7 +124,7 @@ elif current_dataset=='SAR_RARP50':
     parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
                     help="Path to directory containing information about each video in the form of video list files. "
                          "One subfolder per evaluation scheme, one file per evaluation fold.")
-    parser.add_argument('--task', type=str, choices=['Suturing', 'Needle_Passing', 'Knot_Tying', 'None'], default='Suturing',
+    parser.add_argument('--task', type=str, gestureschoices=['Suturing', 'gestures', 'steps', 'phases'], default='gestures',
                     help="JIGSAWS task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=60,
                     help="Describes how the validation video data has been downsampled from the original temporal "

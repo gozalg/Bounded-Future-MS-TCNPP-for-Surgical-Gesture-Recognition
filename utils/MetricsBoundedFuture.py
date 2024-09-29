@@ -103,7 +103,7 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
 def pars_ground_truth(args, gt_source):
     contant = []
     for line in gt_source:
-        if args.dataset in ["JIGSAWS", "MultiBypass140"]:
+        if args.dataset in ["VTS", "JIGSAWS", "MultiBypass140"]:
             info = line.split()
             line_contant = [info[2]] * (int(info[1]) - int(info[0]) + 1)
         elif args.dataset == "SAR_RARP50":
@@ -124,7 +124,7 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
                     F"F1@{int(overlap[2] * 100)} "+suffix:None
                     }
 
-    if args.dataset == "JIGSAWS":
+    if args.dataset in ["VTS", "JIGSAWS"]:
         video_freq = 30
         label_freq = 30
     elif args.dataset == "SAR_RARP50":

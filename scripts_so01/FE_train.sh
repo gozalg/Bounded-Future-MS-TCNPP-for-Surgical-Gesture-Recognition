@@ -30,7 +30,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     IMG_TMP={:09d}.png
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
-    TASK=gesture
+    TASK=gestures
     GPU=0
 elif [ ${DATASET} == "MultiBypass140" ]; then
     # FPS=25
@@ -40,7 +40,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     elif [ ${TASK} == "phases" ]; then
         CLASSES_N=14
     else
-        echo "Invalid argument (TASK): Choices: [gesture, instrument]"
+        echo "Invalid argument (TASK): Choices: [Suturing, gestures, steps, phases]"
         echo "Usage: FE_EVAL.sh [DATASET] [TASK]"
         exit
     fi

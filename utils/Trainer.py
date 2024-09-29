@@ -34,7 +34,7 @@ class Trainer:
                  tau                    = 16, 
                  lambd                  = 0.15, 
                  dropout_TCN            = 0.5, 
-                 task                   = "gesture", 
+                 task                   = "gestures", 
                  device                 = "cuda",
                  network                = 'MS-TCN2',
                  hyper_parameter_tuning = False,
@@ -42,8 +42,10 @@ class Trainer:
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
         elif network == 'MS-TCN2 late':
+            raise NotImplementedError
             self.model = MST_TCN2_late(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
         elif network == 'MS-TCN2 early':
+            raise NotImplementedError
             self.model = MST_TCN2_early(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
 
         else:
@@ -65,7 +67,7 @@ class Trainer:
         self.hyper_parameter_tuning =hyper_parameter_tuning
 
 
-    def train(self, save_dir, sum_dir, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
+    def train(self, save_dir, sum_dir, split_num, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
         best_valid_results =None
         Max_F1_50 = 0
         number_of_seqs = len(batch_gen.list_of_train_examples)
@@ -98,6 +100,7 @@ class Trainer:
 
             while batch_gen.has_next():
                 if self.task == "multi-taks":
+                    raise NotImplementedError
                     batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_gen.next_batch(batch_size)
                     batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_input.to(
                         self.device), batch_target_left.to(self.device), batch_target_right.to(
@@ -105,6 +108,7 @@ class Trainer:
                     mask =mask_gesture
 
                 elif self.task == "tools":
+                    raise NotImplementedError
                     batch_input, batch_target_left, batch_target_right, mask = batch_gen.next_batch(batch_size)
                     batch_input, batch_target_left, batch_target_right, mask = batch_input.to(self.device), batch_target_left.to(
                         self.device), batch_target_right.to(self.device), mask.to(self.device)
@@ -117,7 +121,7 @@ class Trainer:
                 lengths = torch.sum(mask[:, 0, :], dim=1).to(dtype=torch.int64).to(device='cpu')
 
                 if self.task == "multi-taks":
-
+                    raise NotImplementedError
                     predictions1, predictions2, predictions3 = self.model(batch_input, lengths)
                     predictions1 = (predictions1 * mask_gesture)
                     predictions2 = (predictions2 * mask_tools)
@@ -125,6 +129,7 @@ class Trainer:
 
 
                 elif self.task == "tools":
+                    raise NotImplementedError
                     predictions2, predictions3 = self.model(batch_input, lengths)
                     predictions2 = (predictions2 * mask)
                     predictions3 = (predictions3 * mask)
@@ -142,6 +147,7 @@ class Trainer:
                                                                              func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
 
                 for p in predictions2:
+                    raise NotImplementedError
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
                                     batch_target_right.view(-1))
                     if self.network not in ["GRU","LSTM"]:
@@ -150,6 +156,7 @@ class Trainer:
                             max=self.tau))
 
                 for p in predictions3:
+                    raise NotImplementedError
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
                                     batch_target_left.view(-1))
                     if self.network not in ["GRU","LSTM"]:
@@ -160,7 +167,7 @@ class Trainer:
                 epoch_loss += loss.item()
                 loss.backward()
                 optimizer.step()
-                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1)
                     for i in range(len(lengths)):
 
@@ -168,7 +175,7 @@ class Trainer:
                         total1 += lengths[i]
 
                 if self.task == "multi-taks" or self.task == "tools":
-
+                    raise NotImplementedError
                     _, predicted2 = torch.max(predictions2[-1].data, 1)
                     _, predicted3 = torch.max(predictions3[-1].data, 1)
                     correct2 += ((predicted2 == batch_target_right).float().squeeze(1)).sum().item()
@@ -182,6 +189,7 @@ class Trainer:
             pbar.close()
             dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             if self.task == "multi-taks":
+                raise NotImplementedError
                 print(colored(dt_string, 'green', attrs=[
                     'bold']) + "  " + "[epoch %d]: train loss = %f,  train acc gesture = %f,  train acc right= %f,  train acc left = %f" % (
                       epoch + 1,
@@ -192,6 +200,7 @@ class Trainer:
                                  "train acc left": 100.0 * (float(correct1) / total1), "train acc right": 100.0 * (float(correct2) / total2),
                                  "train acc gestures": 100.0 * (float(correct3) / total3)}
             elif self.task == "tools":
+                raise NotImplementedError
                 print(colored(dt_string, 'green', attrs=[
                     'bold']) + "  " + "[epoch %d]: train loss = %f,   train acc right = %f,  train acc left = %f" % (
                           epoch + 1,
@@ -214,9 +223,10 @@ class Trainer:
             if (epoch+1) % eval_rate == 0:
                 print(colored("epoch: " + str(epoch + 1) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
-                results.update(self.evaluate(sum_dir, eval_dict, batch_gen, args))
+                eval_results = self.evaluate(eval_dict, batch_gen, args)
+                results.update(eval_results)
                 eval_results_list.append(results)
-                if self.task == "gesture":
+                if self.task == "gestures":
                    # NOTICE: we are using the F1@50 gesture for the early stopping when there is a validation set in the dataset
                    #         In the case of JIGSAWS, there is no validation set, so we always update the model.
                    if (args.dataset in ['JIGSAWS']) or (results['F1@50 gestures'] >= Max_F1_50):
@@ -239,33 +249,43 @@ class Trainer:
                         if not self.DEBUG and not self.hyper_parameter_tuning:
                             torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                             torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
-                # elif self.task == "tools":
-                #    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
-                #     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
-                #     best_valid_results = results
-                #     if not self.DEBUG and not self.hyper_parameter_tuning:
-                #         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                #         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                elif self.task == "tools":
+                   raise NotImplementedError
+                   if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
+                    Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
+                    best_valid_results = results
+                    if not self.DEBUG and not self.hyper_parameter_tuning:
+                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
-                # elif self.task == "multi-taks":
-                #    if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
-                #     Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
-                #     best_valid_results = results
-                #     if not self.DEBUG and not self.hyper_parameter_tuning:
-                #         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                #         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                elif self.task == "multi-taks":
+                   raise NotImplementedError
+                   if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
+                    Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
+                    best_valid_results = results
+                    if not self.DEBUG and not self.hyper_parameter_tuning:
+                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 else:
                     raise NotImplementedError()
 
 
                 if args.upload is True:
+                    list_of_seq = results.pop("list_of_seq")
+                    pred_list = results.pop("pred_list")
+                    gt_list = results.pop("gt_list")
                     wandb.log(results, step=epoch)
+                    results["list_of_seq"] = list_of_seq
+                    results["pred_list"] = pred_list
+                    results["gt_list"] = gt_list
         
         ## test HERE!!
         if self.hyper_parameter_tuning:
             return best_valid_results, eval_results_list, train_results_list, []
         else:
             best_epoch = best_valid_results['epoch']
+            # write the validation predictions and the ground truth to a txt file for further analysis
+            self.write_pred_and_gt(args, best_valid_results, os.path.join(sum_dir, f"split_{split_num}", f"val_epoch_{best_epoch}"))
             print(colored("model testing based on epoch: " + str(best_epoch), 'green', attrs=['bold']))
 
             self.model.load_state_dict(torch.load(save_dir + "/"+self.network+"_"+self.task + ".model"))
@@ -275,11 +295,13 @@ class Trainer:
             # else: 
             #     test_results = self.evaluate(eval_dict, batch_gen,args, True)
             #     test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
-            test_results = self.evaluate(sum_dir, eval_dict, batch_gen, args, True)
+            test_results = self.evaluate(eval_dict, batch_gen, args, True)
+            # write the test predictions and the ground truth to a txt file for further analysis
+            self.write_pred_and_gt(args, best_valid_results, os.path.join(sum_dir, f"split_{split_num}", f"tst_epoch_{best_epoch}"))
             test_results["best_epch"] = [best_epoch] * len(test_results['list_of_seq'])
         return best_valid_results, eval_results_list, train_results_list, test_results
 
-    def evaluate(self, sum_dir, eval_dict, batch_gen, args, is_test=False):
+    def evaluate(self, eval_dict, batch_gen, args, is_test=False):
         results                     = {}
         device                      = eval_dict["device"]
         features_path               = eval_dict["features_path"]
@@ -325,6 +347,7 @@ class Trainer:
                 input_x.unsqueeze_(0)
                 input_x = input_x.to(device)
                 if self.task == "multi-taks":
+                    raise NotImplementedError
                     if self.network == "LSTM" or self.network == "GRU":
                         predictions1,predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
                         predictions1 = predictions1
@@ -337,6 +360,7 @@ class Trainer:
                     else:
                         predictions1, predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
                 elif self.task == "tools":
+                    raise NotImplementedError
                     if self.network == "LSTM" or self.network == "GRU":
                         predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
                         predictions2 = predictions2.unsqueeze_(0)
@@ -350,17 +374,19 @@ class Trainer:
                         predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
                 else:
                     if self.network == "LSTM" or self.network == "GRU":
+                        raise NotImplementedError
                         predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))
                         predictions1 = predictions1[0].unsqueeze_(0)
                         predictions1 = torch.nn.Softmax(dim=2)(predictions1)
                     else: 
                         predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))[0]
 
-                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage
                     predicted1 = predicted1.squeeze()
 
                 if self.task == "multi-taks" or self.task == "tools":
+                    raise NotImplementedError
                     _, predicted2 = torch.max(predictions2[-1].data, 1)
                     _, predicted3 = torch.max(predictions3[-1].data, 1)
                     predicted2 = predicted2.squeeze()
@@ -369,14 +395,14 @@ class Trainer:
                 recognition1 = []
                 recognition2 = []
                 recognition3 = []
-                if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     for i in range(len(predicted1)):
                         recognition1 = np.concatenate((recognition1, [list(actions_dict_gesures.keys())[
                                                                           list(actions_dict_gesures.values()).index(
                                                                               predicted1[i].item())]] * sample_rate))
                     recognition1_list.append(recognition1)
                 if self.task == "multi-taks" or self.task == "tools":
-
+                    raise NotImplementedError
                     for i in range(len(predicted2)):
                         recognition2 = np.concatenate((recognition2, [list(actions_dict.keys())[
                                                                           list(actions_dict.values()).index(
@@ -388,13 +414,9 @@ class Trainer:
                                                                           list(actions_dict.values()).index(
                                                                               predicted3[i].item())]] * sample_rate))
                     recognition3_list.append(recognition3)
-            if self.task == "multi-taks" or self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
-                if self.task == "gesture":
-                    print("gestures results")
-                    suffix = "gestures"
-                else:
-                    print(f"{self.task} results")
-                    suffix = self.task
+            if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                print(f"{self.task} results")
+                suffix = self.task
                 results1, gt_list = metric_calculation(args, 
                                                        ground_truth_path  = ground_truth_path_gestures,
                                                        recognition_list   = recognition1_list, 
@@ -404,42 +426,6 @@ class Trainer:
 
 
                 results.update(results1)
-
-            if args.dataset == "JIGSAWS":
-                video_freq = 30
-                label_freq = 30
-            elif args.dataset == "SAR_RARP50":
-                video_freq = 60
-                label_freq = 10
-            elif args.dataset == "MultiBypass140":
-                video_freq = 25
-                label_freq = 25
-            # per video file, print the predictions and the ground truth to a txt file for further analysis
-            if not is_test:
-                # if dir does not exist, create it
-                if not os.path.exists(f"{sum_dir}/validation"):
-                    os.makedirs(f"{sum_dir}/validation")
-                for i in range(len(gt_list)):
-                    with open(f"{sum_dir}/validation/{args.network}_{list_of_vids[i]}", "w") as f:
-                        f.write("predictions\tground_truth\n")
-                        # write the predictions in the first column and the ground truth in the second column
-                        for j in range(min(len(recognition1_list[i]), len(gt_list[i]))):
-                            # upsample the predictions to match the ground truth
-                            for k in range(int(video_freq/label_freq)):
-                                f.write(f"{recognition1_list[i][j]}\t{gt_list[i][j+k]}\n")
-            else:
-                # if dir does not exist, create it
-                if not os.path.exists(f"{sum_dir}/test"):
-                    os.makedirs(f"{sum_dir}/test")
-                for i in range(len(gt_list)):
-                    with open(f"{sum_dir}/test/{args.network}_{list_of_vids[i]}", "w") as f:
-                        f.write("predictions\tground_truth\n")
-                        # write the predictions in the first column and the ground truth in the second column
-                        for j in range(min(len(recognition1_list[i]), len(gt_list[i]))):
-                            # upsample the predictions to match the ground truth
-                            for k in range(int(video_freq/label_freq)):
-                                f.write(f"{recognition1_list[i][j]}\t{gt_list[i][j+k]}\n")
-
 
             # if self.task == "multi-taks" or self.task == "tools":
 
@@ -454,11 +440,39 @@ class Trainer:
             #     results.update(results2)
             #     results.update(results3)
 
-            if is_test:
-                results["list_of_seq"] = list_of_vids
+            # if is_test:
+            results["list_of_seq"] = list_of_vids
+            results["pred_list"] = recognition1_list
+            results["gt_list"] = gt_list
             self.model.train()
             return results
-
-
-
-
+    
+    def write_pred_and_gt(self, args, results, sum_dir):
+        list_of_vids = results["list_of_seq"]
+        pred_list = results["pred_list"]
+        gt_list = results["gt_list"]
+        
+        if args.dataset in ["VTS", "JIGSAWS"]:
+            video_freq = 30
+            label_freq = 30
+        elif args.dataset == "SAR_RARP50":
+            video_freq = 60
+            label_freq = 10
+        elif args.dataset == "MultiBypass140":
+            video_freq = 25
+            label_freq = 25
+        # per video file, print the predictions and the ground truth to a txt file for further analysis
+        # if dir does not exist, create it
+        if not os.path.exists(f"{sum_dir}"):
+            os.makedirs(f"{sum_dir}")
+        for i in range(len(gt_list)):
+            with open(f"{sum_dir}/{args.network}_{list_of_vids[i]}", "w") as f:
+                f.write("frame_id\tpredictions\tground_truth\n")
+                # write the predictions in the first column and the ground truth in the second column
+                for j in range(min(len(pred_list[i]), len(gt_list[i]))):
+                    # upsample the predictions to match the ground truth
+                    for k in range(int(video_freq/label_freq)):
+                        frame_id = j * int(video_freq/label_freq) + k
+                        # we don't want to write predictions that overlaps the ground truth
+                        if frame_id < len(gt_list[i]):
+                            f.write(f"{frame_id}\t{pred_list[i][j]}\t{gt_list[i][frame_id]}\n")

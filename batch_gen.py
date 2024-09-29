@@ -334,8 +334,8 @@ class BatchGenerator(object):
 
             batch_input.append(features[:, ::self.sample_rate])
 
-            if self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
-                if self.task == "gesture":
+            if self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "gestures":
                     file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
                 else:
                     file_ptr = open(os.path.join(self.gt_path_gestures, self.task, seq.split('.')[0] + '.txt'), 'r')
@@ -409,7 +409,7 @@ class BatchGenerator(object):
 
                 batch_target_left.append(classes_left[::self.sample_rate])
 
-        if self.task in ["gesture", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+        if self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
             length_of_sequences = list(map(len, batch_target_gestures))
             batch_input_tensor = torch.zeros(len(batch_input), np.shape(batch_input[0])[0], max(length_of_sequences), dtype=torch.float)
             batch_target_tensor = torch.ones(len(batch_input), max(length_of_sequences), dtype=torch.long)*(-100)
