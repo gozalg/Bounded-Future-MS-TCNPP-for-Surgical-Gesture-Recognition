@@ -237,7 +237,7 @@ for split_num in list_of_splits:
                  "task": args.task}
     best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
                                                                                   summaries_dir,
-                                                                                  split_num
+                                                                                  split_num,
                                                                                   batch_gen, 
                                                                                   num_epochs    = num_epochs, 
                                                                                   batch_size    = batch_size, 
