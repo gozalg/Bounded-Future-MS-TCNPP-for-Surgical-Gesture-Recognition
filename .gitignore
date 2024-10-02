@@ -22,6 +22,7 @@ data/JIGSAWS/Suturing
 data/JIGSAWS/frames/*
 data/VTS/frames/*
 data/VTS/features/*
+data/VTS/original_videos/*
 data/SAR_RARP50/frames/test/*
 data/SAR_RARP50/frames/train/*
 data/SAR_RARP50/README.md
