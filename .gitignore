@@ -19,6 +19,8 @@ output/
 # data
 data/.vscode
 data/JIGSAWS/Suturing
+data/JIGSAWS/frames/*
+data/VTS/frames/*
 data/VTS/features/*
 data/SAR_RARP50/frames/test/*
 data/SAR_RARP50/frames/train/*
