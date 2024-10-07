@@ -92,11 +92,13 @@ class AverageMeter(object):
         self.sum = 0
         self.count = 0
 
-    def update(self, val, n=1):
+    def update(self, val, n=1, loss=False):
         self.val = val
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+        if not loss: # if calculating accuracy
+            self.avg = self.avg * 100.0 # to percent
 
 
 def reg_l2(model,l2_lambda,device ):
