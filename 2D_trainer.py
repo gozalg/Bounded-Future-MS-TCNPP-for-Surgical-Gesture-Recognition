@@ -34,8 +34,7 @@ gesture_ids = (gestures_VTS if args.dataset == "VTS" else
                gestures_SAR_RARP50 if args.dataset == "SAR_RARP50" else 
                steps_MultiBypass130 if args.dataset == "MultiBypass140" and args.task == 'steps' else
                phases_MultiBypass130 if args.dataset == "MultiBypass140" and args.task == 'phases' else None)
-folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds') if args.dataset != "JIGASAWS" else
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'LOUO', 'folds') if args.dataset == "JIGSAWS" else None)
+folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds'))
 num_of_splits = (5 if args.dataset in ["VTS", "MultiBypass140", "SAR_RARP50"] else
                  8 if args.dataset == "JIGSAWS" else None)
 if args.wandb:
@@ -401,7 +400,7 @@ def main(split =3,upload =False,save_features=False):
     if args.resume_exp:
         output_folder = args.resume_exp
     else:
-        output_folder = os.path.join(args.out, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
+        output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
                                       str(split), datetime.datetime.now().strftime("%H%M"))
         os.makedirs(output_folder, exist_ok=True)
 
