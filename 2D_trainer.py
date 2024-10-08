@@ -37,6 +37,8 @@ gesture_ids = (gestures_VTS if args.dataset == "VTS" else
 folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds'))
 num_of_splits = (5 if args.dataset in ["VTS", "MultiBypass140", "SAR_RARP50"] else
                  8 if args.dataset == "JIGSAWS" else None)
+args.transcriptions_dir = (args.transcriptions_dir if args.dataset != "MultiBypass140" else
+                           os.path.join(args.transcriptions_dir, args.task))
 if args.wandb:
     wandb.login(key=WANDB_API_KEY) 
 #---------------------------------VTS---------------------------------#
