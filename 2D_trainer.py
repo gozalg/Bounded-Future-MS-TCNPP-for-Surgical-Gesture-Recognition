@@ -251,7 +251,7 @@ def read_SAR_RARP50_data(folds_folder,split_num):
 
 def log(msg,output_folder):
     f_log = open(os.path.join(output_folder, "log.txt"), 'a')
-    utils.util.log(f_log, msg)
+    utils_2D.util.log(f_log, msg)
     f_log.close()
 
 def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture_ids,epoch,upload=False):
@@ -362,7 +362,7 @@ def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path
 def main(split =3,upload =False,save_features=False):
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', f'fold {split}')
     if os.path.exists(features_path):
-        print(f"Features already extracted to:\n({features_path})\nDo you want to delete them? (y/n)")
+        print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
         if input() == "y":
             import shutil
             shutil.rmtree(features_path)

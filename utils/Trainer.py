@@ -49,7 +49,7 @@ class Trainer:
             self.model = MST_TCN2_early(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
 
         else:
-            raise NotImplemented
+            raise NotImplementedError
         self.number_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
         self.w_max = w_max

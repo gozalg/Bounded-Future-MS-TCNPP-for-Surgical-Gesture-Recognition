@@ -12,6 +12,8 @@ build/
 .idea
 # weights
 extractor.pth
+# features
+*.npy
 # wandb
 wandb/
 # output    

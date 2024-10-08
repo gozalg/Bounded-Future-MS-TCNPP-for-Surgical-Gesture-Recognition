@@ -117,7 +117,7 @@ elif current_dataset=='SAR_RARP50':
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 #-------------------------------------------------------------
-parser.add_argument('--video_sampling_step', type=int, default=6,
+parser.add_argument('--video_sampling_step', type=int, default=1, # 6
                     help="Describes how the available video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 # ----------------------
@@ -157,5 +157,5 @@ parser.add_argument('--use_scheduler', type=bool, default=True, help="Whether to
 # ----------------------
 parser.add_argument('--resume_exp', type=str, default=None,
                     help="Path to results of former experiment that shall be resumed (UNTESTED).")
-parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "feature_extractor"),
+parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "feature_extractor"),
                     help="Path to output folder, where all models and results will be stored.")
