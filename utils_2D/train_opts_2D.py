@@ -36,9 +36,9 @@ parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, curr
                              "One subfolder per video.")
 parser.add_argument('--transcriptions_dir', type=str, default=os.path.join(data_dir, current_dataset, "transcriptions"),
                     help="Path to folder containing the transcription files (gesture\steps\phases annotations). One file per video.")
-parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
-               help="Path to directory containing information about each video in the form of video list files. "
-                    "One subfolder per evaluation scheme, one file per evaluation fold.")
+# parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
+#                help="Path to directory containing information about each video in the form of video list files. "
+#                     "One subfolder per evaluation scheme, one file per evaluation fold.")
 # parser.add_argument('--epoch_size', type=int, default=2400,
 #                     help="number of samples in a epoch ")
 parser.add_argument('--number_of_samples_per_class', type=int, default=400,
