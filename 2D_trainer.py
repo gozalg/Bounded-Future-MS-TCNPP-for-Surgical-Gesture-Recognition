@@ -361,7 +361,7 @@ def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path
             video_features =[]
 
 def main(split =3,upload =False,save_features=False):
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', f'fold {split}')
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}')
     if os.path.exists(features_path):
         print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
         if input() == "y":
