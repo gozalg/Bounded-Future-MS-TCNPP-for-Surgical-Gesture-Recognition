@@ -22,7 +22,7 @@ date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='MultiBypass140', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
+parser.add_argument('--dataset', type=str, default='VTS', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
                     help="Name of the dataset to use.")
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
@@ -119,7 +119,8 @@ hyper_parameter_tuning = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
 
 
-summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, args.task, experiment_name) 
+# summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, args.task, experiment_name) 
+summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.task, experiment_name) 
 
 
 if not DEBUG:
@@ -132,9 +133,11 @@ full_train_results = pd.DataFrame()
 full_test_results = pd.DataFrame()
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme, args.task)
+# models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme, args.task)
+models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.task)
 for split_num in list_of_splits:
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme, args.task)
+    # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme, args.task)
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", args.dataset, "features", args.task)
     print("split number: " + str(split_num))
     args.split = str(split_num)
 
@@ -145,14 +148,16 @@ for split_num in list_of_splits:
         mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
     model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
 
-    if args.dataset == "JIGSAWS":
-        features_path = os.path.join(features_path, args.split)
-        folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
-    elif args.dataset in ["VTS", "SAR_RARP50", "MultiBypass140"]:
-        features_path = os.path.join(features_path, args.split)
-        folds_dir = os.path.join(data_dir, args.dataset, "folds")
-    else:
-        raise NotImplementedError()
+    # if args.dataset == "JIGSAWS":
+    #     features_path = os.path.join(features_path, args.split)
+    #     folds_dir = os.path.join(data_dir, args.dataset, "folds", args.eval_scheme)
+    # elif args.dataset in ["VTS", "SAR_RARP50", "MultiBypass140"]:
+    #     features_path = os.path.join(features_path, args.split)
+    #     folds_dir = os.path.join(data_dir, args.dataset, "folds")
+    # else:
+    #     raise NotImplementedError()
+    features_path = os.path.join(features_path, "fold "+args.split)
+    folds_dir = os.path.join(data_dir, args.dataset, "folds")
 
     if not DEBUG:
         if not os.path.exists(model_out_dir):
