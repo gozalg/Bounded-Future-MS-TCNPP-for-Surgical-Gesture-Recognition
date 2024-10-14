@@ -63,7 +63,7 @@ class Gesture2dTrainSet(data.Dataset):
             _last_rgb_frame =0
             for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
                 filename = os.fsdecode(file)
-                if int(filename[4:9]) > _last_rgb_frame:
+                if int(filename[4:9]) > _last_rgb_frame: # TODO change to regex
                     _last_rgb_frame = int(filename[4:9])
 
             if len(gestures) >= _last_rgb_frame:
