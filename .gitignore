@@ -20,10 +20,14 @@ wandb/
 output/
 # data
 data/.vscode
+data/VTS/features
+data/VTS/frames
+data/VTS/original_videos
 data/JIGSAWS/Suturing
-data/VTS/features/*
-data/VTS/original_videos/*
+data/JIGSAWS/frames
 data/SAR_RARP50/README.md
+data/SAR_RARP50/frames
+data/MultiBypass140/frames
 # DGX
 *.sqsh
 tasks/
