@@ -568,7 +568,7 @@ def main(split =3,upload =False,save_features=False):
         model.train()
 
 
-        with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}) {"progress"}', total=int(len(train_loader))) as pbar:
+        with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}/{args.epochs}) {"progress"}', total=int(len(train_loader))) as pbar:
 
             # for batch_i, (data, target) in enumerate(train_loader):
 
@@ -630,9 +630,9 @@ def main(split =3,upload =False,save_features=False):
         if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
             log("Start evaluation...", output_folder)
 
-            acc, f1, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload)
-            all_eval_results.append([split, epoch, acc, f1, f1_10, f1_25, f1_50])
-            full_eval_results = pd.DataFrame(all_eval_results,columns=['split num', 'epoch', 'acc', 'f1_macro', 'f1_10', 'f1_25', 'f1_50'])
+            acc, f1, edit, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload)
+            all_eval_results.append([split, epoch, acc, f1, edit, f1_10, f1_25, f1_50])
+            full_eval_results = pd.DataFrame(all_eval_results,columns=['split num', 'epoch', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
             full_eval_results.to_csv(output_folder + "/" + "evaluation_results.csv", index=False)
 
             if eval_metric == "F1" and f1 > best_metric:
@@ -656,8 +656,8 @@ def main(split =3,upload =False,save_features=False):
     model.load_state_dict(torch.load(model_file))
     log("",output_folder)
     log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
-    acc_test, f1_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
-    full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'f1_10', 'f1_25', 'f1_50'])
+    acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
+    full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
     full_test_results["epoch"] = best_epoch
     full_test_results["split"] = split
     full_test_results.to_csv(output_folder + "/" + "test_results.csv", index=False)
