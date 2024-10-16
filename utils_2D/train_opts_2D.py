@@ -35,7 +35,7 @@ parser.add_argument('--data_path', type=str, default=os.path.join(data_dir, curr
                         help="Path to data folder, which contains the extracted images for each video. "
                              "One subfolder per video.")
 parser.add_argument('--transcriptions_dir', type=str, default=os.path.join(data_dir, current_dataset, "transcriptions"),
-                    help="Path to folder containing the transcription files (gesture\steps\phases annotations). One file per video.")
+                    help="Path to folder containing the transcription files (gestures\steps\phases annotations). One file per video.")
 # parser.add_argument('--video_lists_dir', type=str, default=os.path.join(data_dir, current_dataset, "Splits"),
 #                help="Path to directory containing information about each video in the form of video list files. "
 #                     "One subfolder per evaluation scheme, one file per evaluation fold.")
@@ -55,9 +55,9 @@ if current_dataset=='VTS':
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS
                                                             '_capture1', '_capture2' # relevant for JIGSAWS
                                                             'None'], default='_side')
-    parser.add_argument('--task', type=str, choices=['gesture', 'steps', 'phases'], default='gesture',
+    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
-                                "'gesture' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
+                                "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=1,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
@@ -72,9 +72,9 @@ elif current_dataset=='JIGSAWS':
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
                                                             '_capture1', '_capture2' # relevant for JIGSAWS
                                                             'None'], default='_capture2')
-    parser.add_argument('--task', type=str, choices=['gesture', 'steps', 'phases'], default='gesture',
+    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
-                                "'gesture' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
+                                "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=80,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
@@ -89,9 +89,9 @@ elif current_dataset=='MultiBypass140':
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
                                                             '_capture1', '_capture2' # relevant for JIGSAWS
                                                             ''], default='')
-    parser.add_argument('--task', type=str, choices=['gesture', 'steps', 'phases'], default='phases',
+    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='phases',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
-                                "'gesture' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
+                                "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=30,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
@@ -106,9 +106,9 @@ elif current_dataset=='SAR_RARP50':
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
                                                             '_capture1', '_capture2' # relevant for JIGSAWS
                                                             'None'], default='None')
-    parser.add_argument('--task', type=str, choices=['gesture', 'steps', 'phases'], default='gesture',
+    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
-                                "'gesture' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
+                                "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
     parser.add_argument('--val_sampling_step', type=int, default=60,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
