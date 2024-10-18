@@ -297,6 +297,12 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
             avg_precision.append(np.mean(avg_precision_[(avg_precision_) != np.array(None)]))
             avg_recall.append(np.mean(avg_recall_[(avg_recall_) != np.array(None)]))
             avg_f1.append(np.mean(avg_f1_[(avg_f1_) != np.array(None)]))
+            
+            gesture_ids_ = gesture_ids.copy() + ["mean"]
+            df = pd.DataFrame(list(zip(gesture_ids_, avg_precision, avg_recall, avg_f1)),
+                              columns=['gesture_ids', 'avg_precision', 'avg_recall', 'avg_f1'])
+            log(df, output_folder)
+            
             edit = edit_score(P, Y)
             f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
             f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
@@ -311,15 +317,25 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
             overall_f1_10.append(f1_10)
             overall_f1_25.append(f1_25)
             overall_f1_50.append(f1_50)
-
-        gesture_ids_ = gesture_ids.copy() + ["mean"]
-        all_precisions = np.array(all_precisions).mean(0)
-        all_recalls =  np.array(all_recalls).mean(0)
-        all_f1s = np.array(all_f1s).mean(0)
-
-        df = pd.DataFrame(list(zip(gesture_ids_, all_precisions, all_recalls, all_f1s)),
-                          columns=['gesture_ids', 'precision', 'recall', 'f1'])
-        log(df, output_folder)
+        # FIXME 16.10.2024 there's a problem with the None values in the lists
+        # gesture_ids_ = gesture_ids.copy() + ["mean"]
+        # for col in range(len(gesture_ids_)):
+        #     for row in range(len(all_precisions[row])):
+        #         if all_precisions[row][col] is None:
+        #             continue
+        #         else:
+        #             all_precisions[i]   = np.array(all_precisions[:][i]).mean()
+        #             all_recalls[i]      = np.array(all_recalls[:][i]).mean()
+        #             all_f1s[i]          = np.array(all_f1s[:][i]).mean()
+        #         all_precisions[i]   = None
+        #         all_recalls[i]      = None
+        #         all_f1s[i]          = None
+        # all_precisions = np.array(all_precisions).mean(0)
+        # all_recalls =  np.array(all_recalls).mean(0)
+        # all_f1s = np.array(all_f1s).mean(0)
+        # df = pd.DataFrame(list(zip(gesture_ids_, all_precisions, all_recalls, all_f1s)),
+        #                   columns=['gesture_ids', 'precision', 'recall', 'f1'])
+        # log(df, output_folder)
 
         log("Overall:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}".format(
             np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit),
