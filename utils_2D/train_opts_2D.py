@@ -9,7 +9,7 @@ current_dataset = 'MultiBypass140' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBy
 current_server  = 'so1' # 'DGX' , 'so-srv1' , 'so1'
 
 
-parser = argparse.ArgumentParser(description="Train model for video-based surgical gesture recognition.")
+parser = argparse.ArgumentParser(description="Train model for video-based surgical gestures recognition.")
 parser.register('type', 'bool', str2bool)
 # ----------------------
 # Experiment
@@ -53,8 +53,8 @@ if current_dataset=='VTS':
     # Added - till here
     parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS
-                                                            '_capture1', '_capture2' # relevant for JIGSAWS
-                                                            'None'], default='_side')
+                                                            '_capture1', '_capture2', # relevant for JIGSAWS
+                                                            ''], default='_side')
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
@@ -70,8 +70,8 @@ elif current_dataset=='JIGSAWS':
     # Added - till here
     parser.add_argument('--image_tmpl', default='img_{:05d}.jpg')
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
-                                                            '_capture1', '_capture2' # relevant for JIGSAWS
-                                                            'None'], default='_capture2')
+                                                            '_capture1', '_capture2', # relevant for JIGSAWS
+                                                            ''], default='_capture2')
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
@@ -87,7 +87,7 @@ elif current_dataset=='MultiBypass140':
     # Added - till here
     parser.add_argument('--image_tmpl', default='{}_{:08d}.jpg') # 1st arg is dir name, 2nd arg is frame number
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
-                                                            '_capture1', '_capture2' # relevant for JIGSAWS
+                                                            '_capture1', '_capture2', # relevant for JIGSAWS
                                                             ''], default='')
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='phases',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
@@ -104,8 +104,8 @@ elif current_dataset=='SAR_RARP50':
     # Added - till here
     parser.add_argument('--image_tmpl', default='{:09d}.png')
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
-                                                            '_capture1', '_capture2' # relevant for JIGSAWS
-                                                            'None'], default='None')
+                                                            '_capture1', '_capture2', # relevant for JIGSAWS
+                                                            ''], default='')
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")

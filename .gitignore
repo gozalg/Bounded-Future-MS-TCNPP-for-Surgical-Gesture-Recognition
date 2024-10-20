@@ -29,6 +29,7 @@ data/SAR_RARP50/README.md
 data/SAR_RARP50/frames
 data/MultiBypass140/frames
 # DGX
+*.log
 *.sqsh
 tasks/
 *task.sh
