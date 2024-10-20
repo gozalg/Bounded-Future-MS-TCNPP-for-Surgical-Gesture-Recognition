@@ -12,6 +12,7 @@ TASK=gestures
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
 TASKS_PATH=${BASE_PATH}/tasks_2D
 DATA_PATH=${BASE_PATH}/data
+# SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
 SPLIT=0
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then
@@ -62,6 +63,22 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
     exit
+fi
+# Check if SPLIT is a non-negative integer and belongs to the correct range
+if [[ ${SPLIT} -lt 0 ]]; then
+    echo "Invalid argument (SPLIT): SPLIT must be a non-negative integer.\n"
+    exit
+fi
+if [[ "${DATASET}" == "JIGSAWS" ]]; then
+    if [[ ${SPLIT} -gt 7 ]]; then
+        echo "Invalid argument (SPLIT): # SPLIT choices: [0, 1, 2, 3, 4, 5, 6, 7] for JIGSAWS\n"
+        exit
+    fi
+else
+    if [[ ${SPLIT} -gt 4 ]]; then
+        echo "Invalid argument (SPLIT): # SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50\n"
+        exit
+    fi
 fi
 #-------------------------------------------------
 SMP_PER_CLASS=400
