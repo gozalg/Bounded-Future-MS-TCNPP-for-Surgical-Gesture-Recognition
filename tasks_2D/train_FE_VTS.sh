@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --gpus=1
 #SBATCH -c 64
-#SBATCH --mem=160g
+#SBATCH --mem=200g
 #SBATCH --exclude=n305,n312
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=gabriel.gozal@gmail.com
@@ -10,8 +10,8 @@ DATASET=VTS
 # TASK choices: [steps, phases, gestures]
 TASK=gestures
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
-TASKS_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/tasks_2D
-DATA_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT/data
+TASKS_PATH=${BASE_PATH}/tasks_2D
+DATA_PATH=${BASE_PATH}/data
 SPLIT=0
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then

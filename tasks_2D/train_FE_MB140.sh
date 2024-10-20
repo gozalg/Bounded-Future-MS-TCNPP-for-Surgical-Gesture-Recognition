@@ -10,7 +10,8 @@ DATASET=MultiBypass140
 # TASK choices: [steps, phases, gestures, Sutruring]
 TASK=phases
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
-TASKS_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/tasks
+TASKS_PATH=${BASE_PATH}/tasks_2D
+DATA_PATH=${BASE_PATH}/data
 SPLIT=0
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then
