@@ -1,17 +1,22 @@
+#----------------- Python Libraries Imports -----------------#
+import os
+import math
+import random
+import re
+from numpy.random import randint
+
+# Third-party imports
+import cv2
+import numpy as np
 import torch
 import torch.utils.data as data
 import torchvision
-from utils.transforms import Stack, ToTorchFormatTensor
-
 from PIL import Image
-import os
-import numpy as np
-from numpy.random import randint
-import random
-import math
-import cv2
 from skimage.util import random_noise
 
+#------------------ Bounded Future Imports ------------------#
+from utils.transforms import Stack, ToTorchFormatTensor
+#------------------------------------------------------------#
 
 class Gesture2dTrainSet(data.Dataset):
     def __init__(self,
@@ -63,8 +68,9 @@ class Gesture2dTrainSet(data.Dataset):
             _last_rgb_frame =0
             for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
                 filename = os.fsdecode(file)
-                if int(filename[4:9]) > _last_rgb_frame: # TODO change to regex
-                    _last_rgb_frame = int(filename[4:9])
+                cur_frame_num = extract_frame_number(filename, self.image_tmpl)
+                if cur_frame_num> _last_rgb_frame:
+                    _last_rgb_frame = cur_frame_num
 
             if len(gestures) >= _last_rgb_frame:
                 gestures =gestures[:_last_rgb_frame]
@@ -154,7 +160,28 @@ class Gesture2dTrainSet(data.Dataset):
         return self.epoch_size
 
 
-
+def extract_frame_number(filename, template):
+    # Define the regex patterns for each template
+    patterns = {
+        'img_{:05d}.jpg': r'img_(\d{5}).jpg',
+        '{}_{:08d}.jpg': r'.*_(\d{8}).jpg',
+        '{:09d}.png': r'(\d{9}).png'
+    }
+    
+    # Get the appropriate pattern based on the template
+    if template not in patterns:
+        raise ValueError("Unknown template provided.")
+    
+    pattern = patterns[template]
+    
+    # Search for the pattern in the filename
+    match = re.search(pattern, filename)
+    
+    if match:
+        frame_number = int(match.group(1))
+        return frame_number
+    else:
+        raise ValueError("No frame number found in the filename.")
 
 
 def rotate_snippet(snippet,max_angle):
@@ -236,8 +263,9 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         _last_rgb_num = 0
         for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
             filename = os.fsdecode(file)
-            if int(filename[4:9]) > _last_rgb_num:
-                _last_rgb_num = int(filename[4:9])
+            cur_frame_num = extract_frame_number(filename, self.image_tmpl)
+            if cur_frame_num > _last_rgb_num:
+                _last_rgb_num = cur_frame_num
 
         _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
                                        'img_{:05d}.jpg'.format(_last_rgb_num))

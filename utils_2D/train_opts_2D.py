@@ -63,7 +63,6 @@ if current_dataset=='VTS':
                          "resolution (by taking every <video_sampling_step>th frame).")
 #---------------------- JIGSAWS ----------------------
 elif current_dataset=='JIGSAWS':
-    raise NotImplementedError
     # Added - from here
     parser.add_argument('--num_classes', type=int, default=10, 
                         help="Number of classes.")

@@ -704,8 +704,12 @@ def main(split =3,upload =False,save_features=False):
 if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     if args.split_num is not None:
-        main(split=args.split_num,upload=args.wandb,save_features=True)
+        main(split=args.split_num, 
+             upload=args.wandb, 
+             save_features=True)
     else:
         for split in range(num_of_splits):
-            main(split=split,upload=args.wandb,save_features=True)
+            main(split=split,
+                 upload=args.wandb,
+                 save_features=True)
 

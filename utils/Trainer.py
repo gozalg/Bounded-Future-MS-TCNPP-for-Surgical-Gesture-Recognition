@@ -210,8 +210,8 @@ class Trainer:
                                  "train acc left": 100.0 * (float(correct2) / total2),
                                  "train acc right": 100.0 * (float(correct3) / total3)}
             else:
-                print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d]: train loss = %f,   train acc = %f" % \
-                      (epoch + 1, epoch_loss / len(batch_gen.list_of_train_examples), 100.0 * (float(correct1) / total1)))
+                print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d\%d]: train loss = %f,   train acc = %f" % \
+                      (epoch + 1, num_epochs, epoch_loss / len(batch_gen.list_of_train_examples), 100.0 * (float(correct1) / total1)))
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
                                  "train acc": 100.0 * (float(correct1) / total1)}
 
@@ -221,7 +221,7 @@ class Trainer:
             train_results_list.append(train_results)
 
             if (epoch+1) % eval_rate == 0:
-                print(colored("epoch: " + str(epoch + 1) + " model evaluation", 'red', attrs=['bold']))
+                print(colored("epoch: " + str(epoch + 1) + "\\" + str(num_epochs) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
                 eval_results = self.evaluate(eval_dict, batch_gen, args)
                 results.update(eval_results)
