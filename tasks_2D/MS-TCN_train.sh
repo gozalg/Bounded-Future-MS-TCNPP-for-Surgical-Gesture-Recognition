@@ -95,7 +95,6 @@ if [ ${SRV} == "DGX" ]; then
             -e ${TASKS_PATH}/logs/MS-TCN/${script_name}_%j.log \
             python3 ${BASE_PATH}/train_experiment.py \
                     --dataset ${DATASET} \
-                    --eval_scheme ${EVAL_SCHEME} \
                     --task ${TASK} \
                     --feature_extractor ${FEATURE_EXTRRACTOR} \
                     --network MS-TCN2 \
@@ -117,6 +116,7 @@ if [ ${SRV} == "DGX" ]; then
                     --dropout_TCN 0.5 \
                     --project ${script_name} \
                     --upload True
+                    # --eval_scheme ${EVAL_SCHEME} \
                     # --use_gpu_num ${GPUS} \
     echo "Running ${script_name}..."
 else
