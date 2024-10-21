@@ -28,6 +28,11 @@ data/JIGSAWS/frames
 data/SAR_RARP50/README.md
 data/SAR_RARP50/frames
 data/MultiBypass140/frames
+# Not Scheduled to change
+train_opts_2D.py
+utils.py
+utils_2D/train_opts_2D.py
+utils_2D/utils.py
 # DGX
 *.log
 *.sqsh
@@ -36,3 +41,4 @@ tasks/
 slurm*
 *.out
 .vscode
+

@@ -114,7 +114,11 @@ class Gesture2dTrainSet(data.Dataset):
 
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        if "MultiBypass140" in directory:
+            video_id = directory.split('/')[-1]
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(video_id, idx))).convert('RGB')
+        else:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         return [img]
 
 
@@ -303,7 +307,11 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         self.image_data[video_id] = images
 
     def _load_image(self, directory, idx):
-        img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
+        if "MultiBypass140" in directory:
+            video_id = directory.split('/')[-1]
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(video_id, idx))).convert('RGB')
+        else:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         return [img]
 
     def __getitem__(self, index):

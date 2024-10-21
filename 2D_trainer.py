@@ -28,6 +28,11 @@ from utils_2D.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
 args = parser.parse_args()
+assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["getures"] or \
+       args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], "Invalid combination of dataset and task"
+if args.dataset == "MultiBypass140":
+    assert args.num_classes == 46                       and args.task in ["steps"] or \
+           args.num_classes == 14                       and args.task in ["phases"], "Invalid num_classes for the task"
 
 gesture_ids = (gestures_VTS if args.dataset == "VTS" else 
                gestures_JIGSAWS if args.dataset == "JIGSAWS" else
@@ -569,7 +574,7 @@ def main(split =3,upload =False,save_features=False):
                                                         collate_fn      = no_none_collate))
 
     # ===== train model =====
-
+    torch.cuda.empty_cache()
     log("Start training...", output_folder)
 
     model = model.to(device_gpu)
@@ -611,11 +616,7 @@ def main(split =3,upload =False,save_features=False):
                     features = output[1]
                     output = output[0]
 
-
-
-
                 loss = criterion(output, target)
-
                 loss = torch.mean(loss)
 
                 loss.backward()
@@ -703,6 +704,7 @@ def main(split =3,upload =False,save_features=False):
 
 if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     if args.split_num is not None:
         main(split=args.split_num, 
              upload=args.wandb, 
