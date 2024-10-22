@@ -86,7 +86,6 @@ python ${BASE_PATH}/2D_trainer.py   \
             --wandb true \
             --eval_freq 1 \
             --image_tmpl ${IMG_TMP} \
-            --video_suffix ${VID_SUFFIX} \
             --dataset ${DATASET} \
             --task ${TASK} \
             --num_classes ${CLASSES_N} \

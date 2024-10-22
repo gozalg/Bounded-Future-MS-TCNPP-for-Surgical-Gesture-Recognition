@@ -79,10 +79,9 @@ elif current_dataset=='JIGSAWS':
                          "resolution (by taking every <video_sampling_step>th frame).")
 #------------------- MultiBypass140 -------------------
 elif current_dataset=='MultiBypass140':
-#     raise NotImplementedError
     # Added - from here
-    parser.add_argument('--num_classes', type=int, default=14, 
-                        help="Number of classes.") # 14 for phases, 46 for steps
+    parser.add_argument('--num_classes', type=int, default=12, 
+                        help="Number of classes.") # 12 for phases, 46 for steps
     # Added - till here
     parser.add_argument('--image_tmpl', default='{}_{:08d}.jpg') # 1st arg is dir name, 2nd arg is frame number
     parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     

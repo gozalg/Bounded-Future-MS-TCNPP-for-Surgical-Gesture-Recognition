@@ -1,4 +1,5 @@
 #----------------- Python Libraries Imports -----------------#
+import itertools
 import os
 import math
 import random
@@ -68,6 +69,9 @@ class Gesture2dTrainSet(data.Dataset):
             _last_rgb_frame =0
             for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
                 filename = os.fsdecode(file)
+                # skip non-image files
+                if not filename.endswith(self.image_tmpl[-4:]):
+                    continue
                 cur_frame_num = extract_frame_number(filename, self.image_tmpl)
                 if cur_frame_num> _last_rgb_frame:
                     _last_rgb_frame = cur_frame_num
@@ -88,8 +92,12 @@ class Gesture2dTrainSet(data.Dataset):
     def pars_ground_truth(self,gt_source):
         contant =[]
         for line in gt_source:
-            info = line.split()
-            line_contant = [info[2]] * (int(info[1])-int(info[0]) +1)
+            if "SAR_RARP50" in self.root_path:
+                info = line.split(',')
+                line_contant = ['G'+info[2]] * (int(info[1])-int(info[0]) +1)
+            else:
+                info = line.split()
+                line_contant = [info[2]] * (int(info[1])-int(info[0]) +1)
             contant = contant + line_contant
         return contant
 
@@ -99,8 +107,15 @@ class Gesture2dTrainSet(data.Dataset):
             self.frames_indces_by_gesture[experiment_name] = {}
             for gesture in self.gesture_ids:
                 self.frames_indces_by_gesture[experiment_name][gesture] =[]
-            for i, gesture in enumerate(self.labels_data[experiment_name]):
-                self.frames_indces_by_gesture[experiment_name][gesture].append(i+1)
+            for i, gesture in enumerate(itertools.islice(self.labels_data[experiment_name], 0, None, self.sampling_factor)):
+                # TODO 21/10/2024 continue here: the i should be i+=sampling_rate
+                if "SAR_RARP50" in self.root_path:
+                    frame = i*self.sampling_factor # starts from 0
+                else:
+                    frame = i*self.sampling_factor + 1
+                if frame >= len(self.labels_data[experiment_name]):
+                    break
+                self.frames_indces_by_gesture[experiment_name][gesture].append(frame)
 
 
     def _preload_images(self, video_id,_last_rgb_frame):
@@ -145,7 +160,7 @@ class Gesture2dTrainSet(data.Dataset):
 
     def get_frame(self, video_id, idx):
         data = list()
-        if idx < 1:
+        if (idx < 0 and "SAR_RARP50" in self.root_path) or (idx < 1 and "SAR_RARP50" not in self.root_path):
             raise ValueError
         mg_dir = os.path.join(self.root_path, video_id + self.video_suffix)
         img=self._load_image(mg_dir,idx)
@@ -257,9 +272,14 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         video_id = video_name
 
         gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
-        gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
+        if "SAR_RARP50" in self.root_path:
+            # [start_frame, end_frame, gesture_id]
+            gestures = [[int(x.strip().split(',')[0]), int(x.strip().split(',')[1]), 'G'+x.strip().split(',')[2]]
                     for x in open(gestures_file)]
-        # [start_frame, end_frame, gesture_id]
+        else:
+            # [start_frame, end_frame, gesture_id]
+            gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
+                    for x in open(gestures_file)]
 
         _initial_labeled_frame = gestures[0][0]
         _final_labaled_frame = gestures[-1][1]
@@ -267,12 +287,14 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         _last_rgb_num = 0
         for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
             filename = os.fsdecode(file)
+            # skip non-image files
+            if not filename.endswith(self.image_tmpl[-4:]):
+                continue
             cur_frame_num = extract_frame_number(filename, self.image_tmpl)
             if cur_frame_num > _last_rgb_num:
                 _last_rgb_num = cur_frame_num
 
-        _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix,
-                                       'img_{:05d}.jpg'.format(_last_rgb_num))
+        # _last_rgb_frame = os.path.join(self.root_path, video_id + self.video_suffix, self.image_tmpl.format(_last_rgb_num))
 
 
         if _final_labaled_frame > _last_rgb_num:

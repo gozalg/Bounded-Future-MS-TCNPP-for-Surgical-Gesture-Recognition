@@ -23,16 +23,19 @@ from utils_2D.dataset import Gesture2dTrainSet, Sequential2DTestGestureDataSet
 from utils_2D.transforms import GroupNormalize, GroupScale, GroupCenterCrop
 from utils_2D.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils_2D.util import AverageMeter
-from utils_2D.util import splits_VTS, gestures_VTS, splits_JIGSAWS, gestures_JIGSAWS, splits_SAR_RARP50, gestures_SAR_RARP50, splits_MultiBypass140, steps_MultiBypass130, phases_MultiBypass130
+from utils_2D.util import splits_VTS, gestures_VTS
+from utils_2D.util import splits_JIGSAWS, gestures_JIGSAWS
+from utils_2D.util import splits_SAR_RARP50, gestures_SAR_RARP50
+from utils_2D.util import splits_MultiBypass140, steps_MultiBypass130, phases_MultiBypass130
 from utils_2D.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
 args = parser.parse_args()
-assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["getures"] or \
-       args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], "Invalid combination of dataset and task"
+assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
+       args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
 if args.dataset == "MultiBypass140":
     assert args.num_classes == 46                       and args.task in ["steps"] or \
-           args.num_classes == 14                       and args.task in ["phases"], "Invalid num_classes for the task"
+           args.num_classes == 12                       and args.task in ["phases"], f"Invalid num_classes({args.num_classes}) for the task({args.task})"
 
 gesture_ids = (gestures_VTS if args.dataset == "VTS" else 
                gestures_JIGSAWS if args.dataset == "JIGSAWS" else
@@ -277,6 +280,7 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
         for video_num, val_loader in enumerate(val_loaders):
             P = np.array([], dtype=np.int64)
             Y = np.array([], dtype=np.int64)
+            # TODO 21.10.2024: continue here, issue with sampling step
             for i, batch in enumerate(val_loader):
                 data, target = batch
                 Y = np.append(Y, target.numpy())
@@ -496,6 +500,7 @@ def main(split =3,upload =False,save_features=False):
         list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_MultiBypass140_data(folds_folder, split)
     elif args.dataset == "SAR_RARP50":
         list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_SAR_RARP50_data(folds_folder, split)
+        args.video_sampling_step = 6 * args.video_sampling_step # SAR_RARP50 dataset has a frame rate of 60 fps and labels are every 10 frames
     else:
         raise NotImplementedError
     normalize = GroupNormalize(model.input_mean, model.input_std)
@@ -592,7 +597,6 @@ def main(split =3,upload =False,save_features=False):
         with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}/{args.epochs}) {"progress"}', total=int(len(train_loader))) as pbar:
 
             # for batch_i, (data, target) in enumerate(train_loader):
-
             train_loader_iter = iter(train_loader)
             while True:
                 try:
@@ -603,7 +607,7 @@ def main(split =3,upload =False,save_features=False):
                 except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
                     print(e)
 
-            # for batch in train_loader:
+                # for batch in train_loader:
                 optimizer.zero_grad()
                 # data, target = batch
                 data = Variable(data.to(device_gpu))
