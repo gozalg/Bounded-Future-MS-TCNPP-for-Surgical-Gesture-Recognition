@@ -369,18 +369,18 @@ def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path
     model.eval()
     with torch.no_grad():
 
-        for video_num, val_loader in enumerate(val_loaders):
+        for video_num, val_loader in enumerate(tqdm(val_loaders, desc="Extracting Features")):
             video_name = val_loader.dataset.video_name
             file_path = os.path.join(features_path,video_name+".npy")
 
-            for i, batch in enumerate(val_loader):
+            for i, batch in enumerate(tqdm(val_loader, desc=f"{video_name}", leave=False)):
                 data, target = batch
                 data = data.to(device_gpu)
                 output = model(data)
                 features = output[1]
                 features = features.detach().cpu().numpy()
                 video_features.append(features)
-            print(len(video_features))
+            # print(len(video_features))
             embedding = np.concatenate(video_features, axis=0).transpose()
             np.save(file_path,embedding)
             video_features =[]
@@ -429,8 +429,7 @@ def main(split =3,upload =False,save_features=False):
     else:
         # output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
-        output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
-                                      str(split))
+        output_folder = os.path.join(args.out, args.dataset, args.task + "_" + args.num_classes + "_" + datetime.datetime.now().strftime("%Y%m%d"), str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
