@@ -95,7 +95,7 @@ elif current_dataset=='MultiBypass140':
                          "resolution (by taking every <video_sampling_step>th frame).")
 #--------------------- SAR_RARP50 ---------------------
 elif current_dataset=='SAR_RARP50':
-    raise NotImplementedError
+    # raise NotImplementedError
     # Added - from here
     parser.add_argument('--num_classes', type=int, default=8, 
                         help="Number of classes.")
@@ -110,6 +110,8 @@ elif current_dataset=='SAR_RARP50':
     parser.add_argument('--val_sampling_step', type=int, default=60,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
+else:
+    raise ValueError(f"Unknown dataset: {current_dataset}")
 #-------------------------------------------------------------
 parser.add_argument('--video_sampling_step', type=int, default=1, # 6
                     help="Describes how the available video data has been downsampled from the original temporal "

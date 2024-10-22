@@ -26,7 +26,7 @@ from utils_2D.util import AverageMeter
 from utils_2D.util import splits_VTS, gestures_VTS
 from utils_2D.util import splits_JIGSAWS, gestures_JIGSAWS
 from utils_2D.util import splits_SAR_RARP50, gestures_SAR_RARP50
-from utils_2D.util import splits_MultiBypass140, steps_MultiBypass130, phases_MultiBypass130
+from utils_2D.util import splits_MultiBypass140, steps_MultiBypass140, phases_MultiBypass140
 from utils_2D.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
@@ -40,8 +40,8 @@ if args.dataset == "MultiBypass140":
 gesture_ids = (gestures_VTS if args.dataset == "VTS" else 
                gestures_JIGSAWS if args.dataset == "JIGSAWS" else
                gestures_SAR_RARP50 if args.dataset == "SAR_RARP50" else 
-               steps_MultiBypass130 if args.dataset == "MultiBypass140" and args.task == 'steps' else
-               phases_MultiBypass130 if args.dataset == "MultiBypass140" and args.task == 'phases' else None)
+               steps_MultiBypass140 if args.dataset == "MultiBypass140" and args.task == 'steps' else
+               phases_MultiBypass140 if args.dataset == "MultiBypass140" and args.task == 'phases' else None)
 folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds'))
 num_of_splits = (5 if args.dataset in ["VTS", "MultiBypass140", "SAR_RARP50"] else
                  8 if args.dataset == "JIGSAWS" else None)
@@ -280,7 +280,6 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
         for video_num, val_loader in enumerate(val_loaders):
             P = np.array([], dtype=np.int64)
             Y = np.array([], dtype=np.int64)
-            # TODO 21.10.2024: continue here, issue with sampling step
             for i, batch in enumerate(val_loader):
                 data, target = batch
                 Y = np.append(Y, target.numpy())
@@ -491,7 +490,6 @@ def main(split =3,upload =False,save_features=False):
         if checkpoint:
             last_epoch = checkpoint['epoch']
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.2, last_epoch=last_epoch)
-    # TODO: add the reader for each dataset, make it global 
     if args.dataset == "VTS":
         list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_VTS_data(folds_folder, split)
     elif args.dataset == "JIGSAWS":

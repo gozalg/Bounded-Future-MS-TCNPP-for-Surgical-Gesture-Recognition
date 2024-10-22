@@ -12,13 +12,13 @@ splits_VTS              = ['fold 0.txt', 'fold 1.txt', 'fold 2.txt', 'fold 3.txt
 gestures_VTS            = [f'G{i}' for i in range(0, 5+1)]
 #------------------------------------- JIGSAWS -------------------------------------
 splits_JIGSAWS          = ['data_B.csv', 'data_C.csv', 'data_D.csv', 'data_E.csv', 'data_F.csv', 'data_G.csv', 'data_H.csv', 'data_I.csv']
-gestures_JIGSAWS        = [f'G{i}' for i in range(1, 11+1)]
+gestures_JIGSAWS        = ['G1', 'G5', 'G8', 'G2', 'G3', 'G6', 'G4', 'G11', 'G9', 'G10']
 #---------------------------------- MultiBypass140 ----------------------------------
 splits_MultiBypass140   = {'train':   ['data_train_0.csv', 'data_train_1.csv', 'data_train_2.csv', 'data_train_3.csv', 'data_train_4.csv'],
                            'val':     ['data_val_0.csv', 'data_val_1.csv', 'data_val_2.csv', 'data_val_3.csv', 'data_val_4.csv'],
                            'test':    ['data_test_0.csv', 'data_test_1.csv', 'data_test_2.csv', 'data_test_3.csv', 'data_test_4.csv']}
-steps_MultiBypass130    = [f'S{i}' for i in range(0, 45+1)]
-phases_MultiBypass130   = [f'P{i}' for i in range(0, 13+1)]
+steps_MultiBypass140    = [f'S{i}' for i in range(0, 45+1)]
+phases_MultiBypass140   = [f'P{i}' for i in range(0, 11+1)]
 #-------------------------------------- RARP50 --------------------------------------
 splits_SAR_RARP50       = ['data_0.csv', 'data_1.csv', 'data_2.csv', 'data_3.csv', 'data_4.csv']
 gestures_SAR_RARP50     = [f'G{i}' for i in range(0, 7+1)]

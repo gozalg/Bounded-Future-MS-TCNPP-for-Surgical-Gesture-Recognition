@@ -108,7 +108,6 @@ class Gesture2dTrainSet(data.Dataset):
             for gesture in self.gesture_ids:
                 self.frames_indces_by_gesture[experiment_name][gesture] =[]
             for i, gesture in enumerate(itertools.islice(self.labels_data[experiment_name], 0, None, self.sampling_factor)):
-                # TODO 21/10/2024 continue here: the i should be i+=sampling_rate
                 if "SAR_RARP50" in self.root_path:
                     frame = i*self.sampling_factor # starts from 0
                 else:
@@ -299,8 +298,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
 
         if _final_labaled_frame > _last_rgb_num:
             _final_labaled_frame = _last_rgb_num
-
-        self.frame_num_data[video_id] = list(range(1,_final_labaled_frame + 1,self.sampling_step))
+        if "SAR_RARP50" in self.root_path:
+            self.frame_num_data[video_id] = list(range(_initial_labeled_frame, _final_labaled_frame,     self.sampling_step))
+        else:        
+            self.frame_num_data[video_id] = list(range(_initial_labeled_frame, _final_labaled_frame + 1, self.sampling_step))
         self._generate_labels_list(video_id,gestures)
         if self.preload:
             self._preload_images(video_id)
