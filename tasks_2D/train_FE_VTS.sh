@@ -29,7 +29,7 @@ elif [ ${DATASET} == "JIGSAWS" ]; then
     FPS=30
     LABEL_HZ=30
     CLASSES_N=10
-    TASK=Suturing
+    TASK=gestures
     SMP_STEP=80
     IMG_TMP=img_{:05d}.jpg
     VID_SUFFIX=_capture2
@@ -98,7 +98,6 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl ${IMG_TMP} \
-                --video_suffix ${VID_SUFFIX} \
                 --dataset ${DATASET} \
                 --task ${TASK} \
                 --num_classes ${CLASSES_N} \

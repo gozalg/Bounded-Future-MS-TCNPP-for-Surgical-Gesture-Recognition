@@ -7,11 +7,12 @@
 #SBATCH --mail-user=gabriel.gozal@gmail.com
 #--------------------- User ----------------------
 DATASET=MultiBypass140
-# TASK choices: [steps, phases, gestures, Sutruring]
-TASK=phases
+# TASK choices: [steps, phases, gestures]
+TASK=steps
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
 TASKS_PATH=${BASE_PATH}/tasks_2D
 DATA_PATH=${BASE_PATH}/data
+# SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
 SPLIT=0
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then
@@ -50,7 +51,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     if [ ${TASK} == "steps" ]; then
         CLASSES_N=46
     elif [ ${TASK} == "phases" ]; then
-        CLASSES_N=14
+        CLASSES_N=12
     else
         echo "Invalid argument (TASK): Choices: [steps, phases]"
         exit
@@ -62,6 +63,22 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
     exit
+fi
+# Check if SPLIT is a non-negative integer and belongs to the correct range
+if [[ ${SPLIT} -lt 0 ]]; then
+    echo "Invalid argument (SPLIT): SPLIT must be a non-negative integer.\n"
+    exit
+fi
+if [[ "${DATASET}" == "JIGSAWS" ]]; then
+    if [[ ${SPLIT} -gt 7 ]]; then
+        echo "Invalid argument (SPLIT): # SPLIT choices: [0, 1, 2, 3, 4, 5, 6, 7] for JIGSAWS\n"
+        exit
+    fi
+else
+    if [[ ${SPLIT} -gt 4 ]]; then
+        echo "Invalid argument (SPLIT): # SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50\n"
+        exit
+    fi
 fi
 #-------------------------------------------------
 SMP_PER_CLASS=400
@@ -81,7 +98,6 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl ${IMG_TMP} \
-                --video_suffix ${VID_SUFFIX} \
                 --dataset ${DATASET} \
                 --task ${TASK} \
                 --num_classes ${CLASSES_N} \

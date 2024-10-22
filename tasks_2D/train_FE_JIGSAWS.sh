@@ -12,6 +12,7 @@ TASK=gestures
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
 TASKS_PATH=${BASE_PATH}/tasks_2D
 DATA_PATH=${BASE_PATH}/data
+# SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
 SPLIT=0
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then
@@ -97,7 +98,6 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl ${IMG_TMP} \
-                --video_suffix ${VID_SUFFIX} \
                 --dataset ${DATASET} \
                 --task ${TASK} \
                 --num_classes ${CLASSES_N} \
