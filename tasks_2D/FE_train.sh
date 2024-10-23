@@ -33,7 +33,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     LABEL_HZ=10
     TASK=gestures
     CLASSES_N=8
-    SMP_STEP=60
+    SMP_STEP=6 # 60
     IMG_TMP={:09d}.png
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}

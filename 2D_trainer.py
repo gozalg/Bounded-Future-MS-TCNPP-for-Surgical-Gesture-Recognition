@@ -45,8 +45,9 @@ gesture_ids = (gestures_VTS if args.dataset == "VTS" else
 folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds'))
 num_of_splits = (5 if args.dataset in ["VTS", "MultiBypass140", "SAR_RARP50"] else
                  8 if args.dataset == "JIGSAWS" else None)
-args.transcriptions_dir = (args.transcriptions_dir if args.dataset != "MultiBypass140" else
-                           os.path.join(args.transcriptions_dir, args.task))
+args.transcriptions_dir = (args.transcriptions_dir if (args.dataset == "VTS" or args.dataset == "JIGSAWS") else
+                           os.path.join(args.transcriptions_dir, args.task) if args.dataset == "MultiBypass140" else
+                           os.path.join(args.transcriptions_dir, "discrete"))
 if args.wandb:
     wandb.login(key=WANDB_API_KEY) 
 #---------------------------------VTS---------------------------------#
@@ -368,11 +369,11 @@ def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path
     model.eval()
     with torch.no_grad():
 
-        for video_num, val_loader in enumerate(tqdm(val_loaders, desc="Extracting Features")):
+        for video_num, val_loader in enumerate(tqdm.tqdm(val_loaders, desc="Extracting Features")):
             video_name = val_loader.dataset.video_name
             file_path = os.path.join(features_path,video_name+".npy")
 
-            for i, batch in enumerate(tqdm(val_loader, desc=f"{video_name}", leave=False)):
+            for i, batch in enumerate(tqdm.tqdm(val_loader, desc=f"{video_name}", leave=False)):
                 data, target = batch
                 data = data.to(device_gpu)
                 output = model(data)

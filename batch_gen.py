@@ -296,7 +296,7 @@ class BatchGenerator(object):
                 line_contant = [info[2]] * (int(info[1])-int(info[0]) + 1) 
             elif self.dataset in ["SAR_RARP50"]:
                 info = line.split(',')
-                line_contant = ['G'+info[2]] * (int(info[1])-int(info[0]) + 1) 
+                line_contant = ['G'+info[1]]
             contant = contant + line_contant # TODO Maybe here I can export ref Labels
         return contant
 
@@ -308,10 +308,10 @@ class BatchGenerator(object):
         batch = self.list_of_train_examples[self.index:self.index + batch_size]
         self.index += batch_size
 
-        batch_input = []
-        batch_target_gestures = []
-        batch_target_left = []
-        batch_target_right = []
+        batch_input             = []
+        batch_target_gestures   = []
+        batch_target_left       = []
+        batch_target_right      = []
 
         for seq in batch:
             # print(seq)
@@ -336,7 +336,10 @@ class BatchGenerator(object):
 
             if self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                 if self.task == "gestures":
-                    file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
+                    if self.dataset == "SAR_RARP50":
+                        file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '_discrete.txt'), 'r')
+                    else:
+                        file_ptr = open(os.path.join(self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
                 else:
                     file_ptr = open(os.path.join(self.gt_path_gestures, self.task, seq.split('.')[0] + '.txt'), 'r')
                 gt_source = file_ptr.read().split('\n')[:-1]
@@ -349,6 +352,7 @@ class BatchGenerator(object):
                 batch_target_gestures.append(classes[::self.sample_rate])
 
             elif self.task == "tools":
+                raise NotImplementedError
                 file_ptr_right = open(os.path.join(
                     self.gt_path_tools_right, seq.split('.')[0] + '.txt'), 'r')
                 gt_source_right = file_ptr_right.read().split('\n')[:-1]
@@ -374,6 +378,7 @@ class BatchGenerator(object):
                 batch_target_left.append(classes_left[::self.sample_rate])
 
             elif self.task == "multi-taks":
+                raise NotImplementedError
                 file_ptr = open(os.path.join(
                     self.gt_path_gestures, seq.split('.')[0] + '.txt'), 'r')
                 gt_source = file_ptr.read().split('\n')[:-1]
@@ -528,6 +533,7 @@ class BatchGenerator(object):
                 batch_target.append(classes[::self.sample_rate])
 
             elif self.task == "tools":
+                raise NotImplementedError
                 file_ptr_right = open(
                     self.gt_path_tools_right + seq.split('.')[0] + '.txt', 'r')
                 gt_source_right = file_ptr_right.read().split('\n')[:-1]

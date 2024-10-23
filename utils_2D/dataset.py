@@ -59,8 +59,10 @@ class Gesture2dTrainSet(data.Dataset):
             videos = [videos[0]]
         for video in videos:
             video_id = video[:-4]
-
-            file_ptr = open(os.path.join(self.transcriptions_dir, video.split('.')[0] + '.txt'), 'r')
+            if "SAR_RARP50" in self.root_path:
+                file_ptr = open(os.path.join(self.transcriptions_dir, video.split('.')[0] + '_discrete.txt'), 'r')
+            else:
+                file_ptr = open(os.path.join(self.transcriptions_dir, video.split('.')[0] + '.txt'), 'r')
             gt_source = file_ptr.read().split('\n')[:-1]
             gestures  = self.pars_ground_truth(gt_source)
 
@@ -76,13 +78,13 @@ class Gesture2dTrainSet(data.Dataset):
                 if cur_frame_num> _last_rgb_frame:
                     _last_rgb_frame = cur_frame_num
 
-            if len(gestures) >= _last_rgb_frame:
-                gestures =gestures[:_last_rgb_frame]
+            if len(gestures) >= _last_rgb_frame//self.sampling_factor:
+                gestures =gestures[:_last_rgb_frame//self.sampling_factor]
             else:
-                padding_elements = [gestures[-1]] * (_last_rgb_frame - len(gestures))
+                padding_elements = [gestures[-1]] * (_last_rgb_frame//self.sampling_factor - len(gestures))
                 gestures = gestures + padding_elements
 
-            assert (len(gestures) == _last_rgb_frame)
+            assert (len(gestures) == _last_rgb_frame//self.sampling_factor)
 
 
             self.labels_data[video_id] = gestures
@@ -94,7 +96,7 @@ class Gesture2dTrainSet(data.Dataset):
         for line in gt_source:
             if "SAR_RARP50" in self.root_path:
                 info = line.split(',')
-                line_contant = ['G'+info[2]] * (int(info[1])-int(info[0]) +1)
+                line_contant = ['G'+info[1]]
             else:
                 info = line.split()
                 line_contant = [info[2]] * (int(info[1])-int(info[0]) +1)
@@ -107,13 +109,13 @@ class Gesture2dTrainSet(data.Dataset):
             self.frames_indces_by_gesture[experiment_name] = {}
             for gesture in self.gesture_ids:
                 self.frames_indces_by_gesture[experiment_name][gesture] =[]
-            for i, gesture in enumerate(itertools.islice(self.labels_data[experiment_name], 0, None, self.sampling_factor)):
+            for i, gesture in enumerate(self.labels_data[experiment_name]):
                 if "SAR_RARP50" in self.root_path:
                     frame = i*self.sampling_factor # starts from 0
                 else:
                     frame = i*self.sampling_factor + 1
-                if frame >= len(self.labels_data[experiment_name]):
-                    break
+                # if frame >= len(self.labels_data[experiment_name]):
+                #     break
                 self.frames_indces_by_gesture[experiment_name][gesture].append(frame)
 
 
@@ -270,18 +272,19 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         # depands only on csv files of splits directory
         video_id = video_name
 
-        gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
         if "SAR_RARP50" in self.root_path:
-            # [start_frame, end_frame, gesture_id]
-            gestures = [[int(x.strip().split(',')[0]), int(x.strip().split(',')[1]), 'G'+x.strip().split(',')[2]]
+            gestures_file = os.path.join(self.transcriptions_dir, video_id + "_discrete.txt")
+            # [frame_num, gesture_id]
+            gestures = [[int(x.strip().split(',')[0]), 'G'+x.strip().split(',')[1]]
                     for x in open(gestures_file)]
         else:
+            gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
             # [start_frame, end_frame, gesture_id]
             gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
                     for x in open(gestures_file)]
 
         _initial_labeled_frame = gestures[0][0]
-        _final_labaled_frame = gestures[-1][1]
+        _final_labaled_frame = gestures[-1][1] if "SAR_RARP50" not in self.root_path else gestures[-1][0]
 
         _last_rgb_num = 0
         for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
@@ -314,9 +317,14 @@ class Sequential2DTestGestureDataSet(data.Dataset):
 
         for frame_num in self.frame_num_data[self.video_name]:
             for gesture in gestures:
-                if frame_num >= gesture[0] and frame_num <= gesture[1]:
-                    labels_list.append(self.gesture_ids.index(gesture[2]))
-                    break
+                if "SAR_RARP50" in self.root_path:
+                    if frame_num == gesture[0]:
+                        labels_list.append(self.gesture_ids.index(gesture[1]))
+                        break
+                else:
+                    if frame_num >= gesture[0] and frame_num <= gesture[1]:
+                        labels_list.append(self.gesture_ids.index(gesture[2]))
+                        break
         self.labels_data[video_id] = labels_list
 
 

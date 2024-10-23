@@ -68,13 +68,13 @@ class Trainer:
 
 
     def train(self, save_dir, sum_dir, split_num, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
-        best_valid_results =None
-        Max_F1_50 = 0
-        number_of_seqs = len(batch_gen.list_of_train_examples)
-        number_of_batches = math.ceil(number_of_seqs / batch_size)
+        best_valid_results  = None
+        Max_F1_50           = 0
+        number_of_seqs      = len(batch_gen.list_of_train_examples)
+        number_of_batches   = math.ceil(number_of_seqs / batch_size)
 
-        eval_results_list = []
-        train_results_list = []
+        eval_results_list   = []
+        train_results_list  = []
         print(args.dataset + " " + args.group + " " + args.dataset + " dataset " + "split: " + args.split)
 
         if args.upload is True:

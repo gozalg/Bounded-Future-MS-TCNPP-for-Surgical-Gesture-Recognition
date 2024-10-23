@@ -18,11 +18,13 @@ from batch_gen import BatchGenerator
 from utils.Trainer import Trainer
 #------------------------------------------------------------#
 
+#==================================================================================================#
+#------------------------------------------- Args -------------------------------------------------#
 date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='VTS', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
+parser.add_argument('--dataset', type=str, default='SAR_RARP50', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
                     help="Name of the dataset to use.")
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
@@ -68,6 +70,7 @@ DEBUG = args.DEBUG
 if DEBUG:
     args.upload = False
 
+#------------------------------------------- Init -------------------------------------------------#
 
 print(args)
 seed = int(time.time())  # setting seed for deterministic output
@@ -76,7 +79,7 @@ torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 torch.backends.cudnn.deterministic = True
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu_num  # number of GPUs
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Running on: {device}")
@@ -102,20 +105,20 @@ else:
     raise NotImplementedError()
 
 # the args for the model
-loss_lambda = args.loss_lambda
-loss_tau = args.loss_tau
-num_epochs = args.num_epochs
-eval_rate = args.eval_rate
-features_dim = args.features_dim
-lr = args.lr
-RR_not_BF_mode = True if args.RR_or_BF_mode == "RR" else False
-num_layers_PG = args.num_layers_PG
-num_layers_R = args.num_layers_R
-num_f_maps = args.num_f_maps
-experiment_name = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-                  args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max)
-args.group = experiment_name
-hyper_parameter_tuning = args.hyper_parameter_tuning
+loss_lambda             = args.loss_lambda
+loss_tau                = args.loss_tau
+num_epochs              = args.num_epochs
+eval_rate               = args.eval_rate
+features_dim            = args.features_dim
+lr                      = args.lr
+RR_not_BF_mode          = True if args.RR_or_BF_mode == "RR" else False
+num_layers_PG           = args.num_layers_PG
+num_layers_R            = args.num_layers_R
+num_f_maps              = args.num_f_maps
+experiment_name         = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
+                          args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max)
+args.group              = experiment_name
+hyper_parameter_tuning  = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
 
 
@@ -128,20 +131,26 @@ if not DEBUG:
         os.makedirs(summaries_dir)
 
 # create empty dataframes
-full_eval_results = pd.DataFrame()
-full_train_results = pd.DataFrame()
-full_test_results = pd.DataFrame()
+full_eval_results   = pd.DataFrame()
+full_train_results  = pd.DataFrame()
+full_test_results   = pd.DataFrame()
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 # models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme, args.task)
 models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.task)
+folds_dir = os.path.join(data_dir, args.dataset, "folds")
+#------------------------------------------- Main -------------------------------------------------#
 for split_num in list_of_splits:
-    # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.feature_extractor, args.eval_scheme, args.task)
+    #-------------------- Set up the data paths --------------------#
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", args.dataset, "features", args.task)
-    print("split number: " + str(split_num))
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.task) # TODO: remove
+
     args.split = str(split_num)
+    print("split number: " + str(split_num))
 
     gt_path_gestures = os.path.join(data_dir, args.dataset, "transcriptions")
+    if args.dataset == "SAR_RARP50":
+        gt_path_gestures = os.path.join(gt_path_gestures, "discrete")
     if args.dataset == "MultiBypass140":
         mapping_gestures_file = os.path.join(data_dir, args.dataset, f"mapping_{args.task}.txt")
     else:
@@ -157,12 +166,11 @@ for split_num in list_of_splits:
     # else:
     #     raise NotImplementedError()
     features_path = os.path.join(features_path, "fold "+args.split)
-    folds_dir = os.path.join(data_dir, args.dataset, "folds")
 
     if not DEBUG:
         if not os.path.exists(model_out_dir):
             os.makedirs(model_out_dir)
-
+    #-------------------- Get the gestures and tools mapping --------------------#
     file_ptr = open(mapping_gestures_file, 'r')
     actions = file_ptr.read().split('\n')[:-1]
     file_ptr.close()
@@ -191,7 +199,7 @@ for split_num in list_of_splits:
         raise NotImplementedError()
         num_classes_list = [num_classes_gestures,
                             num_classes_tools, num_classes_tools]
-
+    #-------------------- Initialize the Trainer --------------------#
     # initializes the Trainer - does not train
     trainer = Trainer(num_layers_PG, 
                       num_layers_R, 
@@ -232,14 +240,15 @@ for split_num in list_of_splits:
                                sample_rate      = sample_rate, 
                                normalization    = args.normalization, 
                                task             = args.task)
-    eval_dict = {"features_path": features_path, 
+    eval_dict = {"features_path"        : features_path, 
                  "actions_dict_gestures": actions_dict_gestures, 
-                 "actions_dict_tools": actions_dict_tools, 
-                 "device": device, 
-                 "sample_rate": sample_rate, 
-                 "eval_rate": eval_rate,
-                 "gt_path_gestures": gt_path_gestures, 
-                 "task": args.task}
+                 "actions_dict_tools"   : actions_dict_tools, 
+                 "device"               : device, 
+                 "sample_rate"          : sample_rate, 
+                 "eval_rate"            : eval_rate,
+                 "gt_path_gestures"     : gt_path_gestures, 
+                 "task"                 : args.task}
+    #-------------------- Train the model --------------------#
     best_valid_results, eval_results, train_results, test_results = trainer.train(model_out_dir, 
                                                                                   summaries_dir,
                                                                                   split_num,
@@ -249,7 +258,7 @@ for split_num in list_of_splits:
                                                                                   learning_rate = lr, 
                                                                                   eval_dict     = eval_dict, 
                                                                                   args          = args)
-
+    #-------------------- Save the results --------------------#
     if not DEBUG:
         eval_results = pd.DataFrame(eval_results)
         train_results = pd.DataFrame(train_results)

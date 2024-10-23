@@ -108,7 +108,7 @@ def pars_ground_truth(args, gt_source):
             line_contant = [info[2]] * (int(info[1]) - int(info[0]) + 1)
         elif args.dataset == "SAR_RARP50":
             info = line.split(',')
-            line_contant = ['G'+info[2]] * (int(info[1]) - int(info[0]) + 1)
+            line_contant = ['G'+info[1]]
         contant = contant + line_contant
     return contant
 
@@ -145,13 +145,16 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
         if args.dataset == "MultiBypass140":
             file_ptr = open(os.path.join(ground_truth_path, args.task, seq.split('.')[0] + '.txt'), 'r')
         else:
-            file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
+            if args.dataset == "SAR_RARP50":
+                file_ptr = open(os.path.join(ground_truth_path, seq.split('.')[0] + '_discrete.txt'), 'r')
+            else:
+                file_ptr = open(os.path.join(ground_truth_path,seq.split('.')[0] + '.txt'), 'r')
         gt_source = file_ptr.read().split('\n')[:-1]
         gt_content = pars_ground_truth(args, gt_source)
         # keep the gt_content for further analysis
         gt_list.append(gt_content)
         # gt_content = every (video_freq / label_freq) index from the gt_content to fairly compare with the recognition
-        gt_content = gt_content[::int(video_freq / label_freq)]
+        # gt_content = gt_content[::int(video_freq / label_freq)] # 23/10/2024 commented out
 
         recog_content = recognition_list[i]
         number_of_frames_to_compare = min(len(gt_content),len(recog_content))
