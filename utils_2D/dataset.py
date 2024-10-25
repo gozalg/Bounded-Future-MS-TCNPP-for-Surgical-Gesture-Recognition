@@ -241,31 +241,40 @@ def Add_Gaussian_Noise_to_snippet(snippet):
 
 class Sequential2DTestGestureDataSet(data.Dataset):
 
-    def __init__(self, root_path, video_id, transcriptions_dir, gesture_ids,
-                 snippet_length=16,sampling_step = 6,
-                 image_tmpl='img_{:05d}.jpg', video_suffix="_side",
-                 return_3D_tensor=True, return_dense_labels=True,
-                 transform=None, normalize=None,preload= False):
+    def __init__(self, 
+                 root_path, 
+                 video_id, 
+                 transcriptions_dir, 
+                 gesture_ids,
+                 snippet_length     = 16,
+                 sampling_step      = 6,
+                 image_tmpl         = 'img_{:05d}.jpg', 
+                 video_suffix       = "_side",
+                 return_3D_tensor   = True, 
+                 return_dense_labels= True,
+                 transform          = None, 
+                 normalize          = None,
+                 preload            = False):
 
-        self.root_path = root_path
-        self.video_name = video_id[:-4]
-        self.video_id = video_id[:-4]
-        self.transcriptions_dir = transcriptions_dir
-        self.gesture_ids = gesture_ids
-        self.snippet_length = snippet_length
-        self.sampling_step = sampling_step
-        self.image_tmpl = image_tmpl
-        self.video_suffix = video_suffix
-        self.return_3D_tensor = return_3D_tensor
-        self.return_dense_labels = return_dense_labels #
-        self.transform = transform
-        self.normalize = normalize
-        self.preload =preload
+        self.root_path              = root_path
+        self.video_name             = video_id[:-4]
+        self.video_id               = video_id[:-4]
+        self.transcriptions_dir     = transcriptions_dir
+        self.gesture_ids            = gesture_ids
+        self.snippet_length         = snippet_length
+        self.sampling_step          = sampling_step
+        self.image_tmpl             = image_tmpl
+        self.video_suffix           = video_suffix
+        self.return_3D_tensor       = return_3D_tensor
+        self.return_dense_labels    = return_dense_labels #
+        self.transform              = transform
+        self.normalize              = normalize
+        self.preload                = preload
 
         self.gesture_sequence_per_video = {}
-        self.image_data = {}
-        self.frame_num_data = {}
-        self.labels_data = {}
+        self.image_data                 = {}
+        self.frame_num_data             = {}
+        self.labels_data                = {}
         self._parse_list_files(self.video_id)
 
     def _parse_list_files(self, video_name):
@@ -346,22 +355,22 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         return [img]
 
     def __getitem__(self, index):
-        frame_list = [index]
-        target =torch.tensor(self.labels_data[self.video_id][index], dtype=torch.long)
-        data = self.get_snippet(self.video_name,index)
+        frame_list  = [index]
+        target      = torch.tensor(self.labels_data[self.video_id][index], dtype=torch.long)
+        data        = self.get_snippet(self.video_name,index)
 
         return data, target
 
 
     def get_snippet(self, video_id, idx):
-        snippet = list()
-        _idx = max(idx, 0)  # padding if required
+        snippet     = list()
+        _idx        = max(idx, 0)  # padding if required
         if self.preload:
-            img = self.image_data[video_id][_idx]
+            img     = self.image_data[video_id][_idx]
         else:
-            mg_dir = os.path.join(self.root_path, video_id + self.video_suffix)
-            img=self._load_image(mg_dir,self.frame_num_data[self.video_name][idx])
-            img =img[0]
+            mg_dir  = os.path.join(self.root_path, video_id + self.video_suffix)
+            img     = self._load_image(mg_dir,self.frame_num_data[self.video_name][idx])
+            img     = img[0]
 
 
         snippet.append(img)

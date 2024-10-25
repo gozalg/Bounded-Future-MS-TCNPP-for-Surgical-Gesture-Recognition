@@ -362,7 +362,7 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
     model.train()
     return np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit), np.mean(overall_f1_10), np.mean(overall_f1_25), np.mean(overall_f1_50), results_per_vedo
 
-def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path):
+def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_path):
     video_features = []
     all_names = []
 
@@ -371,19 +371,19 @@ def save_fetures(model,val_loaders,list_of_videos_names,device_gpu,features_path
 
         for video_num, val_loader in enumerate(tqdm.tqdm(val_loaders, desc="Extracting Features")):
             video_name = val_loader.dataset.video_name
-            file_path = os.path.join(features_path,video_name+".npy")
+            file_path = os.path.join(features_path, video_name + ".npy")
 
             for i, batch in enumerate(tqdm.tqdm(val_loader, desc=f"{video_name}", leave=False)):
-                data, target = batch
-                data = data.to(device_gpu)
-                output = model(data)
-                features = output[1]
-                features = features.detach().cpu().numpy()
+                data, target    = batch
+                data            = data.to(device_gpu)
+                output          = model(data)
+                features        = output[1]
+                features        = features.detach().cpu().numpy()
                 video_features.append(features)
             # print(len(video_features))
-            embedding = np.concatenate(video_features, axis=0).transpose()
-            np.save(file_path,embedding)
-            video_features =[]
+            embedding           = np.concatenate(video_features, axis=0).transpose()
+            np.save(file_path, embedding)
+            video_features      = []
 
 def main(split =3,upload =False,save_features=False):
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}')
@@ -690,19 +690,22 @@ def main(split =3,upload =False,save_features=False):
         all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
 
         for video in all_videos:
-            data_set = Sequential2DTestGestureDataSet(root_path=args.data_path, video_id=video,
-                                                      transcriptions_dir=args.transcriptions_dir,
-                                                      gesture_ids=gesture_ids,
-                                                      snippet_length=1,
-                                                      sampling_step=1,
-                                                      image_tmpl=args.image_tmpl,
-                                                      video_suffix=args.video_suffix,
-                                                      normalize=normalize,
-                                                      transform=val_augmentation)  ##augmentation are off
-            all_loaders.append(torch.utils.data.DataLoader(data_set, batch_size=1,
-                                                           shuffle=False, num_workers=args.workers))
+            data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
+                                                      video_id              = video,
+                                                      transcriptions_dir    = args.transcriptions_dir,
+                                                      gesture_ids           = gesture_ids,
+                                                      snippet_length        = 1,
+                                                      sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
+                                                      image_tmpl            = args.image_tmpl,
+                                                      video_suffix          = args.video_suffix,
+                                                      normalize             = normalize,
+                                                      transform             = val_augmentation)  ##augmentation are off
+            all_loaders.append(torch.utils.data.DataLoader(data_set, 
+                                                           batch_size       = 1,
+                                                           shuffle          = False, 
+                                                           num_workers      = args.workers))
 
-        save_fetures(model, all_loaders,all_videos, device_gpu,features_path)
+        save_fetures(model, all_loaders, all_videos, device_gpu, features_path)
 
 
 if __name__ == '__main__':

@@ -84,7 +84,7 @@ else
     echo "Invalid RR_or_BF: Choices: [RR, BF]"
     exit
 fi
-script_name=${DATASET}_${TASK}_${SCRIPT_SUFFIX}_w_max-${W_MAX}_Layers-${LAYERS_N}_Rnum-${R_N}
+script_name=${DATASET}_${TASK}_${SCRIPT_SUFFIX}_w_max-${W_MAX}_Layers-${LAYERS_N}_Rnum-${R_N}_${SRV}
 #-------------------------------------------------
 # This script is used traines the MS-TCN model with the features extracted by the Feature Extractor model.
 if [ ${SRV} == "DGX" ]; then
