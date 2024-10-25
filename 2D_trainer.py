@@ -430,7 +430,8 @@ def main(split =3,upload =False,save_features=False):
         # output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
         cur_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-        output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
+        # output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
+        output_folder = os.path.join(args.out, args.dataset, args.task, str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
