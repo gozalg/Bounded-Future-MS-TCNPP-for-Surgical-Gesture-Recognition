@@ -188,7 +188,7 @@ def main(split=1, upload=False, group=None, args=None):
         else:
             if args.dataset in ['JIGSAWS', 'SAR_RARP50', 'MultiBypass140']:
                 output_folder = os.path.join(args.out, 
-                                             args.dataset,
+                                             args.dataset,"TEST",
                                              args.arch,
                                              args.eval_scheme,
                                              args.task, 

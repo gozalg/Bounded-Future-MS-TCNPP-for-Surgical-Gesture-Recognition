@@ -30,6 +30,7 @@ class Trainer:
                  dim, 
                  num_classes_list, 
                  RR_not_BF_mode         = False,
+                 use_dynamic_wmax       = False,
                  w_max                  = 0, 
                  tau                    = 16, 
                  lambd                  = 0.15, 
@@ -40,7 +41,7 @@ class Trainer:
                  hyper_parameter_tuning = False,
                  DEBUG                  = False):
         if network == 'MS-TCN2':
-            self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
+            self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode, use_dynamic_wmax=use_dynamic_wmax)
         elif network == 'MS-TCN2 late':
             raise NotImplementedError
             self.model = MST_TCN2_late(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode)
@@ -54,6 +55,7 @@ class Trainer:
 
         self.w_max = w_max
         self.model.w_max = w_max
+        self.use_dynamic_wmax = use_dynamic_wmax # TODO - dynamic w_max
         self.DEBUG =DEBUG
         self.network = network
         self.device = device
@@ -87,7 +89,29 @@ class Trainer:
         self.model.train()
         self.model.to(self.device)
         eval_rate = eval_dict["eval_rate"]
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        # TODO - dynamic w_max
+        # optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        # Extract all model parameters
+        all_params = list(self.model.named_parameters())
+
+        # Separate parameters for PG, R, and w_max related layers
+        pg_params = [param for name, param in all_params if "PG" in name and "fc_wmax" not in name]
+        r_params = [param for name, param in all_params if "Rs" in name and "refine_wmax" not in name]
+        pg_fc_wmax_params = [param for name, param in all_params if "PG.fc_wmax" in name]
+        r_refine_wmax_params = [param for name, param in all_params if "refine_wmax" in name]
+
+        # Define the optimizer with separated parameter groups
+        optimizer = torch.optim.Adam([
+            {'params': pg_params, 'lr': learning_rate},  # PG layers excluding fc_wmax
+            {'params': r_params, 'lr': learning_rate},  # R layers excluding refine_wmax
+            {'params': pg_fc_wmax_params, 'lr': learning_rate * 0.1},  # Reduced learning rate for w_max prediction in PG
+            {'params': r_refine_wmax_params, 'lr': learning_rate * 0.1}  # Reduced learning rate for refine w_max in R
+        ])
+
+        # TODO dynamic w_max
+        # Initialize an empty DataFrame to store w_max values
+        wmax_log_df = pd.DataFrame(columns=["Epoch", "Average w_max"])
+
         for epoch in range(num_epochs):
             pbar = tqdm.tqdm(total=number_of_batches)
             epoch_loss  = 0
@@ -97,6 +121,9 @@ class Trainer:
             total2      = 0
             correct3    = 0
             total3      = 0
+            # TODO dynamic w_max
+            epoch_avg_dynamic_wmax  = 0
+            loops_per_epoch         = 0
 
             while batch_gen.has_next():
                 if self.task == "multi-taks":
@@ -122,6 +149,7 @@ class Trainer:
 
                 if self.task == "multi-taks":
                     raise NotImplementedError
+                    # Forward pass
                     predictions1, predictions2, predictions3 = self.model(batch_input, lengths)
                     predictions1 = (predictions1 * mask_gesture)
                     predictions2 = (predictions2 * mask_tools)
@@ -130,18 +158,40 @@ class Trainer:
 
                 elif self.task == "tools":
                     raise NotImplementedError
+                    # Forward pass
                     predictions2, predictions3 = self.model(batch_input, lengths)
                     predictions2 = (predictions2 * mask)
                     predictions3 = (predictions3 * mask)
 
                 else:
-                    predictions1 = self.model(batch_input, lengths)
+                    # Forward pass
+                    predictions1, batch_avg_dynamic_wmax = self.model(batch_input, lengths)
                     predictions1 = (predictions1[0] * mask)
+                    # TODO - dynamic w_max
+                    epoch_avg_dynamic_wmax += batch_avg_dynamic_wmax
+                    loops_per_epoch += 1
 
                 loss = 0
                 for p in predictions1:
+                    # Cross-entropy loss
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]), batch_target_gestures.view(-1))
-
+                    
+                    # # TODO - dynamic w_max - # FIXME Continue here
+                    # if self.use_dynamic_wmax:
+                    #     # Add dynamic w_max regularization loss
+                    #     reg_loss    = torch.mean(dynamic_wmax)  # Penalize large w_max values
+                    #     smooth_loss = torch.mean((dynamic_wmax - prv_dynamic_wmax) ** 2)  # Smoothness constraint
+                    #     wmax_loss   = reg_loss + smooth_loss
+                    #     # Add a negative penalty for w_max being too small
+                    #     small_wmax_penalty = torch.mean(torch.relu(5 - dynamic_wmax))  # Encourage w_max to stay above a threshold (e.g., 5)
+                    #     # Combine losses in a way that penalizes small w_max
+                    #     wmax_loss = -1.0 * small_wmax_penalty + self.lambd * smooth_loss
+                    #     # TODO - loss only for w_max?
+                    #     loss += self.lambd * wmax_loss  # Incorporate w_max loss into total loss
+                    #     # update prv_dynamic_wmax
+                    #     prv_dynamic_wmax    = dynamic_wmax
+                    #     prv_dynamic_wmax    = prv_dynamic_wmax.to(self.device)
+                    #     # self.w_max          = prv_dynamic_wmax.to(self.device) # FIXME update teh w_max
                     if self.network not in ["GRU","LSTM"]:
                         loss += self.lambd * torch.mean(torch.clamp(self.mse(func.log_softmax(p[:, :, 1:], dim=1), 
                                                                              func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
@@ -210,10 +260,16 @@ class Trainer:
                                  "train acc left": 100.0 * (float(correct2) / total2),
                                  "train acc right": 100.0 * (float(correct3) / total3)}
             else:
-                print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d\%d]: train loss = %f,   train acc = %f" % \
-                      (epoch + 1, num_epochs, epoch_loss / len(batch_gen.list_of_train_examples), 100.0 * (float(correct1) / total1)))
-                train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
-                                 "train acc": 100.0 * (float(correct1) / total1)}
+                print(colored(dt_string, 'green', attrs=['bold']) + "  " + "[epoch %d\%d]: train loss = %f,   train acc = %f,   avg w_max = %f" % \
+                      (epoch + 1, num_epochs, epoch_loss / len(batch_gen.list_of_train_examples), 100.0 * (float(correct1) / total1), epoch_avg_dynamic_wmax / loops_per_epoch))
+                train_results = {"epoch": epoch, 
+                                 "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
+                                 "train acc": 100.0 * (float(correct1) / total1),
+                                 "Average w_max": epoch_avg_dynamic_wmax / loops_per_epoch}
+                # TODO dynamic w_max
+                # wmax_log_new_row = pd.DataFrame([{"Epoch": epoch+1,
+                #                                   "Average w_max": epoch_avg_dynamic_wmax / loops_per_epoch}])
+                # wmax_log_df = pd.concat([wmax_log_df, wmax_log_new_row], ignore_index=True)
 
             if args.upload:
                 wandb.log(train_results, step=epoch)
@@ -282,6 +338,9 @@ class Trainer:
                     results["pred_list"] = pred_list
                     results["gt_list"] = gt_list
         
+        # TODO dynamic w_max
+        # wmax_log_df.to_csv(f"{sum_dir}/wmax_log.csv", index=False)
+
         ## test HERE!!
         if self.hyper_parameter_tuning:
             return best_valid_results, eval_results_list, train_results_list, []
@@ -386,7 +445,12 @@ class Trainer:
                         predictions1 = predictions1[0].unsqueeze_(0)
                         predictions1 = torch.nn.Softmax(dim=2)(predictions1)
                     else: 
-                        predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))[0]
+                        # TODO dynamic w_max
+                        # predictions1 = self.model(input_x, torch.tensor([features.shape[1]]))[0] 
+                        eval_inference  = self.model(input_x, torch.tensor([features.shape[1]]))
+                        predictions1    = eval_inference[0][0]
+                        eval_dyn_wmax   = eval_inference[1]
+                        
 
                 if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage
@@ -446,6 +510,9 @@ class Trainer:
             #                                      suffix="left",is_test=is_test)
             #     results.update(results2)
             #     results.update(results3)
+
+            # TODO dynamic w_max
+            results["Avergae w_max"] = eval_dyn_wmax
 
             # if is_test:
             results["list_of_seq"] = list_of_vids

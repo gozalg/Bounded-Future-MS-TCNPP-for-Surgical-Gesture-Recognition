@@ -431,7 +431,7 @@ def main(split =3,upload =False,save_features=False):
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
         cur_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         # output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
-        output_folder = os.path.join(args.out, args.dataset, args.task, str(split))
+        output_folder = os.path.join(args.out, args.dataset, f"{args.task}_epochs_{args.epochs}", str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
@@ -678,47 +678,146 @@ def main(split =3,upload =False,save_features=False):
     log("",output_folder)
     log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
     acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
-    full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
+    full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50']) # TODO change to header like in MS-TCN
     full_test_results["epoch"] = best_epoch
     full_test_results["split"] = split
     full_test_results.to_csv(output_folder + "/" + "test_results.csv", index=False)
 
     if save_features is True:
-        log("Start  features saving...", output_folder)
+        extract_features(model, 
+                         list_of_train_examples, 
+                         list_of_valid_examples, 
+                         list_of_test_examples, 
+                         output_folder, 
+                         features_path, 
+                         gesture_ids, 
+                         normalize, 
+                         val_augmentation, 
+                         device_gpu)
 
-    ### extract Features
-        all_loaders =[]
-        all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
+def extract_features(model, 
+                    list_of_train_examples, 
+                    list_of_valid_examples, 
+                    list_of_test_examples, 
+                    output_folder, 
+                    features_path, 
+                    gesture_ids, 
+                    normalize, 
+                    val_augmentation, 
+                    device_gpu):
+    log("Start  features saving...", output_folder)
 
-        for video in all_videos:
-            data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
-                                                      video_id              = video,
-                                                      transcriptions_dir    = args.transcriptions_dir,
-                                                      gesture_ids           = gesture_ids,
-                                                      snippet_length        = 1,
-                                                      sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
-                                                      image_tmpl            = args.image_tmpl,
-                                                      video_suffix          = args.video_suffix,
-                                                      normalize             = normalize,
-                                                      transform             = val_augmentation)  ##augmentation are off
-            all_loaders.append(torch.utils.data.DataLoader(data_set, 
-                                                           batch_size       = 1,
-                                                           shuffle          = False, 
-                                                           num_workers      = args.workers))
+### extract Features
+    all_loaders =[]
+    all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
 
-        save_fetures(model, all_loaders, all_videos, device_gpu, features_path)
+    for video in all_videos:
+        data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
+                                                    video_id              = video,
+                                                    transcriptions_dir    = args.transcriptions_dir,
+                                                    gesture_ids           = gesture_ids,
+                                                    snippet_length        = 1,
+                                                    sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
+                                                    image_tmpl            = args.image_tmpl,
+                                                    video_suffix          = args.video_suffix,
+                                                    normalize             = normalize,
+                                                    transform             = val_augmentation)  ##augmentation are off
+        all_loaders.append(torch.utils.data.DataLoader(data_set, 
+                                                        batch_size       = 1,
+                                                        shuffle          = False, 
+                                                        num_workers      = args.workers))
 
+    save_fetures(model, all_loaders, all_videos, device_gpu, features_path)
+# TODO: Implement the following function
+def extract_features_only_init(split_num):
+    import glob
+    fe_args = {}
+    output_folder = os.path.join(args.out, args.dataset, f"{args.task}_epochs_{args.epochs}", str(split_num))
+    
+    # best model is the last model saved in output_folder
+    best_epoch = os.path.basename(sorted(glob.glob(os.path.join(output_folder, "model_*.pth")))[-1]).split("_")[-1].split(".")[0]
+
+    if args.arch == "EfficientnetV2":
+        model = EfficientnetV2(size="m",num_classes=args.num_classes,pretrained=True)
+    else:
+        model = resnet18(pretrained=True, progress=True, num_classes=args.num_classes)
+
+    if args.dataset == "VTS":
+        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_VTS_data(folds_folder, split_num)
+    elif args.dataset == "JIGSAWS":
+        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_JIGSAWS_data(folds_folder, split_num)
+    elif args.dataset == "MultiBypass140":
+        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_MultiBypass140_data(folds_folder, split_num)
+    elif args.dataset == "SAR_RARP50":
+        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_SAR_RARP50_data(folds_folder, split_num)
+        args.video_sampling_step = 6 * args.video_sampling_step
+    else:
+        raise NotImplementedError
+
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}')
+    if os.path.exists(features_path):
+        print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
+        if input() == "y":
+            import shutil
+            shutil.rmtree(features_path)
+        else:
+            print("Please delete the existing folder before running the code.")
+            return
+    os.makedirs(features_path, exist_ok=False)
+
+    fe_args.model = model.load_state_dict(torch.load(os.path.join(output_folder, "model_" + str(best_epoch) + ".pth")))
+    fe_args.list_of_train_examples = list_of_train_examples
+    fe_args.list_of_valid_examples = list_of_valid_examples
+    fe_args.list_of_test_examples = list_of_test_examples
+    fe_args.output_folder = output_folder
+    fe_args.features_path = features_path
+    fe_args.gesture_ids = gesture_ids
+    fe_args.normalize = GroupNormalize(model.input_mean, model.input_std)
+    fe_args.val_augmentation = torchvision.transforms.Compose([GroupScale(int(256)),
+                                                       GroupCenterCrop(args.input_size)])   ## need to be corrected
+    fe_args.device_gpu = torch.device("cuda")
+    return fe_args
 
 if __name__ == '__main__':
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0" if args.split_num in [2,3,4] else "1"
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    if args.split_num is not None:
-        main(split=args.split_num, 
-             upload=args.wandb, 
-             save_features=True)
-    else:
-        for split in range(num_of_splits):
-            main(split=split,
-                 upload=args.wandb,
-                 save_features=True)
+    
+    # Extract features only
+    if args.extract_features_only:
+        raise NotImplementedError
+        if args.split_num is not None:
+            fe_args = extract_features_only_init(args.split_num)
+            extract_features(fe_args.model,
+                             fe_args.list_of_train_examples,
+                             fe_args.list_of_valid_examples,
+                             fe_args.list_of_test_examples,
+                             fe_args.output_folder,
+                             fe_args.features_path,
+                             fe_args.gesture_ids,
+                             fe_args.normalize,
+                             fe_args.val_augmentation,
+                             fe_args.device_gpu)
+        else:
+            for split in range(num_of_splits):
+                fe_args = extract_features_only_init(split)
+                extract_features(fe_args.model, 
+                                 fe_args.list_of_train_examples, 
+                                 fe_args.list_of_valid_examples, 
+                                 fe_args.list_of_test_examples, 
+                                 fe_args.output_folder, 
+                                 fe_args.features_path, 
+                                 fe_args.gesture_ids, 
+                                 fe_args.normalize, 
+                                 fe_args.val_augmentation, 
+                                 fe_args.device_gpu)
+    else: # full run
+        if args.split_num is not None:
+            main(split=args.split_num, 
+                upload=args.wandb, 
+                save_features=True)
+        else:
+            for split in range(num_of_splits):
+                main(split=split,
+                    upload=args.wandb,
+                    save_features=True)
 

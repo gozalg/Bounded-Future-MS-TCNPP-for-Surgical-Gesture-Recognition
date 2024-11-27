@@ -42,9 +42,10 @@ parser.add_argument('--num_epochs', default=40, type=int) # 40
 parser.add_argument('--eval_rate', default=1, type=int)
 
 # Architecture
+parser.add_argument('--use_dynamic_wmax', default=False, type=bool)
 parser.add_argument('--w_max', default=20, type=int) # Relevant for BF-MS-TCN: 0 for "fully online".
-parser.add_argument('--num_layers_PG', default=10, type=int) # 10
-parser.add_argument('--num_layers_R', default=10, type=int) # 10
+parser.add_argument('--num_layers_PG', default=10, type=int) # 10 (12?)
+parser.add_argument('--num_layers_R', default=10, type=int) # 10 (12?)
 parser.add_argument('--num_f_maps', default=128, type=int)
 
 parser.add_argument('--normalization', choices=['Min-max', 'Standard', 'samplewise_SD', 'None'], default='None', type=str)
@@ -116,7 +117,7 @@ num_layers_PG           = args.num_layers_PG
 num_layers_R            = args.num_layers_R
 num_f_maps              = args.num_f_maps
 experiment_name         = args.group + " task:" + args.task + " splits: " + args.split + " net: " + \
-                          args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max)
+                          args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max) + "use_dynamic_wmax: " + str(args.use_dynamic_wmax) # TODO dynamic w_max
 args.group              = experiment_name
 hyper_parameter_tuning  = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
@@ -208,6 +209,7 @@ for split_num in list_of_splits:
                       features_dim, 
                       num_classes_list,
                       RR_not_BF_mode            = RR_not_BF_mode, 
+                      use_dynamic_wmax          = args.use_dynamic_wmax,
                       w_max                     = args.w_max,
                       tau                       = loss_tau, 
                       lambd                     = loss_lambda,
