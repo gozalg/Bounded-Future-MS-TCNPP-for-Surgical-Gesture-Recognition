@@ -224,6 +224,9 @@ class Trainer:
                 print(colored("epoch: " + str(epoch + 1) + "\\" + str(num_epochs) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
                 eval_results = self.evaluate(eval_dict, batch_gen, args)
+                eval_results.pop("pred_list")
+                eval_results.pop("gt_list")
+                
                 results.update(eval_results)
                 eval_results_list.append(results)
                 if self.task == "gestures":
