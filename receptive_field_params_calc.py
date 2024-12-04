@@ -21,7 +21,7 @@ def calc(NL_PG=10,NL_R=10,N_r=3,W_max=20,is_offline=True):
         total_receptive = PG_rceptive + N_r*(R_receptive - 1)
         total_future = PG_future + N_r * R_future
         # total_receptive1 = total_future*2 +1
-        print(total_future)
+        # print(total_future)
         return total_future, total_receptive
     else:   # BF-MS-TCN
         for i in range(NL_PG):
@@ -36,16 +36,17 @@ def calc(NL_PG=10,NL_R=10,N_r=3,W_max=20,is_offline=True):
             r_dilation.append(min(2**i,W_max))
         R_future = sum(r_dilation)
         total_future = PG_future + (N_r * R_future)
-        print(total_future)
+        # print(total_future)
         return total_future, "not impementet yet"
 
 
+if __name__ == "__main__":
+    BF_future_win, BF_receptive = calc(NL_PG=10,NL_R=10,N_r=3,W_max=2**10,is_offline=False) # BF-MS-TCN
+    RR_future_win, RR_receptive = calc(NL_PG=10,NL_R=10,N_r=3,W_max=10,is_offline=True)     # RR-MS-TCN
 
-BF_future_win,_ = calc(NL_PG=10,NL_R=10,N_r=3,W_max=2**10,is_offline=False) # BF-MS-TCN
-RR_future_win,_ = calc(NL_PG=10,NL_R=10,N_r=3,W_max=10,is_offline=True)   # RR-MS-TCN
+    print(f"RR_future_win: {RR_future_win}\nBF_future_win: {BF_future_win}")
+    fps = 30 # datasets_args['video_hz']
 
-fps = 30
+    assert BF_future_win == RR_future_win, f"BF_future_win: {BF_future_win} != RR_future_win: {RR_future_win}"
 
-assert BF_future_win == RR_future_win, f"BF_future_win: {BF_future_win} != RR_future_win: {RR_future_win}"
-
-print(f"BF_future_win (sec): {BF_future_win/fps}\nRR_future_win (sec): {RR_future_win/fps}")
+    print(f"BF_future_win (sec): {BF_future_win/fps}\nRR_future_win (sec): {RR_future_win/fps}")
