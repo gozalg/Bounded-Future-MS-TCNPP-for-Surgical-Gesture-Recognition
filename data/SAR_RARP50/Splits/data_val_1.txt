@@ -1,0 +1,9 @@
+video_01,5624
+video_06,7060
+video_07,2716
+video_12,1312
+video_16,3844
+video_22,3824
+video_24,2494
+video_29_1,2579
+video_29_2,2321

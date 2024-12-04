@@ -1,0 +1,16 @@
+P028_tissue2,6140
+P028_tissue1,6960
+P028_balloon1,6545
+P028_balloon2,5336
+P019_balloon1,4426
+P019_tissue1,4589
+P019_balloon2,3721
+P019_tissue2,4928
+P038_balloon2,3976
+P038_tissue1,5558
+P038_balloon1,3963
+P038_tissue2,7417
+P029_tissue1,10056
+P029_balloon2,6890
+P029_balloon1,9180
+P029_tissue2,9109
