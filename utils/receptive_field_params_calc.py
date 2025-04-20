@@ -22,7 +22,7 @@ def calc(NL_PG=10,NL_R=10,N_r=3,W_max=20,is_offline=True):
         total_future = PG_future + N_r * R_future
         # total_receptive1 = total_future*2 +1
         # print(total_future)
-        return total_future, total_receptive
+        return total_future#, total_receptive
     else:   # BF-MS-TCN
         for i in range(NL_PG):
             delta_1 = min(2**i,W_max)
@@ -37,7 +37,7 @@ def calc(NL_PG=10,NL_R=10,N_r=3,W_max=20,is_offline=True):
         R_future = sum(r_dilation)
         total_future = PG_future + (N_r * R_future)
         # print(total_future)
-        return total_future, "not impementet yet"
+        return total_future#, "not impementet yet"
 
 
 if __name__ == "__main__":

@@ -81,7 +81,7 @@ class MST_TCN2(nn.Module):
 
     def forward(self, x, *args):
         outputs = []
-        outs, _, dynamic_wmax = self.PG(x, self.w_max, self.RR_not_BF_mode) # TODO dynamic w_max
+        outs, _, dynamic_w_max = self.PG(x, self.w_max, self.RR_not_BF_mode) # TODO dynamic w_max
         for out in outs:
             outputs.append(out.unsqueeze(0))
         out = torch.cat(outs, 1)
@@ -92,7 +92,7 @@ class MST_TCN2(nn.Module):
         if self.num_R > 0:
             for R in self.Rs:
                 # TODO dynamic w_max
-                total_dynamic_w_max += int(torch.mean(dynamic_wmax).item() + 0.5) # take mean and convert to integer
+                total_dynamic_w_max += int(torch.mean(dynamic_w_max).item() + 0.5) # take mean and convert to integer
                 avg_dynamic_w_max = int(total_dynamic_w_max / (layer_cnt + 1))
                 layer_cnt += 1
                 outs, dynamic_w_max = R(func.softmax(out, dim=1), self.w_max if not self.use_dynamic_wmax else avg_dynamic_w_max, self.RR_not_BF_mode) # TODO dynamic w_max
