@@ -265,7 +265,7 @@ class Trainer:
                 train_results = {"epoch": epoch, 
                                  "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
                                  "train acc": 100.0 * (float(correct1) / total1),
-                                 "Avg w_max-train": epoch_avg_dynamic_wmax / loops_per_epoch}
+                                 "train Avg w_max": epoch_avg_dynamic_wmax / loops_per_epoch}
                 # TODO dynamic w_max
                 # wmax_log_new_row = pd.DataFrame([{"Epoch": epoch+1,
                 #                                   "Average w_max": epoch_avg_dynamic_wmax / loops_per_epoch}])

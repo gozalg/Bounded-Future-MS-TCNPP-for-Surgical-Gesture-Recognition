@@ -13,14 +13,14 @@ export CUDA_HOME=/usr/local/cuda
 export PATH=$CUDA_HOME/bin:$PATH:/root/miniconda3/condabin:/usr/local/nvm/versions/node/v16.20.2/bin:/root/.local/bin:/usr/local/lib/python3.10/dist-packages/torch_tensorrt/bin:/usr/local/mpi/bin:/usr/local/nvidia/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/ucx/bin:/opt/tensorrt/bin
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:/usr/local/lib/python3.10/dist-packages/torch/lib:/usr/local/lib/python3.10/dist-packages/torch_tensorrt/lib:/usr/local/cuda/compat/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 #--------- USER INPUTS ---------
-# BASE_PATH=/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv != "DGX"]
-BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv == "DGX"]
+BASE_PATH=/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv != "DGX"]
+# BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv == "DGX"]
 TASKS_PATH=${BASE_PATH}/tasks_2D
-SRV=DGX                 # options: [DGX, so01, so-srv]
-DATASET=VTS             # options: [VTS, JIGSAWS, SAR_RARP50, MultiBypass140]   $1 for [srv != "DGX"]
-TASK=gestures           # options: [gestures, phases, steps]                    $2 for [srv != "DGX]
+SRV=so01                # options: [DGX, so01, so-srv]
+DATASET=$1              # options: [VTS, JIGSAWS, SAR_RARP50, MultiBypass140]   $1 for [srv != "DGX"]
+TASK=$2                 # options: [gestures, phases, steps]                    $2 for [srv != "DGX]
 GPUS=1
-RR_or_BF=BF             # RR for RR-MS-TCN ("offline"), BF for BF-MS-TCN ("online")
+RR_or_BF=RR             # RR for RR-MS-TCN ("offline"), BF for BF-MS-TCN ("online")
 W_MAX=20                # [0,1,2,3,6,7,8,10,12,13,14,15,16,17,20]
 LAYERS_N=10             # [2,3,4,5,6,8,10]
 R_N=3                   # [0,1,2,3]
