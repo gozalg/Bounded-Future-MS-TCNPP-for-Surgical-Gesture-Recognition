@@ -110,7 +110,7 @@ class Trainer:
 
         # TODO dynamic w_max
         # Initialize an empty DataFrame to store w_max values
-        wmax_log_df = pd.DataFrame(columns=["Epoch", "Average w_max"])
+        # wmax_log_df = pd.DataFrame(columns=["Epoch", "Avg w_max-eval"])
 
         for epoch in range(num_epochs):
             pbar = tqdm.tqdm(total=number_of_batches)
@@ -265,7 +265,7 @@ class Trainer:
                 train_results = {"epoch": epoch, 
                                  "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
                                  "train acc": 100.0 * (float(correct1) / total1),
-                                 "Average w_max": epoch_avg_dynamic_wmax / loops_per_epoch}
+                                 "Avg w_max-train": epoch_avg_dynamic_wmax / loops_per_epoch}
                 # TODO dynamic w_max
                 # wmax_log_new_row = pd.DataFrame([{"Epoch": epoch+1,
                 #                                   "Average w_max": epoch_avg_dynamic_wmax / loops_per_epoch}])
@@ -280,8 +280,8 @@ class Trainer:
                 print(colored("epoch: " + str(epoch + 1) + "\\" + str(num_epochs) + " model evaluation", 'red', attrs=['bold']))
                 results = {"epoch": epoch + 1}
                 eval_results = self.evaluate(eval_dict, batch_gen, args)
-                eval_results.pop("pred_list")
-                eval_results.pop("gt_list")
+                # eval_results.pop("pred_list")
+                # eval_results.pop("gt_list")
                 
                 results.update(eval_results)
                 eval_results_list.append(results)
@@ -512,7 +512,7 @@ class Trainer:
             #     results.update(results3)
 
             # TODO dynamic w_max
-            results["Avergae w_max"] = eval_dyn_wmax
+            results["Avg w_max-eval"] = eval_dyn_wmax
 
             # if is_test:
             results["list_of_seq"] = list_of_vids

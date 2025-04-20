@@ -74,10 +74,10 @@ class MST_TCN2(nn.Module):
         self.use_dynamic_wmax = use_dynamic_wmax # TODO dynamic w_max
         self.RR_not_BF_mode = RR_not_BF_mode
         self.num_R = num_R
-        self.PG = MT_Prediction_Generation(num_layers_PG, num_f_maps, dim, num_classes_list,dropout, use_dynamic_wmax=False)
+        self.PG = MT_Prediction_Generation(num_layers_PG, num_f_maps, dim, num_classes_list,dropout, use_dynamic_wmax=use_dynamic_wmax)
 
         if num_R > 0:
-            self.Rs = nn.ModuleList([copy.deepcopy(MT_Refinement(num_layers_R, num_f_maps, sum(num_classes_list), num_classes_list,dropout, use_dynamic_wmax=False)) for s in range(num_R)])
+            self.Rs = nn.ModuleList([copy.deepcopy(MT_Refinement(num_layers_R, num_f_maps, sum(num_classes_list), num_classes_list,dropout, use_dynamic_wmax=use_dynamic_wmax)) for s in range(num_R)])
 
     def forward(self, x, *args):
         outputs = []
