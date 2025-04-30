@@ -779,7 +779,7 @@ def extract_features_only_init(split_num):
     return fe_args
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" if args.split_num in [2,3,4] else "1"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "0" if args.split_num in [2,3,4] else "1"
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     
     # Extract features only

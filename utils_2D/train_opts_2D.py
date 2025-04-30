@@ -1,12 +1,17 @@
 import argparse
 import os
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
-data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-current_dataset = 'MultiBypass140' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBypass140' # 
-current_server  = 'so1' # 'DGX' , 'so-srv1' , 'so1'
+
+data_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'data'
+)
+current_dataset = 'JIGSAWS' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBypass140' #
+current_server  = 'WSL' # 'DGX' ,
 
 
 parser = argparse.ArgumentParser(description="Train model for video-based surgical gestures recognition.")
@@ -153,6 +158,8 @@ parser.add_argument('--use_scheduler', type=bool, default=True, help="Whether to
 # ----------------------
 # Output
 # ----------------------
+parser.add_argument('--extract_features_only', type=str2bool, default=False,
+                    help="If set, only extract per-frame features (no training).")
 parser.add_argument('--resume_exp', type=str, default=None,
                     help="Path to results of former experiment that shall be resumed (UNTESTED).")
 parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "feature_extractor"),

@@ -19,7 +19,7 @@ import utils_3D.util
 from utils_3D.train_opts_3D import parser
 from utils_3D.resnet2D import resnet18
 from utils_3D.efficientnetV2 import EfficientnetV2
-from utils_3D.x3d import load_x3d_l
+from utils_3D.x3d import X3D
 from utils_3D.dataset import Gesture2dTrainSet, Sequential2DTestGestureDataSet
 from utils_3D.transforms import GroupNormalize, GroupScale, GroupCenterCrop
 from utils_3D.metrics import accuracy, average_F1, edit_score, overlap_f1
@@ -387,7 +387,7 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
             video_features      = []
 
 def main(split =3,upload =False,save_features=False):
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}')
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
     if os.path.exists(features_path):
         print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
         if input() == "y":
@@ -467,10 +467,9 @@ def main(split =3,upload =False,save_features=False):
 
     if args.arch == "EfficientnetV2":
         model = EfficientnetV2(size="m",num_classes=args.num_classes,pretrained=True)
-    elif args.arch == "X3D":
-        model, feat_dim = load_x3d_l(device_gpu)
-        args.feature_dim = feat_dim
-        
+    elif args.arch == "X3D-L":
+        model = X3D(size='l', pretrained=True).eval().to(device_gpu)
+        args.feature_dim = model.feat_dim
     else:
         raise NotImplementedError("Other than EfficientnetV2 or X3D is not implemented yet")
         model = resnet18(pretrained=True, progress=True, num_classes=args.num_classes)
