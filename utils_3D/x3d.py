@@ -5,50 +5,54 @@ from utils_3D.transforms import GroupScale, GroupCenterCrop
 
 class X3D(nn.Module):
     """
-    Wrapper for the pretrained X3D video backbone (XS, S, M, L, XL).
-    Loads via Torch Hub, removes the classification head, and exposes feature extraction.
+    X3D wrapper that can either extract features or train end-to-end:
+      - If num_classes is None: forward() returns raw features (B, feat_dim)
+      - If num_classes is set: forward() returns logits (B, num_classes)
     """
-    def __init__(self, size='l', pretrained=True, clip_len=16, input_size=112):
+    def __init__(self, size='l', pretrained=True, clip_len=16, input_size=112, num_classes=None):
         super().__init__()
-        # Validate size
         size = size.lower()
-        if size not in ['xs', 's', 'm', 'l', 'xl']:
-            raise ValueError(f"Unsupported X3D size: {size}")
+        assert size in ['xs','s','m','l','xl'], f"Unsupported X3D size: {size}"
         hub_name = f'x3d_{size}'
-        # Load pretrained model from PyTorchVideo Hub
+        # load the pretrained backbone
         self.backbone = torch.hub.load(
             'facebookresearch/pytorchvideo:main',
             hub_name,
             pretrained=pretrained
         )
-        # Remove its final projection head so forward() yields raw features
+        # strip off its original head
         self.backbone.blocks[-1] = nn.Identity()
 
-        # Store input and normalization metadata
+        # metadata (for transforms)
         self.input_size = input_size
         self.input_mean = [0.45, 0.45, 0.45]
-        self.input_std  = [0.225, 0.225, 0.225]
+        self.input_std  = [0.225,0.225,0.225]
         self.arch       = f"X3D-{size.upper()}"
 
-        # Determine feature dimension via dummy forward
+        # compute feature dim
         dummy = torch.zeros(1, 3, clip_len, input_size, input_size)
         with torch.no_grad():
             feats = self.backbone(dummy)
         self.feat_dim = feats.shape[1]
 
+        # if training, append a small classifier
+        self.num_classes = num_classes
+        if num_classes is not None:
+            self.classifier = nn.Linear(self.feat_dim, num_classes)
+        else:
+            self.classifier = None
+
     def get_augmentation(self, crop_corners=True, do_horizontal_flip=True):
-        """Simple clip transforms: scale + center crop"""
         return T.Compose([
             GroupScale(self.input_size),
             GroupCenterCrop(self.input_size)
         ])
 
     def forward(self, x):
-        """
-        x: Tensor of shape (B, C, H, W) or (B, C, T, H, W)
-        returns: Tensor of shape (B, feat_dim)
-        """
-        # If given 4D input (frame), add a time dimension at position=2
-        if x.dim() == 4:
-            x = x.unsqueeze(2)  # becomes (B, C, 1, H, W)
-        return self.backbone(x)
+        # accept 4D or 5D input
+        if x.dim()==4:
+            x = x.unsqueeze(2)  # B,C -> B,C,1
+        feats = self.backbone(x)      # (B, feat_dim)
+        if self.classifier:
+            return self.classifier(feats)  # (B, num_classes)
+        return feats

@@ -20,7 +20,7 @@ from utils_3D.train_opts_3D import parser
 from utils_3D.resnet2D import resnet18
 from utils_3D.efficientnetV2 import EfficientnetV2
 from utils_3D.x3d import X3D
-from utils_3D.dataset import Gesture2dTrainSet, Sequential2DTestGestureDataSet
+from utils_3D.dataset import Gesture3dTrainSet, Gesture2dTrainSet, Sequential2DTestGestureDataSet
 from utils_3D.transforms import GroupNormalize, GroupScale, GroupCenterCrop
 from utils_3D.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils_3D.util import AverageMeter
@@ -468,7 +468,14 @@ def main(split =3,upload =False,save_features=False):
     if args.arch == "EfficientnetV2":
         model = EfficientnetV2(size="m",num_classes=args.num_classes,pretrained=True)
     elif args.arch == "X3D-L":
-        model = X3D(size='l', pretrained=True).eval().to(device_gpu)
+        args.clip_len = 16
+        model = X3D(
+        size='l',
+        pretrained=True,
+        clip_len=args.clip_len,       # or hard-coded 16
+        input_size=args.input_size,   # consistent with your 2D path
+        num_classes=args.num_classes  # <--- this turns on the head
+        )
         args.feature_dim = model.feat_dim
     else:
         raise NotImplementedError("Other than EfficientnetV2 or X3D is not implemented yet")
@@ -512,18 +519,31 @@ def main(split =3,upload =False,save_features=False):
     train_augmentation = model.get_augmentation(crop_corners=args.corner_cropping,
                                                 do_horizontal_flip=args.do_horizontal_flip)
 
-
-    train_set = Gesture2dTrainSet(list_of_train_examples,
-                                  args.data_path , 
-                                  args.transcriptions_dir, 
-                                  gesture_ids,
-                                  image_tmpl        = args.image_tmpl,
-                                  sampling_factor   = args.video_sampling_step, 
-                                  video_suffix      = args.video_suffix,
-                                  transform         = train_augmentation, 
-                                  normalize         = normalize, 
-                                  epoch_size        = (args.number_of_samples_per_class * args.num_classes), 
-                                  debag             = False)
+    if args.arch == "EfficientnetV2":
+        train_set = Gesture2dTrainSet(list_of_train_examples,
+                                    args.data_path , 
+                                    args.transcriptions_dir, 
+                                    gesture_ids,
+                                    image_tmpl        = args.image_tmpl,
+                                    sampling_factor   = args.video_sampling_step, 
+                                    video_suffix      = args.video_suffix,
+                                    transform         = train_augmentation, 
+                                    normalize         = normalize, 
+                                    epoch_size        = (args.number_of_samples_per_class * args.num_classes), 
+                                    debag             = False)
+    elif args.arch == "X3D-L":
+        train_set = Gesture3dTrainSet(list_of_train_examples,
+                                    root_path          = args.data_path,
+                                    transcriptions_dir = args.transcriptions_dir,
+                                    gesture_ids        = gesture_ids,
+                                    snippet_length     = args.clip_len,                     # hard‐coded clip length
+                                    sampling_step      = args.video_sampling_step,
+                                    image_tmpl         = args.image_tmpl,
+                                    video_suffix       = args.video_suffix,
+                                    transform          = train_augmentation,
+                                    normalize          = normalize,
+                                    epoch_size         = (args.number_of_samples_per_class * args.num_classes),)
+            
 
 
     def init_train_loader_worker(worker_id):

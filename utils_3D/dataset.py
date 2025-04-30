@@ -12,11 +12,12 @@ import numpy as np
 import torch
 import torch.utils.data as data
 import torchvision
+import torchvision.transforms as T
 from PIL import Image
 from skimage.util import random_noise
 
 #------------------ Bounded Future Imports ------------------#
-from utils.transforms import Stack, ToTorchFormatTensor
+from utils_3D.transforms import Stack, ToTorchFormatTensor
 #------------------------------------------------------------#
 
 class Gesture2dTrainSet(data.Dataset):
@@ -396,6 +397,75 @@ def Add_Gaussian_Noise(image,sigma):
 
 
 
+class Gesture3dTrainSet(Gesture2dTrainSet):
+    """
+    Returns clips of consecutive frames for 3D backbones.
+    """
+    def __init__(self,
+                 examples_list,         # list of video IDs
+                 root_path,             # path to video folders
+                 transcriptions_dir,
+                 gesture_ids,
+                 snippet_length=16,
+                 sampling_step=1,
+                 image_tmpl='img_{:05d}.jpg',
+                 video_suffix='_side',
+                 transform=None,
+                 normalize=None,
+                 epoch_size=50,
+                 debag=False):
+        # Initialize the 2D loader (gets you _load_image, labels, frame indices…)
+        super().__init__(
+            examples_list,
+            root_path,
+            transcriptions_dir,
+            gesture_ids,
+            sampling_factor     = sampling_step,
+            image_tmpl          = image_tmpl,
+            video_suffix        = video_suffix,
+            transform           = transform,
+            normalize           = normalize,
+            epoch_size          = epoch_size,
+            debag               = debag
+        )
 
+        # Now add your 3D‐specific fields
+        self.snippet_length  = snippet_length
+        self.sampling_step   = sampling_step
+
+        # Build per‐video frame counts and label sequences here, same as 2D
+
+    def __len__(self):
+        return len(self.examples_list) * self.epoch_size
+
+    def __getitem__(self, index):
+        # 1) Determine video and starting frame index (modulo logic as in 2D)
+        video_id = self.examples_list[index // self.epoch_size]
+        frame_idx = (index % self.epoch_size)  # or however you map idx→frame
+        
+        # 2) Sample a clip of frames
+        frame_indices = [
+            frame_idx + i*self.sampling_step
+            for i in range(self.snippet_length)
+        ]
+        clips = []
+        for fi in frame_indices:
+            img_path = f"{self.root_path}/{video_id}/{self.image_tmpl.format(fi)}"
+            img = self._load_image(img_path)[0]  # reuse your loader
+            clips.append(img)
+
+        # 3) Apply transforms and stack into a tensor (C, T, H, W)
+        if self.transform:
+            clips = self.transform(clips)
+        tensor_clips = [T.ToTensor()(im) for im in clips]
+        clip_tensor = torch.stack(tensor_clips, dim=1)
+        if self.normalize:
+            clip_tensor = self.normalize(clip_tensor)
+
+        # 4) Load the target label for that frame/clip
+        target = torch.tensor(self._get_label(video_id, frame_idx),
+                              dtype=torch.long)
+
+        return clip_tensor, target
 
 

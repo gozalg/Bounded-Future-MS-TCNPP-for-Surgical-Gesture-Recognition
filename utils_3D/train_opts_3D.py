@@ -132,7 +132,7 @@ parser.add_argument('--corner_cropping', type='bool', default=True,
 # ----------------------
 # Model
 # ----------------------
-parser.add_argument('--arch', type=str, default="EfficientnetV2", choices=['3D-ResNet-18', '3D-ResNet-50',"2D-ResNet-18","EfficientnetV2", "X3D-L"],
+parser.add_argument('--arch', type=str, default="X3D-L", choices=["EfficientnetV2", "X3D-L"],
                     help="Network architecture.")
 parser.add_argument('--use_resnet_shortcut_type_B', type='bool', default=False,
                     help="Whether to use shortcut connections of type B.")
