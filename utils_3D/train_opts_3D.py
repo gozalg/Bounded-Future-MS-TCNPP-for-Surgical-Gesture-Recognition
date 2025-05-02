@@ -159,8 +159,8 @@ parser.add_argument('--use_scheduler', type=bool, default=True, help="Whether to
 # Output
 # ----------------------
 parser.add_argument('--extract_features_only', type=str2bool, default=False,
-                    help="If set, only extract per-frame features (no training).")
+                    help="If set, only extract per-frame features (no training). Path to output folder must be set in --resume_exp.")
 parser.add_argument('--resume_exp', type=str, default=None,
-                    help="Path to results of former experiment that shall be resumed (UNTESTED).")
+                    help="Path to results of former experiment that shall be resumed.")
 parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "feature_extractor"),
                     help="Path to output folder, where all models and results will be stored.")

@@ -20,7 +20,8 @@ from utils_3D.train_opts_3D import parser
 from utils_3D.resnet2D import resnet18
 from utils_3D.efficientnetV2 import EfficientnetV2
 from utils_3D.x3d import X3D
-from utils_3D.dataset import Gesture3dTrainSet, Gesture2dTrainSet, Sequential2DTestGestureDataSet
+from utils_3D.dataset import Gesture2dTrainSet, Sequential2DTestGestureDataSet
+from utils_3D.dataset import Gesture3dTrainSet, Sequential3DTestGestureDataSet
 from utils_3D.transforms import GroupNormalize, GroupScale, GroupCenterCrop
 from utils_3D.metrics import accuracy, average_F1, edit_score, overlap_f1
 from utils_3D.util import AverageMeter
@@ -32,6 +33,11 @@ from utils_3D.util import WANDB_API_KEY
 #------------------------------------------------------------#
 
 args = parser.parse_args()
+# check if extract_fetures_only is set correctly
+if args.extract_features_only and args.resume_exp is not None or \
+   args.extract_features_only==False:
+    raise ValueError("extract_features_only should be set to True only when resume_exp is set with the path to the folder containing the results.")
+# check if the dataset and task are valid
 assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
        args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
 if args.dataset == "MultiBypass140":
@@ -287,8 +293,8 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
                 Y = np.append(Y, target.numpy())
                 data = data.to(device_gpu)
                 output = model(data)
-                if model.arch == "EfficientnetV2":
-                    output = output[0]
+                # if model.arch == "EfficientnetV2":
+                output = output[0]
 
                 predicted = torch.nn.Softmax(dim=1)(output)
                 _, predicted = torch.max(predicted, 1)
@@ -388,15 +394,17 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
 
 def main(split =3,upload =False,save_features=False):
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
-    if os.path.exists(features_path):
-        print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
-        if input() == "y":
-            import shutil
-            shutil.rmtree(features_path)
-        else:
-            print("Please delete the existing folder before running the code.")
-            return
-    os.makedirs(features_path, exist_ok=False)
+    if args.resume_exp==None:
+        # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
+        if os.path.exists(features_path):
+            print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
+            if input() == "y":
+                import shutil
+                shutil.rmtree(features_path)
+            else:
+                print("Please delete the existing folder before running the code.")
+                return
+        os.makedirs(features_path, exist_ok=False)
         
 
     eval_metric = "F1"
@@ -569,17 +577,28 @@ def main(split =3,upload =False,save_features=False):
                                                        GroupCenterCrop(args.input_size)])   ## need to be corrected
 
     for video in list_of_valid_examples:
-
-        data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path,
-                                                  video_id              = video,
-                                                  transcriptions_dir    = args.transcriptions_dir, 
-                                                  gesture_ids           = gesture_ids,
-                                                  snippet_length        = 1,
-                                                  sampling_step         = 6,
-                                                  image_tmpl            = args.image_tmpl,
-                                                  video_suffix          = args.video_suffix,
-                                                  normalize             = normalize,
-                                                  transform             = val_augmentation)  ##augmentation are off
+        if args.arch == "efficientnetV2":
+            data_set = Sequential2DTestGestureDataSet(root_path           = args.data_path,
+                                                    video_id              = video,
+                                                    transcriptions_dir    = args.transcriptions_dir, 
+                                                    gesture_ids           = gesture_ids,
+                                                    snippet_length        = 1,
+                                                    sampling_step         = 6,
+                                                    image_tmpl            = args.image_tmpl,
+                                                    video_suffix          = args.video_suffix,
+                                                    normalize             = normalize,
+                                                    transform             = val_augmentation)  ##augmentation are off
+        elif args.arch == "X3D-L":
+            data_set = Sequential3DTestGestureDataSet(video_root          = args.data_path, 
+                                                    list_of_videos        = [video],
+                                                    transcriptions_dir    = args.transcriptions_dir, 
+                                                    gesture_ids           = gesture_ids,
+                                                    snippet_length        = args.clip_len,     # e.g. 16
+                                                    sampling_step         = 6,                                                    
+                                                    image_tmpl            = args.image_tmpl,
+                                                    video_suffix          = args.video_suffix,
+                                                    normalize             = normalize,
+                                                    transform             = val_augmentation)  ##augmentation are off
         val_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                        batch_size       = args.eval_batch_size,
                                                        shuffle          = False, 
@@ -587,16 +606,28 @@ def main(split =3,upload =False,save_features=False):
                                                        collate_fn       = no_none_collate))
 
     for video in list_of_test_examples:
-        data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
-                                                  video_id              = video,
-                                                  transcriptions_dir    = args.transcriptions_dir,
-                                                  gesture_ids           = gesture_ids,
-                                                  snippet_length        = 1,
-                                                  sampling_step         = 6,
-                                                  image_tmpl            = args.image_tmpl,
-                                                  video_suffix          = args.video_suffix,
-                                                  normalize             = normalize,
-                                                  transform             = val_augmentation)  ##augmentation are off
+        if args.arch == "EfficientnetV2":
+            data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
+                                                    video_id              = video,
+                                                    transcriptions_dir    = args.transcriptions_dir,
+                                                    gesture_ids           = gesture_ids,
+                                                    snippet_length        = 1,
+                                                    sampling_step         = 6,
+                                                    image_tmpl            = args.image_tmpl,
+                                                    video_suffix          = args.video_suffix,
+                                                    normalize             = normalize,
+                                                    transform             = val_augmentation)  ##augmentation are off
+        elif args.arch == "X3D-L":
+            data_set = Sequential3DTestGestureDataSet(video_root          = args.data_path, 
+                                                    list_of_videos        = [video],
+                                                    transcriptions_dir    = args.transcriptions_dir,
+                                                    gesture_ids           = gesture_ids,
+                                                    snippet_length        = args.clip_len,     # e.g. 16
+                                                    sampling_step         = 6,
+                                                    image_tmpl            = args.image_tmpl,
+                                                    video_suffix          = args.video_suffix,
+                                                    normalize             = normalize,
+                                                    transform             = val_augmentation) ##augmentation are off
         test_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                         batch_size      = args.eval_batch_size,
                                                         shuffle         = False, 
@@ -612,6 +643,7 @@ def main(split =3,upload =False,save_features=False):
     start_epoch = 0
     if checkpoint:
         start_epoch = checkpoint['epoch']
+        model_file = os.path.join(output_folder, "model_" + str(start_epoch-1) + ".pth")
     for epoch in range(start_epoch, args.epochs):
 
         train_loss = AverageMeter()
@@ -625,7 +657,7 @@ def main(split =3,upload =False,save_features=False):
             train_loader_iter = iter(train_loader)
             while True:
                 try:
-                    pbar.update(1)
+                    # pbar.update(1)
                     (data, target) = next(train_loader_iter)
                 except StopIteration:
                     break
@@ -732,77 +764,39 @@ def extract_features(model,
                     device_gpu):
     log("Start  features saving...", output_folder)
 
-### extract Features
+    ### extract Features
     all_loaders =[]
     all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
 
     for video in all_videos:
-        data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
-                                                    video_id              = video,
-                                                    transcriptions_dir    = args.transcriptions_dir,
-                                                    gesture_ids           = gesture_ids,
-                                                    snippet_length        = 1,
-                                                    sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
-                                                    image_tmpl            = args.image_tmpl,
-                                                    video_suffix          = args.video_suffix,
-                                                    normalize             = normalize,
-                                                    transform             = val_augmentation)  ##augmentation are off
+        if args.arch == "EfficientnetV2":
+            data_set = Sequential2DTestGestureDataSet(  root_path             = args.data_path, 
+                                                        video_id              = video,
+                                                        transcriptions_dir    = args.transcriptions_dir,
+                                                        gesture_ids           = gesture_ids,
+                                                        snippet_length        = 1,
+                                                        sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
+                                                        image_tmpl            = args.image_tmpl,
+                                                        video_suffix          = args.video_suffix,
+                                                        normalize             = normalize,
+                                                        transform             = val_augmentation)  ##augmentation are off
+        elif args.arch == "X3D-L":
+            data_set = Sequential3DTestGestureDataSet(  video_root            = args.data_path, 
+                                                        list_of_videos        = [video],
+                                                        transcriptions_dir    = args.transcriptions_dir,
+                                                        gesture_ids           = gesture_ids,
+                                                        snippet_length        = args.clip_len,     # e.g. 16
+                                                        sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
+                                                        image_tmpl            = args.image_tmpl,
+                                                        video_suffix          = args.video_suffix,
+                                                        normalize             = normalize,
+                                                        transform             = val_augmentation) ##augmentation are off
         all_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                         batch_size       = 1,
                                                         shuffle          = False, 
                                                         num_workers      = args.workers))
 
     save_fetures(model, all_loaders, all_videos, device_gpu, features_path)
-# TODO: Implement the following function
-def extract_features_only_init(split_num):
-    raise NotImplementedError
-    import glob
-    fe_args = {}
-    output_folder = os.path.join(args.out, args.dataset, f"{args.task}_epochs_{args.epochs}", str(split_num))
-    
-    # best model is the last model saved in output_folder
-    best_epoch = os.path.basename(sorted(glob.glob(os.path.join(output_folder, "model_*.pth")))[-1]).split("_")[-1].split(".")[0]
-
-    if args.arch == "EfficientnetV2":
-        model = EfficientnetV2(size="m",num_classes=args.num_classes,pretrained=True)
-    else:
-        model = resnet18(pretrained=True, progress=True, num_classes=args.num_classes)
-
-    if args.dataset == "VTS":
-        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_VTS_data(folds_folder, split_num)
-    elif args.dataset == "JIGSAWS":
-        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_JIGSAWS_data(folds_folder, split_num)
-    elif args.dataset == "MultiBypass140":
-        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_MultiBypass140_data(folds_folder, split_num)
-    elif args.dataset == "SAR_RARP50":
-        list_of_train_examples, list_of_valid_examples, list_of_test_examples = read_SAR_RARP50_data(folds_folder, split_num)
-        args.video_sampling_step = 6 * args.video_sampling_step
-    else:
-        raise NotImplementedError
-
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}')
-    if os.path.exists(features_path):
-        print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
-        if input() == "y":
-            import shutil
-            shutil.rmtree(features_path)
-        else:
-            print("Please delete the existing folder before running the code.")
-            return
-    os.makedirs(features_path, exist_ok=False)
-
-    fe_args.model = model.load_state_dict(torch.load(os.path.join(output_folder, "model_" + str(best_epoch) + ".pth")))
-    fe_args.list_of_train_examples = list_of_train_examples
-    fe_args.list_of_valid_examples = list_of_valid_examples
-    fe_args.list_of_test_examples = list_of_test_examples
-    fe_args.output_folder = output_folder
-    fe_args.features_path = features_path
-    fe_args.gesture_ids = gesture_ids
-    fe_args.normalize = GroupNormalize(model.input_mean, model.input_std)
-    fe_args.val_augmentation = torchvision.transforms.Compose([GroupScale(int(256)),
-                                                       GroupCenterCrop(args.input_size)])   ## need to be corrected
-    fe_args.device_gpu = torch.device("cuda")
-    return fe_args
 
 if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0" if args.split_num in [2,3,4] else "1"

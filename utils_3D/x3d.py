@@ -14,28 +14,27 @@ class X3D(nn.Module):
         size = size.lower()
         assert size in ['xs','s','m','l','xl'], f"Unsupported X3D size: {size}"
         hub_name = f'x3d_{size}'
-        # load the pretrained backbone
+        # 1) load the pretrained backbone and strip off its head
         self.backbone = torch.hub.load(
             'facebookresearch/pytorchvideo:main',
             hub_name,
             pretrained=pretrained
         )
-        # strip off its original head
         self.backbone.blocks[-1] = nn.Identity()
 
-        # metadata (for transforms)
+        # 2) metadata (for transforms)
         self.input_size = input_size
-        self.input_mean = [0.45, 0.45, 0.45]
-        self.input_std  = [0.225,0.225,0.225]
+        self.input_mean = [0.485, 0.456, 0.406]
+        self.input_std = [0.229, 0.224, 0.225]
         self.arch       = f"X3D-{size.upper()}"
 
-        # compute feature dim
+        # 3) compute feature dim (channels out of backbone)
         dummy = torch.zeros(1, 3, clip_len, input_size, input_size)
         with torch.no_grad():
             feats = self.backbone(dummy)
         self.feat_dim = feats.shape[1]
 
-        # if training, append a small classifier
+        # 4) if training, append a small classifier head; else leave classifier=None
         self.num_classes = num_classes
         if num_classes is not None:
             self.classifier = nn.Linear(self.feat_dim, num_classes)
@@ -49,10 +48,22 @@ class X3D(nn.Module):
         ])
 
     def forward(self, x):
-        # accept 4D or 5D input
-        if x.dim()==4:
-            x = x.unsqueeze(2)  # B,C -> B,C,1
-        feats = self.backbone(x)      # (B, feat_dim)
-        if self.classifier:
-            return self.classifier(feats)  # (B, num_classes)
-        return feats
+        # ensure 5D: (B,C,T,H,W)
+        if x.dim() == 4:
+            x = x.unsqueeze(2)
+
+        # 1) spatio-temporal features: (B, C, T', H', W')
+        feats = self.backbone(x)
+
+        # if no classifier head, just return the raw features
+        if self.classifier is None:
+            return feats
+
+        # 2) global‐average‐pool → (B, C)
+        pooled = feats.mean(dim=[2, 3, 4])
+
+        # 3) compute logits → (B, num_classes)
+        logits = self.classifier(pooled)
+
+        # 4) return both logits and the pooled features
+        return logits, pooled

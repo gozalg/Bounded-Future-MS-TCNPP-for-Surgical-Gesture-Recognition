@@ -399,73 +399,193 @@ def Add_Gaussian_Noise(image,sigma):
 
 class Gesture3dTrainSet(Gesture2dTrainSet):
     """
-    Returns clips of consecutive frames for 3D backbones.
+    Returns T-frame clips for 3D backbones, sampled on a sliding window.
     """
     def __init__(self,
-                 examples_list,         # list of video IDs
-                 root_path,             # path to video folders
+                 examples_list,         # e.g. ["Suturing_G001.txt", …]
+                 root_path,             # e.g. "/…/data/JIGSAWS/frames"
                  transcriptions_dir,
                  gesture_ids,
                  snippet_length=16,
                  sampling_step=1,
                  image_tmpl='img_{:05d}.jpg',
-                 video_suffix='_side',
+                 video_suffix='_capture2',
                  transform=None,
                  normalize=None,
                  epoch_size=50,
                  debag=False):
-        # Initialize the 2D loader (gets you _load_image, labels, frame indices…)
+
+        # 1) Let the 2D base loader build self.labels_data (one label per sampled frame)
         super().__init__(
             examples_list,
             root_path,
             transcriptions_dir,
             gesture_ids,
-            sampling_factor     = sampling_step,
-            image_tmpl          = image_tmpl,
-            video_suffix        = video_suffix,
-            transform           = transform,
-            normalize           = normalize,
-            epoch_size          = epoch_size,
-            debag               = debag
+            sampling_factor = sampling_step,
+            image_tmpl      = image_tmpl,
+            video_suffix    = video_suffix,
+            transform       = None,
+            normalize       = None,
+            epoch_size      = epoch_size,
+            debag           = debag
         )
 
-        # Now add your 3D‐specific fields
-        self.snippet_length  = snippet_length
-        self.sampling_step   = sampling_step
+        # 2) Store our 3D sampling & augment params
+        self.snippet_length = snippet_length
+        self.sampling_step  = sampling_step*snippet_length
+        self.transform      = transform
+        self.normalize      = normalize
 
-        # Build per‐video frame counts and label sequences here, same as 2D
+
+        # 3) Only override frame_num_data for non-SAR datasets:
+        if "SAR_RARP50" not in root_path:
+            # rebuild as 1,1+step,1+2*step… to match labels_data length
+            self.frame_num_data = {
+                vid: [i * sampling_step + 1 # TODO self.sampling_step?
+                      for i in range(len(self.labels_data[vid]))]
+                for vid in self.labels_data
+            }
+        # else: leave self.frame_num_data as set by Gesture2dTrainSet._parse_list_files
+
+
+        # 4) Now precompute all (video_id, clip_start) pairs
+        self.clip_info = []
+        for vid, frames in self.frame_num_data.items():
+            max_start = len(frames) - self.snippet_length
+            if max_start < 0:
+                continue
+            for start in range(0, max_start + 1, self.sampling_step):
+                self.clip_info.append((vid, start))
+
 
     def __len__(self):
-        return len(self.examples_list) * self.epoch_size
+        # total number of T-frame clips
+        return len(self.clip_info)
+
 
     def __getitem__(self, index):
-        # 1) Determine video and starting frame index (modulo logic as in 2D)
-        video_id = self.examples_list[index // self.epoch_size]
-        frame_idx = (index % self.epoch_size)  # or however you map idx→frame
-        
-        # 2) Sample a clip of frames
-        frame_indices = [
-            frame_idx + i*self.sampling_step
-            for i in range(self.snippet_length)
-        ]
-        clips = []
-        for fi in frame_indices:
-            img_path = f"{self.root_path}/{video_id}/{self.image_tmpl.format(fi)}"
-            img = self._load_image(img_path)[0]  # reuse your loader
-            clips.append(img)
+        # 1) pick which (video_id, start) we’re serving
+        video_id, start = self.clip_info[index]
 
-        # 3) Apply transforms and stack into a tensor (C, T, H, W)
+        # 2) collect the exact frame numbers for this snippet
+        frame_indices = self.frame_num_data[video_id][
+            start : start + self.snippet_length
+        ]
+
+        # 3) load each frame from its folder
+        folder = os.path.join(self.root_path, video_id + self.video_suffix)
+        pil_frames = []
+        for fi in frame_indices:
+            img = self._load_image(folder, fi)[0]
+            pil_frames.append(img)
+
+        # 4) apply any group‐level transforms
         if self.transform:
-            clips = self.transform(clips)
-        tensor_clips = [T.ToTensor()(im) for im in clips]
-        clip_tensor = torch.stack(tensor_clips, dim=1)
+            pil_frames = self.transform(pil_frames)
+
+        # 5) to‐tensor & stack → (C, T, H, W)
+        tensors = [T.ToTensor()(img) for img in pil_frames]
+        clip = torch.stack(tensors, dim=1)
+        if self.normalize:
+            clip = self.normalize(clip)
+
+        # 6) label is gesture at the last frame
+        # frame_indices[-1] is a 1-based frame number; convert to 0-based index
+        raw_label = self.labels_data[video_id][frame_indices[-1] - 1]
+        # map it into its numeric index in the gesture_ids list
+        label = self.gesture_ids.index(raw_label)  # e.g. "G3" → 2
+
+        return clip, torch.tensor(label, dtype=torch.long)
+
+
+
+
+class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
+    """
+    Returns overlapping clips of length `snippet_length` for X3D-style test.
+    Mirrors Sequential2DTestGestureDataSet but outputs (C, T, H, W) tensors.
+    """
+    def __init__(self,
+                 video_root: str,
+                 list_of_videos: list,
+                 transcriptions_dir: str,
+                 gesture_ids: dict,
+                 snippet_length: int = 16,
+                 sampling_step: int = 1,
+                 image_tmpl: str = "img_{:05d}.jpg",
+                 video_suffix: str = "",
+                 normalize=None,
+                 transform=None):
+        self.root_path         = video_root
+        self.video_root        = video_root
+        self.preload           = False
+        # self.list_of_videos    = list_of_videos
+        self.transcriptions_dir= transcriptions_dir
+        self.gesture_ids       = gesture_ids
+        self.snippet_length    = snippet_length
+        self.sampling_step     = sampling_step
+        self.image_tmpl        = image_tmpl
+        self.video_suffix      = video_suffix
+        self.normalize         = normalize
+        self.transform         = transform
+
+        # Build per-video frame indices and labels
+        self.frame_num_data = {}
+        self.labels_data    = {}
+        # strip ant ".txt" suffix so parse_list_files doesn't double-append (e.g. "video.txt" → "video")
+        videos = [os.path.splitext(v)[0] for v in list_of_videos]
+        self.list_of_videos = videos
+        for vid in videos:
+            self.video_name = vid
+            self._parse_list_files(vid)  # inherited from Gesture2dTrainSet
+
+    def __len__(self):
+        # total clips = sum over videos of floor((num_frames - snippet_length)/sampling_step)+1
+        total = 0
+        for vid, frames in self.frame_num_data.items():
+            total += max(0, (len(frames) - self.snippet_length) // self.sampling_step + 1)
+        return total
+
+    def __getitem__(self, index):
+        # figure out which video and which clip-offset
+        # iterate videos until index falls into that video's clip count
+        running = 0
+        for vid, frames in self.frame_num_data.items():
+            n_clips = max(0, (len(frames) - self.snippet_length) // self.sampling_step + 1)
+            if index < running + n_clips:
+                clip_idx = index - running
+                start_frame_idx = frames[clip_idx * self.sampling_step]
+                # build the snippet of original frame numbers
+                clip_frame_numbers = frames[clip_idx * self.sampling_step :
+                                           clip_idx * self.sampling_step + self.snippet_length]
+                break
+            running += n_clips
+        else:
+            raise IndexError
+
+        # load images
+        imgs = []
+        image_folder = f"{self.video_root}/{vid}{self.video_suffix}"
+        for fn in clip_frame_numbers:
+            pil_img = self._load_image(image_folder, fn)[0]
+            imgs.append(pil_img)
+
+        # apply transforms (GroupScale + CenterCrop) then normalize + to-tensor
+        if self.transform:
+            imgs = self.transform(imgs)
+        # imgs is a list of PIL images → ToTensor & stack
+        clips = [T.ToTensor()(im) for im in imgs]
+        clip_tensor = torch.stack(clips, dim=1)  # (C, T, H, W)
         if self.normalize:
             clip_tensor = self.normalize(clip_tensor)
 
-        # 4) Load the target label for that frame/clip
-        target = torch.tensor(self._get_label(video_id, frame_idx),
-                              dtype=torch.long)
+
+        # 6) label = label of the *last* frame in the clip,
+        #    but we must index into labels_data by its 0-based position,
+        #    not by the raw frame number.
+        #    Since clip_idx * sampling_step is our starting position,
+        #    the last label is at:
+        label_pos = clip_idx * self.sampling_step + (self.snippet_length - 1)
+        target = self.labels_data[vid][label_pos]
 
         return clip_tensor, target
-
-
