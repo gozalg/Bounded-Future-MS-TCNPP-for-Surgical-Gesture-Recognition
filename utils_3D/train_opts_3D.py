@@ -159,8 +159,11 @@ parser.add_argument('--use_scheduler', type=bool, default=True, help="Whether to
 # Output
 # ----------------------
 parser.add_argument('--extract_features_only', type=str2bool, default=False,
-                    help="If set, only extract per-frame features (no training). Path to output folder must be set in --resume_exp.")
+                    help="If set, only extract per-frame features (no training):\n\tNOTICE:\n\t1. Path to output folder must be set in --resume_exp\
+                        \n\t2. split_num will be extracted from the output folder name.")
 parser.add_argument('--resume_exp', type=str, default=None,
-                    help="Path to results of former experiment that shall be resumed.")
+                    help="Path to results of former experiment that shall be resumed. The format is as follows:\
+                        \ni.e. os.path.join(args.out, args.dataset, f\"{args.task}_epochs_{args.epochs}\", str(split))\
+                        \ne.g. /home/user/Bounded_Future_repo_from_GIT/output/JIGSAWS/gestures_epochs_1/0")
 parser.add_argument('--out', type=str, default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "feature_extractor"),
                     help="Path to output folder, where all models and results will be stored.")

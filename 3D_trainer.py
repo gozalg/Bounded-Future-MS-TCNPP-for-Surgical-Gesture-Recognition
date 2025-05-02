@@ -395,7 +395,6 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
 def main(split =3,upload =False,save_features=False):
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
     if args.resume_exp==None:
-        # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
         if os.path.exists(features_path):
             print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
             if input() == "y":
@@ -433,7 +432,7 @@ def main(split =3,upload =False,save_features=False):
     device_cpu = torch.device("cpu")
 
     checkpoint = None
-    if args.resume_exp:
+    if args.resume_exp or args.extract_features_only:
         output_folder = args.resume_exp
     else:
         # output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
@@ -445,7 +444,7 @@ def main(split =3,upload =False,save_features=False):
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
 
-    if args.resume_exp:
+    if args.resume_exp or args.extract_features_only:
         checkpoint = torch.load(checkpoint_file)
         args_checkpoint = checkpoint['args']
         for arg in args_checkpoint:
@@ -636,99 +635,101 @@ def main(split =3,upload =False,save_features=False):
 
     # ===== train model =====
     torch.cuda.empty_cache()
-    log("Start training...", output_folder)
-
     model = model.to(device_gpu)
-
+    
+    log("Start training...", output_folder)
+    
     start_epoch = 0
     if checkpoint:
         start_epoch = checkpoint['epoch']
         model_file = os.path.join(output_folder, "model_" + str(start_epoch-1) + ".pth")
-    for epoch in range(start_epoch, args.epochs):
+    # Train the model only if not extracting features only
+    if not args.extract_features_only:
+        for epoch in range(start_epoch, args.epochs):
 
-        train_loss = AverageMeter()
-        train_acc = AverageMeter()
-        model.train()
-
-
-        with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}/{args.epochs}) {"progress"}', total=int(len(train_loader))) as pbar:
-
-            # for batch_i, (data, target) in enumerate(train_loader):
-            train_loader_iter = iter(train_loader)
-            while True:
-                try:
-                    # pbar.update(1)
-                    (data, target) = next(train_loader_iter)
-                except StopIteration:
-                    break
-                except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
-                    print(e)
-
-                # for batch in train_loader:
-                optimizer.zero_grad()
-                # data, target = batch
-                data = Variable(data.to(device_gpu))
-                target = Variable(target.to(device_gpu), requires_grad=False)
-                batch_size = target.size(0)
-                # target = target.to(device_gpu, dtype=torch.int64)
-                output = model(data)
-                # target = target.to(dtype=torch.float)
-                if args.arch == "EfficientnetV2":
-                    features = output[1]
-                    output = output[0]
-
-                loss = criterion(output, target)
-                loss = torch.mean(loss)
-
-                loss.backward()
-                optimizer.step()
-
-                train_loss.update(loss.item(), batch_size)
-
-                predicted = torch.nn.Softmax(dim=1)(output)
-                _, predicted = torch.max(predicted, 1)
-                # _, predicted = torch.max(output, 1)
-
-                acc = (predicted == target).sum().item() / batch_size
-
-                train_acc.update(acc, batch_size)
-                pbar.update(1)
+            train_loss = AverageMeter()
+            train_acc = AverageMeter()
+            model.train()
 
 
+            with tqdm.tqdm(desc=f'{"Epoch"} ({epoch}/{args.epochs}) {"progress"}', total=int(len(train_loader))) as pbar:
 
-            pbar.close()
-            if scheduler is not None:
-                scheduler.step()
+                # for batch_i, (data, target) in enumerate(train_loader):
+                train_loader_iter = iter(train_loader)
+                while True:
+                    try:
+                        # pbar.update(1)
+                        (data, target) = next(train_loader_iter)
+                    except StopIteration:
+                        break
+                    except (FileNotFoundError, PIL.UnidentifiedImageError) as e:
+                        print(e)
 
-        log("Epoch {}: Train loss: {train_loss.avg:.4f} Train acc: {train_acc.avg:.3f}"
-            .format(epoch, train_loss=train_loss, train_acc=train_acc), output_folder)
-        if upload:
-            wandb.log({'train accuracy': train_acc.avg, 'loss': train_loss.avg}, step=epoch+1)
+                    # for batch in train_loader:
+                    optimizer.zero_grad()
+                    # data, target = batch
+                    data = Variable(data.to(device_gpu))
+                    target = Variable(target.to(device_gpu), requires_grad=False)
+                    batch_size = target.size(0)
+                    # target = target.to(device_gpu, dtype=torch.int64)
+                    output = model(data)
+                    # target = target.to(dtype=torch.float)
+                    if args.arch == "EfficientnetV2":
+                        features = output[1]
+                        output = output[0]
 
-        if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
-            log("Start evaluation...", output_folder)
+                    loss = criterion(output, target)
+                    loss = torch.mean(loss)
 
-            acc, f1, edit, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload)
-            all_eval_results.append([split, epoch, acc, f1, edit, f1_10, f1_25, f1_50])
-            full_eval_results = pd.DataFrame(all_eval_results,columns=['split num', 'epoch', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
-            full_eval_results.to_csv(output_folder + "/" + "evaluation_results.csv", index=False)
+                    loss.backward()
+                    optimizer.step()
 
-            if eval_metric == "F1" and f1 > best_metric:
-                best_metric = f1
-                best_epoch = epoch
-                # ===== save model =====
-                model_file = os.path.join(output_folder, "model_" + str(epoch) + ".pth")
-                torch.save(model.state_dict(), model_file)
-                log("Saved model to " + model_file, output_folder)
+                    train_loss.update(loss.item(), batch_size)
 
-                # ===== save checkpoint =====
-        current_state = {'epoch': epoch + 1,
-                         'model_weights': model.state_dict(),
-                         'optimizer': optimizer.state_dict(),
-                         'rng': torch.get_rng_state(),
-                         'args': args_dict
-                         }
-        torch.save(current_state, checkpoint_file)
+                    predicted = torch.nn.Softmax(dim=1)(output)
+                    _, predicted = torch.max(predicted, 1)
+                    # _, predicted = torch.max(output, 1)
+
+                    acc = (predicted == target).sum().item() / batch_size
+
+                    train_acc.update(acc, batch_size)
+                    pbar.update(1)
+
+
+
+                pbar.close()
+                if scheduler is not None:
+                    scheduler.step()
+
+            log("Epoch {}: Train loss: {train_loss.avg:.4f} Train acc: {train_acc.avg:.3f}"
+                .format(epoch, train_loss=train_loss, train_acc=train_acc), output_folder)
+            if upload:
+                wandb.log({'train accuracy': train_acc.avg, 'loss': train_loss.avg}, step=epoch+1)
+
+            if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
+                log("Start evaluation...", output_folder)
+
+                acc, f1, edit, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload)
+                all_eval_results.append([split, epoch, acc, f1, edit, f1_10, f1_25, f1_50])
+                full_eval_results = pd.DataFrame(all_eval_results,columns=['split num', 'epoch', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
+                full_eval_results.to_csv(output_folder + "/" + "evaluation_results.csv", index=False)
+
+                if eval_metric == "F1" and f1 > best_metric:
+                    best_metric = f1
+                    best_epoch = epoch
+                    # ===== save model =====
+                    model_file = os.path.join(output_folder, "model_" + str(epoch) + ".pth")
+                    torch.save(model.state_dict(), model_file)
+                    log("Saved model to " + model_file, output_folder)
+
+                    # ===== save checkpoint =====
+            current_state = {'epoch': epoch + 1,
+                            'model_weights': model.state_dict(),
+                            'optimizer': optimizer.state_dict(),
+                            'rng': torch.get_rng_state(),
+                            'args': args_dict
+                            }
+            torch.save(current_state, checkpoint_file)
 
 
     model.load_state_dict(torch.load(model_file))
@@ -801,43 +802,22 @@ def extract_features(model,
 if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0" if args.split_num in [2,3,4] else "1"
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    
-    # Extract features only
     if args.extract_features_only:
-        raise NotImplementedError
-        if args.split_num is not None:
-            fe_args = extract_features_only_init(args.split_num)
-            extract_features(fe_args.model,
-                             fe_args.list_of_train_examples,
-                             fe_args.list_of_valid_examples,
-                             fe_args.list_of_test_examples,
-                             fe_args.output_folder,
-                             fe_args.features_path,
-                             fe_args.gesture_ids,
-                             fe_args.normalize,
-                             fe_args.val_augmentation,
-                             fe_args.device_gpu)
-        else:
-            for split in range(num_of_splits):
-                fe_args = extract_features_only_init(split)
-                extract_features(fe_args.model, 
-                                 fe_args.list_of_train_examples, 
-                                 fe_args.list_of_valid_examples, 
-                                 fe_args.list_of_test_examples, 
-                                 fe_args.output_folder, 
-                                 fe_args.features_path, 
-                                 fe_args.gesture_ids, 
-                                 fe_args.normalize, 
-                                 fe_args.val_augmentation, 
-                                 fe_args.device_gpu)
-    else: # full run
-        if args.split_num is not None:
-            main(split=args.split_num, 
-                upload=args.wandb, 
+        args.split_num = os.path.basename(args.resume_exp).split("_")[-1]
+        # check if the split_num is a number
+        if not args.split_num.isdigit():
+            raise ValueError("split_num should be a number")
+        args.split_num = int(args.split_num)
+    if args.split_num is not None:
+        main(split=args.split_num, 
+            upload=args.wandb, 
+            save_features=True)
+    else:
+        start_split = 0
+        if args.resume_exp is not None:
+            start_split = os.path.basename(args.resume_exp).split("_")[-1]
+        for split in range(start_split, num_of_splits):
+            main(split=split,
+                upload=args.wandb,
                 save_features=True)
-        else:
-            for split in range(num_of_splits):
-                main(split=split,
-                    upload=args.wandb,
-                    save_features=True)
 
