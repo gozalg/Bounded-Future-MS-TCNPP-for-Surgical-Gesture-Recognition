@@ -143,7 +143,7 @@ folds_dir = os.path.join(data_dir, args.dataset, "folds")
 for split_num in list_of_splits:
     #-------------------- Set up the data paths --------------------#
     features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", args.dataset, "features", args.task)
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.task) # TODO: remove
+    # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.task) # TODO: remove
 
     args.split = str(split_num)
     print("split number: " + str(split_num))

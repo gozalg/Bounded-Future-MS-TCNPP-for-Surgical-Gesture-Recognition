@@ -85,7 +85,7 @@ SMP_PER_CLASS=400
 EPOCHS_NUM=100
 # SMP_PER_EPOCH=$(( CLASSES_N * SMP_PER_CLASS ))
 SRV=DGX
-script_name=${DATASET}_Features_${task}${SPLIT}
+script_name=${DATASET}_Features_${TASK}${SPLIT}
 #-------------------------------------------------
 
 mkdir -p ${TASKS_PATH}/logs
