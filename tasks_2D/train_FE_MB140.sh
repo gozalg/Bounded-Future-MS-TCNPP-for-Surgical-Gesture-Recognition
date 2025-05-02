@@ -8,12 +8,12 @@
 #--------------------- User ----------------------
 DATASET=MultiBypass140
 # TASK choices: [steps, phases, gestures]
-TASK=steps
+TASK=phases
 BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT
 TASKS_PATH=${BASE_PATH}/tasks_2D
 DATA_PATH=${BASE_PATH}/data
 # SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
-SPLIT=0
+SPLIT=4
 #-------------------------------------------------
 if [ ${DATASET} == "VTS" ]; then
     # FPS=30
@@ -45,6 +45,9 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
 elif [ ${DATASET} == "MultiBypass140" ]; then
+    if [ ${SPLIT} -eq 0 ]; then
+        mv ${DATA_PATH}/${DATASET}/features/phases ${DATA_PATH}/${DATASET}/features/phases_14
+    fi
     FPS=25
     LABEL_HZ=25
     TASK=${TASK}
