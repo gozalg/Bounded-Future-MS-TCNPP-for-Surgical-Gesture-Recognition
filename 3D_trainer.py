@@ -34,9 +34,8 @@ from utils_3D.util import WANDB_API_KEY
 
 args = parser.parse_args()
 # check if extract_fetures_only is set correctly
-if args.extract_features_only and args.resume_exp is not None or \
-   args.extract_features_only==False:
-    raise ValueError("extract_features_only should be set to True only when resume_exp is set with the path to the folder containing the results.")
+assert args.extract_features_only and args.resume_exp is not None or \
+   args.extract_features_only==False, f"extract_features_only should be set to True only when resume_exp is set with the path to the folder containing the results."
 # check if the dataset and task are valid
 assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
        args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
@@ -636,8 +635,10 @@ def main(split =3,upload =False,save_features=False):
     # ===== train model =====
     torch.cuda.empty_cache()
     model = model.to(device_gpu)
-    
-    log("Start training...", output_folder)
+    if args.extract_features_only:
+        log("Extracting features only...", output_folder)
+    else:
+        log("Start training...", output_folder)
     
     start_epoch = 0
     if checkpoint:
@@ -674,7 +675,7 @@ def main(split =3,upload =False,save_features=False):
                     # target = target.to(device_gpu, dtype=torch.int64)
                     output = model(data)
                     # target = target.to(dtype=torch.float)
-                    if args.arch == "EfficientnetV2":
+                    if args.arch in ["EfficientnetV2", "X3D-L"]:
                         features = output[1]
                         output = output[0]
 
@@ -811,7 +812,7 @@ if __name__ == '__main__':
     if args.split_num is not None:
         main(split=args.split_num, 
             upload=args.wandb, 
-            save_features=True)
+            save_features=args.save_features)
     else:
         start_split = 0
         if args.resume_exp is not None:
@@ -819,5 +820,5 @@ if __name__ == '__main__':
         for split in range(start_split, num_of_splits):
             main(split=split,
                 upload=args.wandb,
-                save_features=True)
+                save_features=args.save_features)
 
