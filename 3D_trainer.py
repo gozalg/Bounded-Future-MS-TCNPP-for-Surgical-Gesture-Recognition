@@ -821,4 +821,8 @@ if __name__ == '__main__':
             main(split=split,
                 upload=args.wandb,
                 save_features=args.save_features)
+    
+    print("="*51)
+    print("------ End of Feature Extractor Train Script ------")
+    print("="*51)
 
