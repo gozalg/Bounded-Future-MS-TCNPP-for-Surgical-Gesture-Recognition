@@ -11,7 +11,7 @@ data_dir = os.path.join(
     'data'
 )
 current_dataset = 'JIGSAWS' # 'JIGSAWS' # 'SAR_RARP50' # 'VTS' # 'MultiBypass140' #
-current_server  = 'WSL' # 'DGX' ,
+current_server  = 'WSL' # 'DGX' # 'WSL'
 
 
 parser = argparse.ArgumentParser(description="Train model for video-based surgical gestures recognition.")
