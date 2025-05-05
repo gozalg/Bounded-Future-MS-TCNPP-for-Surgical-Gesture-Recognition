@@ -392,7 +392,7 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
             video_features      = []
 
 def main(split =3,upload =False,save_features=False):
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.task, f'fold {split}', args.arch)
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.arch, args.task, f'fold {split}')
     if args.resume_exp==None:
         if os.path.exists(features_path):
             print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
@@ -438,7 +438,7 @@ def main(split =3,upload =False,save_features=False):
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
         cur_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         # output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
-        output_folder = os.path.join(args.out, args.dataset, f"{args.task}_epochs_{args.epochs}", str(split))
+        output_folder = os.path.join(args.out, args.dataset, args.arch, f"{args.task}_epochs_{args.epochs}", str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
