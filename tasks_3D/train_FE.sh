@@ -17,8 +17,10 @@ DATA_PATH=${BASE_PATH}/data
 # SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
 SPLIT=${SPLIT}
 # JIGSAWS: SPLIT_LIST=(0 1 2 3 4 5 6 7); for SPLIT in "${SPLIT_LIST[@]}"; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# JIGSAWS:  for SPLIT in {0..7}; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# VTS:      for SPLIT in {0..4}; do DATASET=VTS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# JIGSAWS:          for SPLIT in {0..7}; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# VTS:              for SPLIT in {0..4}; do DATASET=VTS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=steps; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=phases; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
 #-------------------------------------------------
 if [ ${ARCH}  == "X3D-L" ]; then
     train_script=3D_trainer
