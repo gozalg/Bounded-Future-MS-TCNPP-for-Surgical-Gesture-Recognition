@@ -351,6 +351,8 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         if "MultiBypass140" in directory:
             video_id = directory.split('/')[-1]
             img = Image.open(os.path.join(directory, self.image_tmpl.format(video_id, idx))).convert('RGB')
+        elif "VTS" in directory:
+            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx+1))).convert('RGB')
         else:
             img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         return [img]

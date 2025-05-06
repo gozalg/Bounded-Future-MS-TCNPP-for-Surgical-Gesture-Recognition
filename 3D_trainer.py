@@ -575,7 +575,7 @@ def main(split =3,upload =False,save_features=False):
                                                        GroupCenterCrop(args.input_size)])   ## need to be corrected
 
     for video in list_of_valid_examples:
-        if args.arch == "efficientnetV2":
+        if args.arch == "EfficientnetV2":
             data_set = Sequential2DTestGestureDataSet(root_path           = args.data_path,
                                                     video_id              = video,
                                                     transcriptions_dir    = args.transcriptions_dir, 
