@@ -58,7 +58,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     CLASSES_N=8
     SMP_STEP=60
     IMG_TMP={:09d}.png
-    VID_SUFFIX=None
+    VID_SUFFIX=""
     DIR_SUFFIX=${DATASET}
 elif [ ${DATASET} == "MultiBypass140" ]; then
     FPS=25
@@ -67,14 +67,14 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     if [ ${TASK} == "steps" ]; then
         CLASSES_N=46
     elif [ ${TASK} == "phases" ]; then
-        CLASSES_N=14
+        CLASSES_N=12
     else
         echo "Invalid argument (TASK): Choices: [steps, phases]"
         exit
     fi
     SMP_STEP=30
     IMG_TMP={}_{:08d}.jpg
-    VID_SUFFIX=None
+    VID_SUFFIX=""
     DIR_SUFFIX=${DATASET}
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
@@ -113,18 +113,19 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         python3 ${BASE_PATH}/${train_script}.py   \
                 --wandb true \
                 --eval_freq 1 \
-                --image_tmpl ${IMG_TMP} \
-                --dataset ${DATASET} \
-                --task ${TASK} \
-                --num_classes ${CLASSES_N} \
-                --number_of_samples_per_class ${SMP_PER_CLASS} \
-                --val_sampling_step ${SMP_STEP} \
-                --epochs ${EPOCHS_NUM} \
-                --data_path ${DATA_PATH}/${DATASET}/frames \
-                --transcriptions_dir ${DATA_PATH}/${DATASET}/transcriptions \
-                --out ${BASE_PATH}/output/feature_extractor \
-                --exp ${DATASET} \
-                --project_name ${DATASET}_Feature_Extractor_${TASK}_${SRV} \
-                --split_num ${SPLIT} \
+                --image_tmpl "${IMG_TMP}" \
+                --video_suffix ${VID_SUFFIX} \
+                --dataset "${DATASET}" \
+                --task "${TASK}" \
+                --num_classes "${CLASSES_N}" \
+                --number_of_samples_per_class "${SMP_PER_CLASS}" \
+                --val_sampling_step "${SMP_STEP}" \
+                --epochs "${EPOCHS_NUM}" \
+                --data_path" ${DATA_PATH}"/"${DATASET}"/frames \
+                --transcriptions_dir "${DATA_PATH}"/"${DATASET}"/transcriptions \
+                --out "${BASE_PATH}"/output/feature_extractor \
+                --exp "${DATASET}" \
+                --project_name "${DATASET}"_Feature_Extractor_"${TASK}"_"${SRV}" \
+                --split_num "${SPLIT}" \
                 --workers 64
                 # --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits \
