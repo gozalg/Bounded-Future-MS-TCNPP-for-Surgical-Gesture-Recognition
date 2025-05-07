@@ -132,10 +132,12 @@ parser.add_argument('--corner_cropping', type='bool', default=True,
 # ----------------------
 # Model
 # ----------------------
-parser.add_argument('--arch', type=str, default="X3D-L", choices=["EfficientnetV2", "X3D-L"],
+parser.add_argument('--arch', type=str, default="X3D", choices=["EfficientNetV2", "X3D"],
                     help="Network architecture.")
+parser.add_argument('--arch_size', type=str, default="L", choices=["XS", "S", "M", "L", "XL"],
+                    help="Network architecture size as follows:\n\tX3D choices: [XS, S, M, L, XL].\n\tEfficientnetV2 choices: [S, M, L].")
 parser.add_argument('--use_resnet_shortcut_type_B', type='bool', default=False,
-                    help="Whether to use shortcut connections of type B.")
+                    help="Whether to use shortcut connections of type B.") # TODO: remove
 parser.add_argument('--input_size', type=int, default=224, help="Target size (width/ height) of each frame.")
 # ----------------------
 # Training

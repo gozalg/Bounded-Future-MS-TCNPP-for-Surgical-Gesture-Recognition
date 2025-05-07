@@ -7,7 +7,8 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=gabriel.gozal@gmail.com
 #--------------------- User ----------------------
-ARCH=X3D-L # choices: [X3D-L, EfficientnetV2]
+ARCH=X3D # choices: [X3D, EfficientNetV2]
+ARCH_SIZE=L # choices: X3D: [XS, S, M, L] EfficientNetV2: [S, M, L]
 DATASET=${DATASET}
 # TASK choices: [steps, phases, gestures]
 TASK=${TASK}
@@ -21,16 +22,31 @@ SPLIT=${SPLIT}
 # VTS:              for SPLIT in {0..4}; do DATASET=VTS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
 # MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=steps; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
 # MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=phases; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# SAR_RARP50:       for SPLIT in {0..4}; do DATASET=SAR_RARP50; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
 #-------------------------------------------------
-if [ ${ARCH}  == "X3D-L" ]; then
+if [ ${ARCH}  == "X3D" ]; then
     train_script=3D_trainer
-elif [ ${ARCH} == "EfficientnetV2" ]; then
+elif [ ${ARCH} == "EfficientNetV2" ]; then
     train_script=3D_trainer
 else
-    echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientnetV2]"
+    echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
+    exit
+fi
+# chech match between arch and arch_size. for each arch check size given is in the list
+if [ ${ARCH} == "X3D" ]; then
+    arch_size_list=(XS S M L )
+elif [ ${ARCH} == "EfficientNetV2" ]; then
+    arch_size_list=(S M L)
+else
+    echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
+    exit
+fi
+if [[ ! " ${arch_size_list[@]} " =~ " ${ARCH_SIZE} " ]]; then
+    echo "Invalid argument (ARCH_SIZE): for ARCH: ${ARCH} Choices: [${arch_size_list[@]}]"
     exit
 fi
 
+# Check if DATASET is a valid argument
 if [ ${DATASET} == "VTS" ]; then
     # FPS=30
     # LABEL_HZ=30
@@ -110,7 +126,7 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         -e ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
         --container-mounts /rg/laufer_prj/gabrielg/:/rg/laufer_prj/gabrielg \
-        python3 ${BASE_PATH}/${train_script}.py   \
+        echo ${BASE_PATH}/${train_script}.py   \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl "${IMG_TMP}" \

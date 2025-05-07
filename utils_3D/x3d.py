@@ -12,7 +12,7 @@ class X3D(nn.Module):
     def __init__(self, size='l', pretrained=True, clip_len=16, input_size=112, num_classes=None):
         super().__init__()
         size = size.lower()
-        assert size in ['xs','s','m','l','xl'], f"Unsupported X3D size: {size}"
+        assert size in ['xs','s','m','l'], f"Unsupported X3D size: {size}"
         hub_name = f'x3d_{size}'
         # 1) load the pretrained backbone and strip off its head
         self.backbone = torch.hub.load(

@@ -18,7 +18,7 @@ import wandb
 import utils_3D.util
 from utils_3D.train_opts_3D import parser
 from utils_3D.resnet2D import resnet18
-from utils_3D.efficientnetV2 import EfficientnetV2
+from utils_3D.efficientnetV2 import EfficientNetV2
 from utils_3D.x3d import X3D
 from utils_3D.dataset import Gesture2dTrainSet, Sequential2DTestGestureDataSet
 from utils_3D.dataset import Gesture3dTrainSet, Sequential3DTestGestureDataSet
@@ -36,6 +36,13 @@ args = parser.parse_args()
 # check if extract_fetures_only is set correctly
 assert args.extract_features_only and args.resume_exp is not None or \
    args.extract_features_only==False, f"extract_features_only should be set to True only when resume_exp is set with the path to the folder containing the results."
+# check arch and arch size
+assert args.arch in ["EfficientNetV2", "X3D"], f"Invalid arch({args.arch})"
+assert  args.arch == "EfficientNetV2" and args.arch_size.upper() in ["S", "M", "L"] or \
+        args.arch == "X3D" and args.arch_size.upper() in ["XS", "S", "M", "L"], f"Invalid arch size({args.arch_size.upper()}) for the arch({args.arch}).\n\
+            \tFor EfficientNetV2, arch_size should be one of [S, M, L].\n\
+            \tFor X3D, arch_size should be one of [XS, S, M, L]."
+
 # check if the dataset and task are valid
 assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
        args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
@@ -292,7 +299,7 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
                 Y = np.append(Y, target.numpy())
                 data = data.to(device_gpu)
                 output = model(data)
-                # if model.arch == "EfficientnetV2":
+                # if model.arch == "EfficientNetV2":
                 output = output[0]
 
                 predicted = torch.nn.Softmax(dim=1)(output)
@@ -392,7 +399,7 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
             video_features      = []
 
 def main(split =3,upload =False,save_features=False):
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', args.arch, args.task, f'fold {split}')
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', f"{args.arch}-{args.arch_size.upper()}", args.task, f'fold {split}')
     if args.resume_exp==None:
         if os.path.exists(features_path):
             print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
@@ -438,7 +445,7 @@ def main(split =3,upload =False,save_features=False):
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
         cur_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         # output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
-        output_folder = os.path.join(args.out, args.dataset, args.arch, f"{args.task}_epochs_{args.epochs}", str(split))
+        output_folder = os.path.join(args.out, args.dataset, f"{args.arch}-{args.arch_size.upper()}", f"{args.task}_epochs_{args.epochs}", str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
@@ -471,20 +478,20 @@ def main(split =3,upload =False,save_features=False):
 
     # ===== prepare model =====
 
-    if args.arch == "EfficientnetV2":
-        model = EfficientnetV2(size="m",num_classes=args.num_classes,pretrained=True)
-    elif args.arch == "X3D-L":
+    if args.arch == "EfficientNetV2":
+        model = EfficientNetV2(size=args.arch_size.lower(),num_classes=args.num_classes,pretrained=True)
+    elif args.arch == "X3D":
         args.clip_len = 16
         model = X3D(
-        size='l',
+        size=args.arch_size.lower(),
         pretrained=True,
         clip_len=args.clip_len,       # or hard-coded 16
-        input_size=args.input_size,   # consistent with your 2D path
+        input_size=args.input_size,   # consistent with 2D path
         num_classes=args.num_classes  # <--- this turns on the head
         )
         args.feature_dim = model.feat_dim
     else:
-        raise NotImplementedError("Other than EfficientnetV2 or X3D is not implemented yet")
+        raise NotImplementedError("Other than EfficientNetV2 or X3D is not implemented yet")
         model = resnet18(pretrained=True, progress=True, num_classes=args.num_classes)
 
     if checkpoint:
@@ -525,7 +532,7 @@ def main(split =3,upload =False,save_features=False):
     train_augmentation = model.get_augmentation(crop_corners=args.corner_cropping,
                                                 do_horizontal_flip=args.do_horizontal_flip)
 
-    if args.arch == "EfficientnetV2":
+    if args.arch == "EfficientNetV2":
         train_set = Gesture2dTrainSet(list_of_train_examples,
                                     args.data_path , 
                                     args.transcriptions_dir, 
@@ -537,7 +544,7 @@ def main(split =3,upload =False,save_features=False):
                                     normalize         = normalize, 
                                     epoch_size        = (args.number_of_samples_per_class * args.num_classes), 
                                     debag             = False)
-    elif args.arch == "X3D-L":
+    elif args.arch == "X3D":
         train_set = Gesture3dTrainSet(list_of_train_examples,
                                     root_path          = args.data_path,
                                     transcriptions_dir = args.transcriptions_dir,
@@ -575,7 +582,7 @@ def main(split =3,upload =False,save_features=False):
                                                        GroupCenterCrop(args.input_size)])   ## need to be corrected
 
     for video in list_of_valid_examples:
-        if args.arch == "EfficientnetV2":
+        if args.arch == "EfficientNetV2":
             data_set = Sequential2DTestGestureDataSet(root_path           = args.data_path,
                                                     video_id              = video,
                                                     transcriptions_dir    = args.transcriptions_dir, 
@@ -586,7 +593,7 @@ def main(split =3,upload =False,save_features=False):
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
                                                     transform             = val_augmentation)  ##augmentation are off
-        elif args.arch == "X3D-L":
+        elif args.arch == "X3D":
             data_set = Sequential3DTestGestureDataSet(video_root          = args.data_path, 
                                                     list_of_videos        = [video],
                                                     transcriptions_dir    = args.transcriptions_dir, 
@@ -604,7 +611,7 @@ def main(split =3,upload =False,save_features=False):
                                                        collate_fn       = no_none_collate))
 
     for video in list_of_test_examples:
-        if args.arch == "EfficientnetV2":
+        if args.arch == "EfficientNetV2":
             data_set = Sequential2DTestGestureDataSet(root_path             = args.data_path, 
                                                     video_id              = video,
                                                     transcriptions_dir    = args.transcriptions_dir,
@@ -615,7 +622,7 @@ def main(split =3,upload =False,save_features=False):
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
                                                     transform             = val_augmentation)  ##augmentation are off
-        elif args.arch == "X3D-L":
+        elif args.arch == "X3D":
             data_set = Sequential3DTestGestureDataSet(video_root          = args.data_path, 
                                                     list_of_videos        = [video],
                                                     transcriptions_dir    = args.transcriptions_dir,
@@ -675,7 +682,7 @@ def main(split =3,upload =False,save_features=False):
                     # target = target.to(device_gpu, dtype=torch.int64)
                     output = model(data)
                     # target = target.to(dtype=torch.float)
-                    if args.arch in ["EfficientnetV2", "X3D-L"]:
+                    if args.arch in ["EfficientNetV2", "X3D"]:
                         features = output[1]
                         output = output[0]
 
@@ -771,7 +778,7 @@ def extract_features(model,
     all_videos = list_of_train_examples + list_of_valid_examples + list_of_test_examples
 
     for video in all_videos:
-        if args.arch == "EfficientnetV2":
+        if args.arch == "EfficientNetV2":
             data_set = Sequential2DTestGestureDataSet(  root_path             = args.data_path, 
                                                         video_id              = video,
                                                         transcriptions_dir    = args.transcriptions_dir,
@@ -782,7 +789,7 @@ def extract_features(model,
                                                         video_suffix          = args.video_suffix,
                                                         normalize             = normalize,
                                                         transform             = val_augmentation)  ##augmentation are off
-        elif args.arch == "X3D-L":
+        elif args.arch == "X3D":
             data_set = Sequential3DTestGestureDataSet(  video_root            = args.data_path, 
                                                         list_of_videos        = [video],
                                                         transcriptions_dir    = args.transcriptions_dir,

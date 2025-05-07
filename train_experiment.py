@@ -30,13 +30,12 @@ parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
                     "Only LOUO supported for TBD.")
 parser.add_argument('--task', default="gestures", choices=['gestures', 'steps', 'phases', 'tools', 'multi-taks'])
-parser.add_argument('--feature_extractor', type=str, default="2D-EfficientNetV2-m", 
-                    choices=['3D-ResNet-18', '3D-ResNet-50', 
-                             "2D-ResNet-18", "2D-ResNet-34",
-                             "2D-EfficientNetV2-s", "2D-EfficientNetV2-m", "2D-EfficientNetV2-l"])
+parser.add_argument('--feature_extractor', type=str, choices=[  "X3D-XS", "X3D-S", "X3D-M", "X3D-L",\
+                                                                "EfficientNetV2-S", "EfficientNetV2-M", "EfficientNetV2-L"], default="X3D-L")
 parser.add_argument('--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
 parser.add_argument('--split', choices=['0', '1', '2', '3', '4', '5', '6', '7', 'all'], default='all')
-parser.add_argument('--features_dim', default=1280, type=int)
+parser.add_argument('--features_dim', type=int, choices=[192, 1280], default=192,
+                    help="Number of features to use. 192 for X3D-L, 1280 for EfficientNetV2-m.")
 parser.add_argument('--lr', default='0.0010351748096577', type=float) # 0.0010351748096577
 parser.add_argument('--num_epochs', default=40, type=int) # 40
 parser.add_argument('--eval_rate', default=1, type=int)
@@ -70,6 +69,9 @@ args = parser.parse_args()
 DEBUG = args.DEBUG
 if DEBUG:
     args.upload = False
+
+assert "X3D" in args.feature_extractor and args.features_dim == 192 or "EfficientNetV2" in args.feature_extractor and args.features_dim == 1280, \
+    "Feature extractor and features dimension do not match. X3D-L -> 192, EfficientNetV2-m -> 1280"
 
 #------------------------------------------- Init -------------------------------------------------#
 
@@ -125,7 +127,7 @@ print(colored(experiment_name, "green"))
 
 
 # summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.eval_scheme, args.task, experiment_name) 
-summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.task, experiment_name) 
+summaries_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "summaries", args.dataset, args.feature_extractor, args.task, experiment_name) 
 
 
 if not DEBUG:
@@ -139,12 +141,12 @@ full_test_results   = pd.DataFrame()
 
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 # models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.network, args.eval_scheme, args.task)
-models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.task)
+models = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "models", args.dataset, args.feature_extractor, args.task)
 folds_dir = os.path.join(data_dir, args.dataset, "folds")
 #------------------------------------------- Main -------------------------------------------------#
 for split_num in list_of_splits:
     #-------------------- Set up the data paths --------------------#
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", args.dataset, "features", args.task)
+    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", args.dataset, "features", args.feature_extractor, args.task)
     # features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "features", args.dataset, args.task) # TODO: remove
 
     args.split = str(split_num)
