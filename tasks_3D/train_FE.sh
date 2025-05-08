@@ -54,7 +54,7 @@ if [ ${DATASET} == "VTS" ]; then
     TASK=gestures
     SMP_STEP=6
     IMG_TMP=img_{:05d}.jpg
-    VID_SUFFIX=_side
+    # VID_SUFFIX=_side
     DIR_SUFFIX=${DATASET}/${TASK}
     VID_LIST_SUFFIX=/${TASK}
 elif [ ${DATASET} == "JIGSAWS" ]; then
@@ -64,7 +64,7 @@ elif [ ${DATASET} == "JIGSAWS" ]; then
     TASK=gestures
     SMP_STEP=80
     IMG_TMP=img_{:05d}.jpg
-    VID_SUFFIX=_capture2
+    # VID_SUFFIX=_capture2
     DIR_SUFFIX=${DATASET}/${TASK}
     VID_LIST_SUFFIX=/${TASK}
 elif [ ${DATASET} == "SAR_RARP50" ]; then
@@ -74,7 +74,7 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     CLASSES_N=8
     SMP_STEP=60
     IMG_TMP={:09d}.png
-    VID_SUFFIX=""
+    # VID_SUFFIX=""
     DIR_SUFFIX=${DATASET}
 elif [ ${DATASET} == "MultiBypass140" ]; then
     FPS=25
@@ -90,7 +90,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     fi
     SMP_STEP=30
     IMG_TMP={}_{:08d}.jpg
-    VID_SUFFIX=""
+    # VID_SUFFIX=""
     DIR_SUFFIX=${DATASET}
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
@@ -126,11 +126,10 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         -e ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
         --container-mounts /rg/laufer_prj/gabrielg/:/rg/laufer_prj/gabrielg \
-        echo ${BASE_PATH}/${train_script}.py   \
+        python3 ${BASE_PATH}/${train_script}.py   \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl "${IMG_TMP}" \
-                --video_suffix ${VID_SUFFIX} \
                 --dataset "${DATASET}" \
                 --task "${TASK}" \
                 --num_classes "${CLASSES_N}" \
@@ -145,3 +144,4 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --split_num "${SPLIT}" \
                 --workers 64
                 # --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits \
+                # --video_suffix ${VID_SUFFIX} \
