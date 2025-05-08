@@ -104,7 +104,7 @@ srun    --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
                 --feature_extractor ${FEATURE_EXTRRACTOR} \
                 --network MS-TCN2 \
                 --split all \
-                --features_dim 1280 \
+                --features_dim ${FTR_DIM} \
                 --lr 0.0010351748096577 \
                 --num_epochs 40 \
                 --eval_rate 1 \
