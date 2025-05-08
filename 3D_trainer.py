@@ -49,7 +49,16 @@ assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestu
 if args.dataset == "MultiBypass140":
     assert args.num_classes == 46                       and args.task in ["steps"] or \
            args.num_classes == 12                       and args.task in ["phases"], f"Invalid num_classes({args.num_classes}) for the task({args.task})"
-
+# Override the video_suffix based on the dataset
+if args.dataset in ["SAR_RARP50", "MultiBypass140"]:
+    args.video_suffix = ''
+elif args.dataset == "VTS":
+    args.video_suffix = '_side'
+elif args.dataset == "JIGSAWS":
+    args.video_suffix = '_capture2'    
+else:
+    raise NotImplementedError("Other datasets than: [\"VTS\", \"JIGSAWS\", \"SAR_RARP50\", \"MultiBypass140\"] is not implemented yet")
+    
 gesture_ids = (gestures_VTS if args.dataset == "VTS" else 
                gestures_JIGSAWS if args.dataset == "JIGSAWS" else
                gestures_SAR_RARP50 if args.dataset == "SAR_RARP50" else 
