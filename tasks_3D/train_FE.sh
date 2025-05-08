@@ -136,7 +136,7 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --number_of_samples_per_class "${SMP_PER_CLASS}" \
                 --val_sampling_step "${SMP_STEP}" \
                 --epochs "${EPOCHS_NUM}" \
-                --data_path" ${DATA_PATH}"/"${DATASET}"/frames \
+                --data_path "${DATA_PATH}"/"${DATASET}"/frames \
                 --transcriptions_dir "${DATA_PATH}"/"${DATASET}"/transcriptions \
                 --out "${BASE_PATH}"/output/feature_extractor \
                 --exp "${DATASET}" \

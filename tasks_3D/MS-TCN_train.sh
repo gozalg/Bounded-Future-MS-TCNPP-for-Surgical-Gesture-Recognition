@@ -16,16 +16,21 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:/usr/local/lib/python3.10/dist-packages/
 BASE_PATH=/data/home/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv != "DGX"]
 # BASE_PATH=/rg/laufer_prj/gabrielg/BoundedFuture++/Bounded_Future_from_GIT # for [srv == "DGX"]
 TASKS_PATH=${BASE_PATH}/tasks_3D
-SRV=WSL                             # options: [DGX, WSL]
-DATASET=$1                          # options: [VTS, JIGSAWS, SAR_RARP50, MultiBypass140]   $1 for [srv != "DGX"]
-TASK=$2                             # options: [gestures, phases, steps]                    $2 for [srv != "DGX]
+SRV=DGX                             # options: [DGX, WSL]
+if [ ${SRV} == "DGX" ]; then
+    DATASET=JIGSAWS                 # options: [VTS, JIGSAWS, SAR_RARP50, MultiBypass140]   $1 for [srv == "DGX"]
+    TASK=gestures                   # options: [gestures, phases, steps]                    $2 for [srv == "DGX"]
+else
+    DATASET=$1                      # options: [VTS, JIGSAWS, SAR_RARP50, MultiBypass140]   $1 for [srv != "DGX"]
+    TASK=$2                         # options: [gestures, phases, steps]                    $2 for [srv != "DGX]
+fi
 GPUS=1
 RR_or_BF=RR                         # RR for RR-MS-TCN ("offline"), BF for BF-MS-TCN ("online")
 W_MAX=20                            # [0,1,2,3,6,7,8,10,12,13,14,15,16,17,20]
 LAYERS_N=10                         # [2,3,4,5,6,8,10]
 R_N=3                               # [0,1,2,3]
 #------------------------------
-FEATURE_EXTRRACTOR=EfficientNetV2-M   # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
+FEATURE_EXTRRACTOR=X3D-L   # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
 #------------------------------
 EPOCHS_NUM=40
 EVAL_FREQ=1
