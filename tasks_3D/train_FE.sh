@@ -26,8 +26,10 @@ SPLIT=${SPLIT}
 #-------------------------------------------------
 if [ ${ARCH}  == "X3D" ]; then
     train_script=3D_trainer
+    batch_size=4
 elif [ ${ARCH} == "EfficientNetV2" ]; then
     train_script=3D_trainer
+    batch_size=32
 else
     echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
     exit
@@ -142,6 +144,6 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --exp "${DATASET}" \
                 --project_name "${DATASET}"_Feature_Extractor_"${TASK}"_"${SRV}" \
                 --split_num "${SPLIT}" \
+                --batch_size "${batch_size}" \
+                --resume_exp "${BASE_PATH}"/output/feature_extractor/"${DATASET}"/X3D-L/"${TASK}"_epochs_100/"${SPLIT}" \
                 --workers 64
-                # --video_lists_dir ${BASE_PATH}/data/${DATASET}/Splits \
-                # --video_suffix ${VID_SUFFIX} \
