@@ -608,7 +608,7 @@ def main(split =3,upload =False,save_features=False):
                                                     transcriptions_dir    = args.transcriptions_dir, 
                                                     gesture_ids           = gesture_ids,
                                                     snippet_length        = args.clip_len,     # e.g. 16
-                                                    sampling_step         = 6,                                                    
+                                                    sampling_step         = args.video_sampling_step,                                                    
                                                     image_tmpl            = args.image_tmpl,
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
@@ -637,7 +637,7 @@ def main(split =3,upload =False,save_features=False):
                                                     transcriptions_dir    = args.transcriptions_dir,
                                                     gesture_ids           = gesture_ids,
                                                     snippet_length        = args.clip_len,     # e.g. 16
-                                                    sampling_step         = 6,
+                                                    sampling_step         = args.video_sampling_step,
                                                     image_tmpl            = args.image_tmpl,
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,

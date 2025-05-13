@@ -296,6 +296,10 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         _initial_labeled_frame = gestures[0][0]
         _final_labaled_frame = gestures[-1][1] if "SAR_RARP50" not in self.root_path else gestures[-1][0]
 
+        # Check if _initial_labeled_frame exist in folder
+        sorted_frames = sorted(os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)))[0]
+        _initial_labeled_frame = max(_initial_labeled_frame, extract_frame_number(sorted_frames, self.image_tmpl))
+            
         _last_rgb_num = 0
         for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
             filename = os.fsdecode(file)
@@ -351,8 +355,6 @@ class Sequential2DTestGestureDataSet(data.Dataset):
         if "MultiBypass140" in directory:
             video_id = directory.split('/')[-1]
             img = Image.open(os.path.join(directory, self.image_tmpl.format(video_id, idx))).convert('RGB')
-        elif "VTS" in directory:
-            img = Image.open(os.path.join(directory, self.image_tmpl.format(idx+1))).convert('RGB')
         else:
             img = Image.open(os.path.join(directory, self.image_tmpl.format(idx))).convert('RGB')
         return [img]
@@ -525,7 +527,7 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         self.transcriptions_dir= transcriptions_dir
         self.gesture_ids       = gesture_ids
         self.snippet_length    = snippet_length
-        self.sampling_step     = sampling_step
+        self.sampling_step     = sampling_step * snippet_length
         self.image_tmpl        = image_tmpl
         self.video_suffix      = video_suffix
         self.normalize         = normalize
@@ -540,41 +542,40 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         for vid in videos:
             self.video_name = vid
             self._parse_list_files(vid)  # inherited from Gesture2dTrainSet
+            
+        # 4) Now precompute all (video_id, clip_start) pairs
+        sorted_frames = sorted(os.listdir(os.path.join(self.root_path, vid + self.video_suffix)))[0]
+        first_frame = extract_frame_number(sorted_frames, self.image_tmpl)
+        self.clip_info = []
+        for vid, frames in self.frame_num_data.items():
+            max_start = len(frames) - self.snippet_length
+            if max_start < 0:
+                continue
+            for start in range(first_frame, max_start + 1, self.sampling_step):
+                self.clip_info.append((vid, start))
 
     def __len__(self):
-        # total clips = sum over videos of floor((num_frames - snippet_length)/sampling_step)+1
-        total = 0
-        for vid, frames in self.frame_num_data.items():
-            total += max(0, (len(frames) - self.snippet_length) // self.sampling_step + 1)
-        return total
+        return len(self.clip_info)
 
     def __getitem__(self, index):
-        # figure out which video and which clip-offset
-        # iterate videos until index falls into that video's clip count
-        running = 0
-        for vid, frames in self.frame_num_data.items():
-            n_clips = max(0, (len(frames) - self.snippet_length) // self.sampling_step + 1)
-            if index < running + n_clips:
-                clip_idx = index - running
-                start_frame_idx = frames[clip_idx * self.sampling_step]
-                # build the snippet of original frame numbers
-                clip_frame_numbers = frames[clip_idx * self.sampling_step :
-                                           clip_idx * self.sampling_step + self.snippet_length]
-                break
-            running += n_clips
-        else:
-            raise IndexError
+        # 1) pick which (video_id, start) we’re serving
+        video_id, start = self.clip_info[index]
 
-        # load images
-        imgs = []
-        image_folder = f"{self.video_root}/{vid}{self.video_suffix}"
-        for fn in clip_frame_numbers:
-            pil_img = self._load_image(image_folder, fn)[0]
-            imgs.append(pil_img)
+        # 2) collect the exact frame numbers for this snippet
+        frame_indices = self.frame_num_data[video_id][
+            start : start + self.snippet_length
+        ]
+
+        # 3) load each frame from its folder
+        folder = os.path.join(self.root_path, video_id + self.video_suffix)
+        pil_frames = []
+        for fi in frame_indices:
+            img = self._load_image(folder, fi)[0]
+            pil_frames.append(img)
 
         # apply transforms (GroupScale + CenterCrop) then normalize + to-tensor
         if self.transform:
-            imgs = self.transform(imgs)
+            imgs = self.transform(pil_frames)
         # imgs is a list of PIL images → ToTensor & stack
         clips = [T.ToTensor()(im) for im in imgs]
         clip_tensor = torch.stack(clips, dim=1)  # (C, T, H, W)
@@ -587,7 +588,7 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         #    not by the raw frame number.
         #    Since clip_idx * sampling_step is our starting position,
         #    the last label is at:
-        label_pos = clip_idx * self.sampling_step + (self.snippet_length - 1)
-        target = self.labels_data[vid][label_pos]
+        label_pos = index * self.sampling_step + (self.snippet_length - 1)
+        target = self.labels_data[video_id][label_pos]
 
         return clip_tensor, target
