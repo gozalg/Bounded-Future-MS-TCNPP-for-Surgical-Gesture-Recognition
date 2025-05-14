@@ -437,6 +437,8 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
         # 2) Store our 3D sampling & augment params
         self.snippet_length = snippet_length
         self.sampling_step  = sampling_step*snippet_length
+        if "SAR_RARP50" in self.root_path:
+            self.video_samp_rate = 6
         self.transform      = transform
         self.normalize      = normalize
 
@@ -449,13 +451,19 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
                       for i in range(len(self.labels_data[vid]))]
                 for vid in self.labels_data
             }
-        # else: leave self.frame_num_data as set by Gesture2dTrainSet._parse_list_files
+        else:
+            # rebuild as 1,1+step,1+2*step… to match labels_data length
+            self.frame_num_data = {
+                vid: [i * sampling_step # TODO self.sampling_step?
+                      for i in range(len(self.labels_data[vid]))]
+                for vid in self.labels_data
+            }
 
 
         # 4) Now precompute all (video_id, clip_start) pairs
         self.clip_info = []
         for vid, frames in self.frame_num_data.items():
-            max_start = len(frames) - self.snippet_length
+            max_start = len(frames)*sampling_step - self.snippet_length# TODO SAR_RARP50 CONTINUE HERE *sampling_step
             if max_start < 0:
                 continue
             for start in range(0, max_start + 1, self.sampling_step):
@@ -472,9 +480,16 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
         video_id, start = self.clip_info[index]
 
         # 2) collect the exact frame numbers for this snippet
-        frame_indices = self.frame_num_data[video_id][
-            start : start + self.snippet_length
-        ]
+        if "SAR_RARP50" not in self.root_path:
+            frame_indices = self.frame_num_data[video_id][
+                start : start + self.snippet_length
+            ]
+        else:
+            # search for start index in frame_num_data
+            start = self.frame_num_data[video_id].index(start)
+            frame_indices = self.frame_num_data[video_id][
+                start : start + self.snippet_length
+            ]
 
         # 3) load each frame from its folder
         folder = os.path.join(self.root_path, video_id + self.video_suffix)
@@ -494,8 +509,13 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
             clip = self.normalize(clip)
 
         # 6) label is gesture at the last frame
-        # frame_indices[-1] is a 1-based frame number; convert to 0-based index
-        raw_label = self.labels_data[video_id][frame_indices[-1] - 1]
+        if "SAR_RARP50" not in self.root_path:
+            # frame_indices[-1] is a 1-based frame number; convert to 0-based index
+            raw_label = self.labels_data[video_id][frame_indices[-1] - 1]
+        else:
+            # frame_indices[-1] is a 0-based frame number, but we need to adjust to the video's FPS to label Hz frequency
+            # e.g. 0, 6, 12, 18, 24 → 0, 1, 2, 3, 4
+            raw_label = self.labels_data[video_id][frame_indices[-1]//self.video_samp_rate] 
         # map it into its numeric index in the gesture_ids list
         label = self.gesture_ids.index(raw_label)  # e.g. "G3" → 2
 

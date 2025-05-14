@@ -575,12 +575,39 @@ def main(split =3,upload =False,save_features=False):
         batch = list(filter(lambda x: x is not None, batch))
         return torch.utils.data.dataloader.default_collate(batch)
     
+    # For SAR_RARP50 dataset: 
+    import torch.nn.functional as F
+    def pad_collate(batch):
+        """
+        batch: list of (clip, target) pairs
+        where clip is a Tensor of shape [C, T_i, H, W]
+        """
+        clips, targets = zip(*batch)
+        max_t = max(c.shape[1] for c in clips)
+        padded_clips = []
+        for c in clips:
+            t = c.shape[1]
+            if t < max_t:
+                pad = (0, 0, 0, 0, 0, max_t - t)
+                c = F.pad(c, pad, "constant", 0)
+            padded_clips.append(c)
+        clips_tensor = torch.stack(padded_clips, dim=0)
+
+        # ensure every target is a Tensor
+        targets = [
+            t if isinstance(t, torch.Tensor)
+            else torch.tensor(t, dtype=torch.long)
+            for t in targets
+        ]
+        targets_tensor = torch.stack(targets, dim=0)
+        return clips_tensor, targets_tensor
+    
     train_loader = torch.utils.data.DataLoader(train_set, 
                                                batch_size       = args.batch_size, 
                                                shuffle          = True,
                                                num_workers      = args.workers, 
                                                worker_init_fn   = init_train_loader_worker,
-                                               collate_fn       = no_none_collate)
+                                               collate_fn       = pad_collate if args.dataset=="SAR_RARP50" else no_none_collate)
     log("Training set: will sample {} gesture snippets per pass".format(train_loader.dataset.__len__()), output_folder)
 
 
@@ -617,7 +644,7 @@ def main(split =3,upload =False,save_features=False):
                                                        batch_size       = args.eval_batch_size,
                                                        shuffle          = False, 
                                                        num_workers      = args.workers,
-                                                       collate_fn       = no_none_collate))
+                                                       collate_fn       = pad_collate if args.dataset=="SAR_RARP50" else no_none_collate))
 
     for video in list_of_test_examples:
         if args.arch == "EfficientNetV2":
@@ -646,7 +673,7 @@ def main(split =3,upload =False,save_features=False):
                                                         batch_size      = args.eval_batch_size,
                                                         shuffle         = False, 
                                                         num_workers     = args.workers,
-                                                        collate_fn      = no_none_collate))
+                                                        collate_fn      = pad_collate if args.dataset=="SAR_RARP50" else no_none_collate))
 
     # ===== train model =====
     torch.cuda.empty_cache()
