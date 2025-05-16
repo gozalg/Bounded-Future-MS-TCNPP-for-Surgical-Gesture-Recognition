@@ -119,8 +119,10 @@ num_layers_PG           = args.num_layers_PG
 num_layers_R            = args.num_layers_R
 num_f_maps              = args.num_f_maps
 use_dynamic_wmax        = True if args.use_dynamic_wmax == "True" else False
-experiment_name         = args.group + " backbone: " + args.feature_extractor + " task: " + args.task + " splits: " + args.split + " net: " + \
-                          args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max) + " use_dynamic_wmax: " + str(args.use_dynamic_wmax) # TODO dynamic w_max
+# experiment_name         = args.group + " backbone: " + args.feature_extractor + " task: " + args.task + " splits: " + args.split + " net: " + \
+#                           args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max) + " use_dynamic_wmax: " + str(args.use_dynamic_wmax) # TODO dynamic w_max
+experiment_name         = "backbone: " + args.feature_extractor + " task: " + args.task + " splits: " + args.split + " net: " + \
+                          args.network + " is RR_or_BF_mode: " + str(args.RR_or_BF_mode) + " w_max: " + str(args.w_max)
 args.group              = experiment_name
 hyper_parameter_tuning  = args.hyper_parameter_tuning
 print(colored(experiment_name, "green"))
