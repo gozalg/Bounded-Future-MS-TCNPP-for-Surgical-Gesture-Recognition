@@ -547,7 +547,7 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         self.transcriptions_dir= transcriptions_dir
         self.gesture_ids       = gesture_ids
         self.snippet_length    = snippet_length
-        self.sampling_step     = sampling_step * snippet_length
+        self.sampling_step     = sampling_step
         self.image_tmpl        = image_tmpl
         self.video_suffix      = video_suffix
         self.normalize         = normalize
@@ -573,6 +573,8 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
                 continue
             for start in range(first_frame, max_start + 1, self.sampling_step):
                 self.clip_info.append((vid, start))
+                
+        # self.sampling_step     = sampling_step * snippet_length
 
     def __len__(self):
         return len(self.clip_info)

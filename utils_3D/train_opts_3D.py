@@ -79,23 +79,23 @@ elif current_dataset=='JIGSAWS':
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
-    parser.add_argument('--val_sampling_step', type=int, default=80,
+    parser.add_argument('--val_sampling_step', type=int, default=1,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 #------------------- MultiBypass140 -------------------
 elif current_dataset=='MultiBypass140':
     # Added - from here
-    parser.add_argument('--num_classes', type=int, default=12, 
+    parser.add_argument('--num_classes', type=int, default=46, 
                         help="Number of classes.") # 12 for phases, 46 for steps
     # Added - till here
     parser.add_argument('--image_tmpl', default='{}_{:08d}.jpg') # 1st arg is dir name, 2nd arg is frame number
     # parser.add_argument('--video_suffix', type=str,choices=['_side', '_top', # relevant for VTS     
     #                                                         '_capture1', '_capture2', # relevant for JIGSAWS
     #                                                         ''], default='')
-    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='phases',
+    parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='steps',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
-    parser.add_argument('--val_sampling_step', type=int, default=30,
+    parser.add_argument('--val_sampling_step', type=int, default=1,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 #--------------------- SAR_RARP50 ---------------------
@@ -112,7 +112,7 @@ elif current_dataset=='SAR_RARP50':
     parser.add_argument('--task', type=str, choices=['gestures', 'steps', 'phases'], default='gestures',
                         help =  "['steps', 'phases'] - MultiBypass140 task to evaluate.\n" +
                                 "'gestures' - VTS & JIGSAWS & SAR_RARP50 task to evaluate.")
-    parser.add_argument('--val_sampling_step', type=int, default=60,
+    parser.add_argument('--val_sampling_step', type=int, default=1,
                     help="Describes how the validation video data has been downsampled from the original temporal "
                          "resolution (by taking every <video_sampling_step>th frame).")
 else:

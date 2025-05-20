@@ -449,6 +449,8 @@ def main(split =3,upload =False,save_features=False):
     checkpoint = None
     if args.resume_exp or args.extract_features_only:
         output_folder = args.resume_exp
+        if args.extract_features_only:
+            args.resume_exp = None
     else:
         # output_folder = os.path.join(args.out, args.dataset, args.exp + "_" + datetime.datetime.now().strftime("%Y%m%d"),
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
@@ -457,15 +459,29 @@ def main(split =3,upload =False,save_features=False):
         output_folder = os.path.join(args.out, args.dataset, f"{args.arch}-{args.arch_size.upper()}", f"{args.task}_epochs_{args.epochs}", str(split))
         os.makedirs(output_folder, exist_ok=True)
 
-    checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
+    if args.extract_features_only:
+        # find best model
+        best_epoch = 0
+        for f in sorted(os.listdir(output_folder)):
+            if f.startswith("model_") and f.endswith(".pth"):
+                cur_epoch = int(f.split("_")[1].split(".")[0])
+                if cur_epoch > best_epoch:
+                    best_epoch = cur_epoch
+        checkpoint_file = os.path.join(output_folder, f"model_{best_epoch}.pth")
+    else:
+        checkpoint_file = os.path.join(output_folder, "checkpoint" + ".pth.tar")
 
-    if args.resume_exp or args.extract_features_only:
+    if args.resume_exp:
         checkpoint = torch.load(checkpoint_file)
         args_checkpoint = checkpoint['args']
         for arg in args_checkpoint:
             setattr(args, arg, args_checkpoint[arg])
         log("====================================================================", output_folder)
         log("Resuming experiment...", output_folder)
+        log("====================================================================", output_folder)
+    elif args.extract_features_only:
+        log("====================================================================", output_folder)
+        log("Extracting features...", output_folder)
         log("====================================================================", output_folder)
     else:
         log("Used parameters...", output_folder)
@@ -488,15 +504,19 @@ def main(split =3,upload =False,save_features=False):
     # ===== prepare model =====
 
     if args.arch == "EfficientNetV2":
-        model = EfficientNetV2(size=args.arch_size.lower(),num_classes=args.num_classes,pretrained=True)
+        model = EfficientNetV2(
+            size=args.arch_size.lower(),
+            num_classes=args.num_classes,
+            pretrained=True
+        )
     elif args.arch == "X3D":
         args.clip_len = 16
         model = X3D(
-        size=args.arch_size.lower(),
-        pretrained=True,
-        clip_len=args.clip_len,       # or hard-coded 16
-        input_size=args.input_size,   # consistent with 2D path
-        num_classes=args.num_classes  # <--- this turns on the head
+            size=args.arch_size.lower(),
+            pretrained=True,
+            clip_len=args.clip_len,       # or hard-coded 16
+            input_size=args.input_size,   # consistent with 2D path
+            num_classes=args.num_classes  # <--- this turns on the head
         )
         args.feature_dim = model.feat_dim
     else:
@@ -506,6 +526,11 @@ def main(split =3,upload =False,save_features=False):
     if checkpoint:
         # load model weights
         model.load_state_dict(checkpoint['model_weights'])
+    elif args.extract_features_only:
+        # load model weights
+        ckpt = torch.load(checkpoint_file, map_location=device_gpu)
+        model.load_state_dict(ckpt, strict=False)
+    
 
     log("param count: {}".format(sum(p.numel() for p in model.parameters())), output_folder)
     log("trainable params: {}".format(sum(p.numel() for p in model.parameters() if p.requires_grad)), output_folder)
@@ -775,15 +800,15 @@ def main(split =3,upload =False,save_features=False):
                             }
             torch.save(current_state, checkpoint_file)
 
-
-    model.load_state_dict(torch.load(model_file))
-    log("",output_folder)
-    log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
-    acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
-    full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50']) # TODO change to header like in MS-TCN
-    full_test_results["epoch"] = best_epoch
-    full_test_results["split"] = split
-    full_test_results.to_csv(output_folder + "/" + "test_results.csv", index=False)
+    if not args.extract_features_only:
+        model.load_state_dict(torch.load(model_file))
+        log("",output_folder)
+        log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
+        acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
+        full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50']) # TODO change to header like in MS-TCN
+        full_test_results["epoch"] = best_epoch
+        full_test_results["split"] = split
+        full_test_results.to_csv(output_folder + "/" + "test_results.csv", index=False)
 
     if save_features is True:
         extract_features(model, 
@@ -807,7 +832,7 @@ def extract_features(model,
                     normalize, 
                     val_augmentation, 
                     device_gpu):
-    log("Start  features saving...", output_folder)
+    log("Start features saving...", output_folder)
 
     ### extract Features
     all_loaders =[]
@@ -826,12 +851,12 @@ def extract_features(model,
                                                         normalize             = normalize,
                                                         transform             = val_augmentation)  ##augmentation are off
         elif args.arch == "X3D":
-            data_set = Sequential3DTestGestureDataSet(  video_root            = args.data_path, 
+            data_set = Sequential3DTestGestureDataSet(  video_root          = args.data_path, 
                                                         list_of_videos        = [video],
                                                         transcriptions_dir    = args.transcriptions_dir,
                                                         gesture_ids           = gesture_ids,
                                                         snippet_length        = args.clip_len,     # e.g. 16
-                                                        sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,
+                                                        sampling_step         = 6 if args.dataset == "SAR_RARP50" else 1,  #args.video_sampling_step,
                                                         image_tmpl            = args.image_tmpl,
                                                         video_suffix          = args.video_suffix,
                                                         normalize             = normalize,
