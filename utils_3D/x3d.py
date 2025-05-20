@@ -9,7 +9,12 @@ class X3D(nn.Module):
       - If num_classes is None: forward() returns raw features (B, feat_dim)
       - If num_classes is set: forward() returns logits (B, num_classes)
     """
-    def __init__(self, size='l', pretrained=True, clip_len=16, input_size=112, num_classes=None):
+    def __init__(self,
+                 size='l',
+                 pretrained=True,
+                 clip_len=16,
+                 input_size=112,
+                 num_classes=None):
         super().__init__()
         size = size.lower()
         assert size in ['xs','s','m','l'], f"Unsupported X3D size: {size}"
