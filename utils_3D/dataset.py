@@ -568,10 +568,10 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         first_frame = extract_frame_number(sorted_frames, self.image_tmpl)
         self.clip_info = []
         for vid, frames in self.frame_num_data.items():
-            max_start = (len(frames) - self.snippet_length) * self.sampling_step
+            max_start = (len(frames) - self.snippet_length) #* self.sampling_step
             if max_start < 0:
                 continue
-            for start in range(first_frame, max_start + 1, self.sampling_step):
+            for start in range(first_frame, max_start + 1, 1):#self.sampling_step):
                 self.clip_info.append((vid, start))
                 
         # self.sampling_step     = sampling_step * snippet_length
