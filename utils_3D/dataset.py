@@ -610,7 +610,9 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         #    not by the raw frame number.
         #    Since clip_idx * sampling_step is our starting position,
         #    the last label is at:
-        label_pos = index * self.sampling_step + (self.snippet_length - 1)
+        # label_pos = index * self.sampling_step + (self.snippet_length - 1) # TODO: fixed SAR_RARP50?
+        label_pos = index + (self.snippet_length - 1)
+        label_pos = index + (self.snippet_length - 1)
         target = self.labels_data[video_id][label_pos]
 
         return clip_tensor, target
