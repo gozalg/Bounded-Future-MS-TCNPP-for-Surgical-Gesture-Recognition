@@ -39,9 +39,9 @@ elif [ ${DATASET} == "SAR_RARP50" ]; then
     LABEL_HZ=10
     TASK=gestures
     CLASSES_N=8
-    SMP_STEP=60
+    SMP_STEP=6
     IMG_TMP={:09d}.png
-    VID_SUFFIX=None
+    # VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
 elif [ ${DATASET} == "MultiBypass140" ]; then
     FPS=25
@@ -57,7 +57,7 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
     fi
     SMP_STEP=30
     IMG_TMP={}_{:08d}.jpg
-    VID_SUFFIX=None
+    # VID_SUFFIX=None
     DIR_SUFFIX=${DATASET}
 else
     echo "Invalid argument (DATASET): Choices: [JIAGSAWS, SAR_RARP50, MultiBypass140]"
@@ -81,7 +81,6 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --wandb true \
                 --eval_freq 1 \
                 --image_tmpl ${IMG_TMP} \
-                --video_suffix ${VID_SUFFIX} \
                 --dataset ${DATASET} \
                 --task ${TASK} \
                 --num_classes ${CLASSES_N} \

@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --gpus=1
-#SBATCH -c 64
-#SBATCH --mem=100g
+#SBATCH -c 32
+#SBATCH --mem=50g
 #SBATCH --exclude=n305,n312
-#SBATCH --qos=basic
+#SBATCH --qos=normal
 #--------------------- Setup ---------------------
 # Load user profile settings
 source ~/.bashrc
@@ -26,16 +26,21 @@ DATE=$(date '+%Y-%m-%d_%H-%M-%S')
 #         sbatch --export=W_MAX=${W_MAX},DATASET=${DATASET},TASK=${TASK},USE_DYNAMIC_WMAX=${USE_DYNAMIC_WMAX} MS-TCN_train.sh; 
 #     fi
 # done
-# R_N_LIST=(0 1 2 3); LAYERS_N_LIST=(2 3 4 5 6 8 10); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in "${R_N_LIST[@]}"; do for LAYERS_N in "${LAYERS_N_LIST[@]}"; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ../BF-MS-TCN_train.sh; done; done; done;
+# R_N_LIST=(0 1 2 3); LAYERS_N_LIST=(2 3 4 5 6 8 10); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in "${R_N_LIST[@]}"; do for LAYERS_N in "${LAYERS_N_LIST[@]}"; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# VTS-gestures:             W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=EfficientNetV2-M; DATASET=VTS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# JIGSAWS-gestures:         W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=EfficientNetV2-M; DATASET=JIGSAWS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-Steps:     W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=EfficientNetV2-M; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-phases:    W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=EfficientNetV2-M; DATASET=MultiBypass140; TASK=phases; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# SAR_RARP50-gestures:      W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=EfficientNetV2-M; DATASET=SAR_RARP50; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
 #--------------------- User ----------------------
 #------------------------------
-FEATURE_EXTRRACTOR=X3D-L    # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
-if [[ ${FEATURE_EXTRRACTOR} == X3D-* ]]; then
+BACKBONE=${BACKBONE}    # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
+if [[ ${BACKBONE} == X3D-* ]]; then
     FTR_DIM=192                 # 192 for X3D-*, 1280 for EfficientNetV2-*
-elif [[ ${FEATURE_EXTRRACTOR} == EfficientNetV2-* ]]; then
+elif [[ ${BACKBONE} == EfficientNetV2-* ]]; then
     FTR_DIM=1280                # 192 for X3D-*, 1280 for EfficientNetV2-*
 else
-    echo "Invalid argument (FEATURE_EXTRRACTOR): Choices: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]"
+    echo "Invalid argument (BACKBONE): Choices: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]"
     exit
 fi
 #------------------------------
@@ -45,7 +50,7 @@ RR_or_BF=BF             # RR for RR-MS-TCN ("offline"), BF for BF-MS-TCN ("onlin
 W_MAX=${W_MAX}          # [0,1,2,3,6,7,8,10,12,13,14,15,16,17,20]
 LAYERS_N=${LAYERS_N}    # [2,3,4,5,6,8,10]
 R_N=${R_N}              # [0,1,2,3]
-echo "FUTURE_EXTRRACTOR=${FEATURE_EXTRRACTOR}"
+echo "FUTURE_EXTRRACTOR=${BACKBONE}"
 echo "DATASET=${DATASET}"
 echo "TASK=${TASK}"
 echo "RR_or_BF=${RR_or_BF}"
@@ -96,13 +101,13 @@ script_name="${DATE}_${DATASET}_${TASK}_${SCRIPT_SUFFIX}_w_max-${W_MAX}_Layers-$
 mkdir -p ${TASKS_PATH}/logs
 srun    --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
         --container-mounts /rg/laufer_prj/gabrielg/:/rg/laufer_prj/gabrielg \
-        -o ${TASKS_PATH}/logs/BF-MS-TCN/${script_name}_%j.log \
-        -e ${TASKS_PATH}/logs/BF-MS-TCN/${script_name}_%j.log \
+        -o ${TASKS_PATH}/logs/BF-MS-TCN/${BACKBONE}/${script_name}_%j.log \
+        -e ${TASKS_PATH}/logs/BF-MS-TCN/${BACKBONE}/${script_name}_%j.log \
         python3 ${BASE_PATH}/train_experiment.py \
                 --dataset ${DATASET} \
                 --eval_scheme ${EVAL_SCHEME} \
                 --task ${TASK} \
-                --feature_extractor ${FEATURE_EXTRRACTOR} \
+                --feature_extractor ${BACKBONE} \
                 --network MS-TCN2 \
                 --split all \
                 --features_dim ${FTR_DIM} \

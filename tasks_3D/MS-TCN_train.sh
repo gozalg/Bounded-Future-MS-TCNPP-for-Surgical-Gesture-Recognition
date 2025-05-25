@@ -3,6 +3,7 @@
 #SBATCH -c 64
 #SBATCH --mem=200g
 #SBATCH --exclude=n305,n312
+#SBATCH --qos=basic
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=gabriel.gozal@gmail.com
 #--------------------- Setup ---------------------
