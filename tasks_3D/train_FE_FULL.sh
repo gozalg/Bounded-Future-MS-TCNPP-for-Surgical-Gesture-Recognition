@@ -7,8 +7,8 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=gabriel.gozal@gmail.com
 #--------------------- User ----------------------
-ARCH=X3D # choices: [X3D, EfficientNetV2]
-ARCH_SIZE=L # choices: X3D: [XS, S, M, L] EfficientNetV2: [S, M, L]
+ARCH=${ARCH}            # choices: [X3D, EfficientNetV2]
+ARCH_SIZE=${ARCH_SIZE}  # choices: X3D: [XS, S, M, L] EfficientNetV2: [S, M, L]
 DATASET=${DATASET}
 # TASK choices: [steps, phases, gestures]
 TASK=${TASK}
@@ -17,19 +17,21 @@ TASKS_PATH=${BASE_PATH}/tasks_3D
 DATA_PATH=${BASE_PATH}/data
 # SPLIT choices: [0, 1, 2, 3, 4] for VTS, MultiBypass140, SAR_RARP50, [0, 1, 2, 3, 4, 5, 6, 7], for JIGSAWS
 SPLIT=${SPLIT}
-# JIGSAWS: SPLIT_LIST=(0 1 2 3 4 5 6 7); for SPLIT in "${SPLIT_LIST[@]}"; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# JIGSAWS:          for SPLIT in {0..7}; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# VTS:              for SPLIT in {0..4}; do DATASET=VTS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=steps; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# MultiBypass140:   for SPLIT in {0..4}; do DATASET=MultiBypass140; TASK=phases; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
-# SAR_RARP50:       for SPLIT in {0..4}; do DATASET=SAR_RARP50; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE.sh; done
+# JIGSAWS: SPLIT_LIST=(0 1 2 3 4 5 6 7); for SPLIT in "${SPLIT_LIST[@]}"; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# JIGSAWS:          for SPLIT in {0..7}; do ARCH=X3D; ARCH_SIZE=L; DATASET=JIGSAWS; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# VTS:              for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=VTS; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# MultiBypass140:   for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=MultiBypass140; TASK=steps; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# MultiBypass140:   for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=MultiBypass140; TASK=phases; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# SAR_RARP50:       for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=SAR_RARP50; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 #-------------------------------------------------
 if [ ${ARCH}  == "X3D" ]; then
     train_script=3D_trainer
     batch_size=4
+    lr=0.00005
 elif [ ${ARCH} == "EfficientNetV2" ]; then
     train_script=3D_trainer
     batch_size=32
+    lr=0.00025
 else
     echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
     exit
@@ -131,6 +133,9 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
         python3 ${BASE_PATH}/${train_script}.py   \
                 --wandb true \
                 --eval_freq 1 \
+                --arch "${ARCH}" \
+                --arch_size "${ARCH_SIZE}" \
+                --lr "${lr}" \
                 --image_tmpl "${IMG_TMP}" \
                 --dataset "${DATASET}" \
                 --task "${TASK}" \

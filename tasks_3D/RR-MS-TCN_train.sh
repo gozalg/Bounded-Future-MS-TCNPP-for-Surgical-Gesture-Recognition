@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --gpus=1
-#SBATCH -c 64
+#SBATCH -c 16
 #SBATCH --mem=100g
 #SBATCH --exclude=n305,n312
 #SBATCH --qos=normal
@@ -26,20 +26,20 @@ DATE=$(date '+%Y-%m-%d_%H-%M-%S')
 #     fi
 # done
 # R_N_LIST=(0 1 2 3); LAYERS_N_LIST=(2 3 4 5 6 8 10); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in "${R_N_LIST[@]}"; do for LAYERS_N in "${LAYERS_N_LIST[@]}"; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
-# VTS-gestures:             W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=VTS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
-# JIGSAWS-gestures:         W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=JIGSAWS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
-# MultiBypass140-Steps:     W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
-# MultiBypass140-phases:    W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=phases; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
-# SAR_RARP50-gestures:      W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=SAR_RARP50; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
+# VTS-gestures:             W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=VTS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
+# JIGSAWS-gestures:         W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=JIGSAWS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-Steps:     W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-phases:    W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140; TASK=phases; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
+# SAR_RARP50-gestures:      W_MAX_LIST=(20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=SAR_RARP50; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./RR-MS-TCN_train.sh; done; done; done;
 #--------------------- User ----------------------
 #------------------------------
-FEATURE_EXTRRACTOR=X3D-L   # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
-if [[ ${FEATURE_EXTRRACTOR} == X3D-* ]]; then
+BACKBONE=${BACKBONE}    # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
+if [[ ${BACKBONE} == X3D-* ]]; then
     FTR_DIM=192                 # 192 for X3D-*, 1280 for EfficientNetV2-*
-elif [[ ${FEATURE_EXTRRACTOR} == EfficientNetV2-* ]]; then
+elif [[ ${BACKBONE} == EfficientNetV2-* ]]; then
     FTR_DIM=1280                # 192 for X3D-*, 1280 for EfficientNetV2-*
 else
-    echo "Invalid argument (FEATURE_EXTRRACTOR): Choices: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]"
+    echo "Invalid argument (BACKBONE): Choices: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]"
     exit
 fi
 #------------------------------
