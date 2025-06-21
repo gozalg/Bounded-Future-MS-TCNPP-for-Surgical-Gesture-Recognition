@@ -35,7 +35,7 @@ else
 fi
 # chech match between arch and arch_size. for each arch check size given is in the list
 if [ ${ARCH} == "X3D" ]; then
-    arch_size_list=(XS S M L )
+    arch_size_list=(XS S M L)
 elif [ ${ARCH} == "EfficientNetV2" ]; then
     arch_size_list=(S M L)
 else
@@ -147,5 +147,5 @@ srun    -G 1 -o ${TASKS_PATH}/logs/FeatureExtractor/${script_name}_%j.log \
                 --project_name "${DATASET}"_Feature_Extractor_"${TASK}"_"${SRV}" \
                 --split_num "${SPLIT}" \
                 --batch_size "${batch_size}" \
-                --resume_exp "${BASE_PATH}"/output/feature_extractor/"${DATASET}"/X3D-L/"${TASK}"_epochs_100/"${SPLIT}" \
+                --resume_exp "${BASE_PATH}"/output/feature_extractor/"${DATASET}"/X3D-L/"${TASK}"_epochs_"${EPOCHS_NUM}"/"${SPLIT}" \
                 --workers 64
