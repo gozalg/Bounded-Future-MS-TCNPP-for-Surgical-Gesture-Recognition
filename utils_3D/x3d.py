@@ -60,12 +60,13 @@ class X3D(nn.Module):
         # 1) spatio-temporal features: (B, C, T', H', W')
         feats = self.backbone(x)
 
-        # if no classifier head, just return the raw features
-        if self.classifier is None:
-            return feats
-
         # 2) global‐average‐pool → (B, C)
         pooled = feats.mean(dim=[2, 3, 4])
+        
+        # # if no classifier head, just return the features
+        if self.classifier is None:
+            
+            return None, pooled
 
         # 3) compute logits → (B, num_classes)
         logits = self.classifier(pooled)

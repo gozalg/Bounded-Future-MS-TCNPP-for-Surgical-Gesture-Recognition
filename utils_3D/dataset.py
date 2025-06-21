@@ -32,6 +32,7 @@ class Gesture2dTrainSet(data.Dataset):
                  transform          = None, 
                  normalize          = None, 
                  epoch_size         = 50,
+                 task               = "steps",                 
                  debag              = False):
         self.list_of_train_examples     = list_of_train_examples
         self.debag                      = debag
@@ -49,10 +50,38 @@ class Gesture2dTrainSet(data.Dataset):
         self.gesture_sequence_per_video = {}
         self.image_data                 = {}
         self.labels_data                = {}
+        self.task                       = task
         self._parse_list_files()
         self._sort_frames_by_gesture()
+        if "MultiBypass140" in self.root_path and self.task == "multi_task":
+            self.labels_data_phases = {}
+            self._parse_list_files_phases()
 
 
+    def _parse_list_files_phases(self):
+        videos = self.list_of_train_examples
+        for video in videos:
+            video_id = video[:-4]
+            file_ptr = open(os.path.join(self.transcriptions_dir.replace("multi_task", "phases"), video.split('.')[0] + '.txt'), 'r')
+            gt_source = file_ptr.read().split('\n')[:-1]
+            gestures = self.pars_ground_truth(gt_source)
+
+            _last_rgb_frame =0
+            for file in os.listdir(os.path.join(self.root_path, video_id + self.video_suffix)):
+                filename = os.fsdecode(file)
+                # skip non-image files
+                if not filename.endswith(self.image_tmpl[-4:]):
+                    continue
+                cur_frame_num = extract_frame_number(filename, self.image_tmpl)
+                if cur_frame_num> _last_rgb_frame:
+                    _last_rgb_frame = cur_frame_num
+
+            if len(gestures) >= _last_rgb_frame // self.sampling_factor:
+                gestures = gestures[:_last_rgb_frame // self.sampling_factor]
+            else:
+                gestures += [gestures[-1]] * (_last_rgb_frame // self.sampling_factor - len(gestures))
+
+            self.labels_data_phases[video_id] = gestures
     def _parse_list_files(self):
         # depands only on csv files of splits directory
         videos = self.list_of_train_examples
@@ -62,6 +91,8 @@ class Gesture2dTrainSet(data.Dataset):
             video_id = video[:-4]
             if "SAR_RARP50" in self.root_path:
                 file_ptr = open(os.path.join(self.transcriptions_dir, video.split('.')[0] + '_discrete.txt'), 'r')
+            elif "MultiBypass140" in self.root_path:
+                file_ptr = open(os.path.join(self.transcriptions_dir.replace("multi_task", "steps"), video.split('.')[0] + '.txt'), 'r')
             else:
                 file_ptr = open(os.path.join(self.transcriptions_dir, video.split('.')[0] + '.txt'), 'r')
             gt_source = file_ptr.read().split('\n')[:-1]
@@ -108,8 +139,12 @@ class Gesture2dTrainSet(data.Dataset):
     def _sort_frames_by_gesture(self):
         for experiment_name in self.labels_data:
             self.frames_indces_by_gesture[experiment_name] = {}
-            for gesture in self.gesture_ids:
-                self.frames_indces_by_gesture[experiment_name][gesture] =[]
+            
+            gesture_list = self.gesture_ids if isinstance(self.gesture_ids, list) else self.gesture_ids["steps"]
+
+            for gesture in gesture_list:
+                self.frames_indces_by_gesture[experiment_name][gesture] = []
+
             for i, gesture in enumerate(self.labels_data[experiment_name]):
                 if "SAR_RARP50" in self.root_path:
                     frame = i*self.sampling_factor # starts from 0
@@ -155,7 +190,12 @@ class Gesture2dTrainSet(data.Dataset):
 
         #target_individual = torch.tensor(int(label[1]))
 
-        return data, target
+        if "MultiBypass140" in self.root_path and self.task == "multi_task":
+            label_step  = target
+            label_phase = self.labels_data_phases[video_name][frame_select]
+            return data, torch.tensor([label_step, label_phase])
+        else:
+            return data, target
 
 
 
@@ -287,6 +327,11 @@ class Sequential2DTestGestureDataSet(data.Dataset):
             # [frame_num, gesture_id]
             gestures = [[int(x.strip().split(',')[0]), 'G'+x.strip().split(',')[1]]
                     for x in open(gestures_file)]
+        elif "MultiBypass140" in self.root_path:
+            gestures_file = os.path.join(self.transcriptions_dir.replace("multi_task", "steps"), video_id + ".txt")
+            # [start_frame, end_frame, gesture_id]
+            gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
+                    for x in open(gestures_file)]
         else:
             gestures_file = os.path.join(self.transcriptions_dir, video_id + ".txt")
             # [start_frame, end_frame, gesture_id]
@@ -337,7 +382,13 @@ class Sequential2DTestGestureDataSet(data.Dataset):
                         break
                 else:
                     if frame_num >= gesture[0] and frame_num <= gesture[1]:
-                        labels_list.append(self.gesture_ids.index(gesture[2]))
+                        if isinstance(self.gesture_ids, list):
+                            gesture_list = self.gesture_ids
+                        elif self.task == "multi_task":
+                            gesture_list = self.gesture_ids["steps"]  # only use step labels here
+                        else:
+                            gesture_list = self.gesture_ids[self.task]
+                        labels_list.append(gesture_list.index(gesture[2]))
                         break
         self.labels_data[video_id] = labels_list
 
@@ -417,7 +468,8 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
                  transform=None,
                  normalize=None,
                  epoch_size=50,
-                 debag=False):
+                 debag=False,
+                 task="steps"):
 
         # 1) Let the 2D base loader build self.labels_data (one label per sampled frame)
         super().__init__(
@@ -431,7 +483,8 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
             transform       = None,
             normalize       = None,
             epoch_size      = epoch_size,
-            debag           = debag
+            debag           = debag,
+            task            = task
         )
 
         # 2) Store our 3D sampling & augment params
@@ -516,10 +569,19 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
             # frame_indices[-1] is a 0-based frame number, but we need to adjust to the video's FPS to label Hz frequency
             # e.g. 0, 6, 12, 18, 24 → 0, 1, 2, 3, 4
             raw_label = self.labels_data[video_id][frame_indices[-1]//self.video_samp_rate] 
-        # map it into its numeric index in the gesture_ids list
-        label = self.gesture_ids.index(raw_label)  # e.g. "G3" → 2
+        
+        if self.task == "multi_task" and "MultiBypass140" in self.root_path:
+            raw_label_step  = self.labels_data[video_id][frame_indices[-1] - 1]
+            raw_label_phase = self.labels_data_phases[video_id][frame_indices[-1] - 1]
 
-        return clip, torch.tensor(label, dtype=torch.long)
+            label_step  = self.gesture_ids["steps"].index(raw_label_step)
+            label_phase = self.gesture_ids["phases"].index(raw_label_phase)
+
+            return clip, torch.tensor([label_step, label_phase], dtype=torch.long)
+        else:
+            # map it into its numeric index in the gesture_ids list
+            label = self.gesture_ids.index(raw_label)  # e.g. "G3" → 2
+            return clip, torch.tensor(label, dtype=torch.long)
 
 
 
@@ -539,7 +601,8 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
                  image_tmpl: str = "img_{:05d}.jpg",
                  video_suffix: str = "",
                  normalize=None,
-                 transform=None):
+                 transform=None,
+                 task="steps"):
         self.root_path         = video_root
         self.video_root        = video_root
         self.preload           = False
@@ -552,6 +615,7 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         self.video_suffix      = video_suffix
         self.normalize         = normalize
         self.transform         = transform
+        self.task              = task
 
         # Build per-video frame indices and labels
         self.frame_num_data = {}
@@ -562,6 +626,11 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         for vid in videos:
             self.video_name = vid
             self._parse_list_files(vid)  # inherited from Gesture2dTrainSet
+        if "MultiBypass140" in self.root_path and self.task == "multi_task":
+            self.labels_data_phases = {}
+            for vid in videos:
+                self._parse_list_files_phases(vid)
+
             
         # 4) Now precompute all (video_id, clip_start) pairs
         sorted_frames = sorted(os.listdir(os.path.join(self.root_path, vid + self.video_suffix)))[0]
@@ -575,6 +644,18 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
                 self.clip_info.append((vid, start))
                 
         # self.sampling_step     = sampling_step * snippet_length
+    def _parse_list_files_phases(self, video_name):
+        gestures_file = os.path.join(self.transcriptions_dir.replace("multi_task", "phases"), video_name + ".txt")
+        gestures = [[int(x.strip().split(' ')[0]), int(x.strip().split(' ')[1]), x.strip().split(' ')[2]]
+                    for x in open(gestures_file)]
+
+        labels_list = []
+        for frame in self.frame_num_data[video_name]:
+            for gesture in gestures:
+                if gesture[0] <= frame <= gesture[1]:
+                    labels_list.append(gesture[2])
+                    break
+        self.labels_data_phases[video_name] = labels_list
 
     def __len__(self):
         return len(self.clip_info)
@@ -612,6 +693,16 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         #    the last label is at:
         # label_pos = index * self.sampling_step + (self.snippet_length - 1) # TODO: fixed SAR_RARP50?
         label_pos = index + (self.snippet_length - 1)
-        target = self.labels_data[video_id][label_pos]
+        
+        if self.task == "multi_task" and "MultiBypass140" in self.root_path:
+            raw_label_step  = self.labels_data[video_id][label_pos]
+            raw_label_phase = self.labels_data_phases[video_id][label_pos]
 
-        return clip_tensor, target
+            label_step  = self.gesture_ids["steps"].index(f"S{raw_label_step}")
+            label_phase = self.gesture_ids["phases"].index(f"{raw_label_phase}")
+
+            return clip_tensor, torch.tensor([label_step, label_phase], dtype=torch.long)
+        else:
+            target = self.labels_data[video_id][label_pos]
+
+            return clip_tensor, target

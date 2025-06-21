@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import PIL
 import torch
+from torch import nn
 import torchvision
 from torch.autograd import Variable
 import tqdm
@@ -45,10 +46,20 @@ assert  args.arch == "EfficientNetV2" and args.arch_size.upper() in ["S", "M", "
 
 # check if the dataset and task are valid
 assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
-       args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
+       args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases", "multi_task"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
 if args.dataset == "MultiBypass140":
     assert args.num_classes == 46                       and args.task in ["steps"] or \
-           args.num_classes == 12                       and args.task in ["phases"], f"Invalid num_classes({args.num_classes}) for the task({args.task})"
+           args.num_classes == 12                       and args.task in ["phases"] or \
+           args.task in ["multi_task"], f"Invalid num_classes({args.num_classes}) for the task({args.task})" 
+    if args.task == "steps":
+        num_classes_steps = args.num_classes
+        num_classes_phases = None
+    elif args.task == "phases":
+        num_classes_steps = None
+        num_classes_phases = args.num_classes
+    elif args.task == "multi_task":
+        num_classes_steps = 46
+        num_classes_phases = 12
 # Override the video_suffix based on the dataset
 if args.dataset in ["SAR_RARP50", "MultiBypass140"]:
     args.video_suffix = ''
@@ -63,7 +74,8 @@ gesture_ids = (gestures_VTS if args.dataset == "VTS" else
                gestures_JIGSAWS if args.dataset == "JIGSAWS" else
                gestures_SAR_RARP50 if args.dataset == "SAR_RARP50" else 
                steps_MultiBypass140 if args.dataset == "MultiBypass140" and args.task == 'steps' else
-               phases_MultiBypass140 if args.dataset == "MultiBypass140" and args.task == 'phases' else None)
+               phases_MultiBypass140 if args.dataset == "MultiBypass140" and args.task == 'phases' else 
+               {"steps": steps_MultiBypass140, "phases": phases_MultiBypass140} if args.dataset == "MultiBypass140" and args.task == 'multi_task' else None)
 folds_folder = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'folds'))
 num_of_splits = (5 if args.dataset in ["VTS", "MultiBypass140", "SAR_RARP50"] else
                  8 if args.dataset == "JIGSAWS" else None)
@@ -286,14 +298,16 @@ def log(msg,output_folder):
     utils_3D.util.log(f_log, msg)
     f_log.close()
 
-def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture_ids,epoch,upload=False):
+def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture_ids,epoch,upload=False,task="steps"):
     results_per_vedo= []
     all_precisions = []
     all_recalls = []
     all_f1s =[]
     model.eval()
     with torch.no_grad():
-
+        if task == "multi_task":
+            num_class_steps  = 46
+            num_class_phases = 12
         overall_acc = []
         overall_avg_f1 = []
         overall_edit = []
@@ -301,72 +315,115 @@ def eval(model,val_loaders,device_gpu,device_cpu,num_class,output_folder,gesture
         overall_f1_25 = []
         overall_f1_50 = []
         for video_num, val_loader in enumerate(val_loaders):
-            P = np.array([], dtype=np.int64)
-            Y = np.array([], dtype=np.int64)
+            P           = np.array([], dtype=np.int64)
+            Y           = np.array([], dtype=np.int64)
+            P_steps     = np.array([], dtype=np.int64)
+            P_phases    = np.array([], dtype=np.int64)
+            Y_steps     = np.array([], dtype=np.int64)
+            Y_phases    = np.array([], dtype=np.int64)
             for i, batch in enumerate(val_loader):
                 data, target = batch
-                Y = np.append(Y, target.numpy())
                 data = data.to(device_gpu)
-                output = model(data)
-                # if model.arch == "EfficientNetV2":
-                output = output[0]
+                
+                features = model(data)[1]
 
-                predicted = torch.nn.Softmax(dim=1)(output)
-                _, predicted = torch.max(predicted, 1)
+                if task == "multi_task":
+                    # features = features.view(features.size(0), -1)  # flatten to [B, D]
+                    # features = features.transpose(0, 1)
 
-                P = np.append(P, predicted.to(device_cpu).numpy())
 
-            acc = accuracy(P, Y)
-            mean_avg_f1, avg_precision, avg_recall, avg_f1 = average_F1(P, Y, n_classes=num_class)
-            all_precisions.append(avg_precision)
-            all_recalls.append(avg_recall)
-            all_f1s.append(avg_f1)
+                    logits_steps  = model.head_steps(features)
+                    logits_phases = model.head_phases(features)
 
-            avg_precision_ = np.array(avg_precision)
-            avg_recall_ = np.array(avg_recall)
-            avg_f1_ = np.array(avg_f1)
-            avg_precision.append(np.mean(avg_precision_[(avg_precision_) != np.array(None)]))
-            avg_recall.append(np.mean(avg_recall_[(avg_recall_) != np.array(None)]))
-            avg_f1.append(np.mean(avg_f1_[(avg_f1_) != np.array(None)]))
-            
-            gesture_ids_ = gesture_ids.copy() + ["mean"]
-            df = pd.DataFrame(list(zip(gesture_ids_, avg_precision, avg_recall, avg_f1)),
-                              columns=['gesture_ids', 'avg_precision', 'avg_recall', 'avg_f1'])
-            log(df, output_folder)
-            
-            edit = edit_score(P, Y)
-            f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
-            f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
-            f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
-            log("Trial {}:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}"
-                .format(val_loader.dataset.video_name, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
-            results_per_vedo.append([val_loader.dataset.video_name, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50])
 
-            overall_acc.append(acc)
-            overall_avg_f1.append(mean_avg_f1)
-            overall_edit.append(edit)
-            overall_f1_10.append(f1_10)
-            overall_f1_25.append(f1_25)
-            overall_f1_50.append(f1_50)
-        # FIXME 16.10.2024 there's a problem with the None values in the lists
-        # gesture_ids_ = gesture_ids.copy() + ["mean"]
-        # for col in range(len(gesture_ids_)):
-        #     for row in range(len(all_precisions[row])):
-        #         if all_precisions[row][col] is None:
-        #             continue
-        #         else:
-        #             all_precisions[i]   = np.array(all_precisions[:][i]).mean()
-        #             all_recalls[i]      = np.array(all_recalls[:][i]).mean()
-        #             all_f1s[i]          = np.array(all_f1s[:][i]).mean()
-        #         all_precisions[i]   = None
-        #         all_recalls[i]      = None
-        #         all_f1s[i]          = None
-        # all_precisions = np.array(all_precisions).mean(0)
-        # all_recalls =  np.array(all_recalls).mean(0)
-        # all_f1s = np.array(all_f1s).mean(0)
-        # df = pd.DataFrame(list(zip(gesture_ids_, all_precisions, all_recalls, all_f1s)),
-        #                   columns=['gesture_ids', 'precision', 'recall', 'f1'])
-        # log(df, output_folder)
+                    probs_steps  = torch.nn.functional.softmax(logits_steps, dim=1)
+                    probs_phases = torch.nn.functional.softmax(logits_phases, dim=1)
+
+                    preds_steps  = torch.argmax(probs_steps, dim=1)
+                    preds_phases = torch.argmax(probs_phases, dim=1)
+
+                    P_steps = np.append(P_steps, preds_steps.cpu().numpy())
+                    P_phases = np.append(P_phases, preds_phases.cpu().numpy())
+
+                    Y_steps  = np.append(Y_steps, target[:, 0].numpy())
+                    Y_phases = np.append(Y_phases, target[:, 1].numpy())
+                else:
+                    logits = model.head(features)
+                    probs  = torch.nn.functional.softmax(logits, dim=1)
+                    preds  = torch.argmax(probs, dim=1)
+                    P = np.append(P, preds.to(device_cpu).numpy())
+                    Y = np.append(Y, target.numpy())
+
+            if task == "multi_task":
+                # steps
+                acc_steps = accuracy(P_steps, Y_steps)
+                f1_steps, _, _, _ = average_F1(P_steps, Y_steps, n_classes=num_class_steps)
+                edit_steps = edit_score(P_steps, Y_steps)
+                f1_10_steps = overlap_f1(P_steps, Y_steps, n_classes=num_class_steps, overlap=0.1)
+                f1_25_steps = overlap_f1(P_steps, Y_steps, n_classes=num_class_steps, overlap=0.25)
+                f1_50_steps = overlap_f1(P_steps, Y_steps, n_classes=num_class_steps, overlap=0.5)
+
+                # phases
+                acc_phases = accuracy(P_phases, Y_phases)
+                f1_phases, _, _, _ = average_F1(P_phases, Y_phases, n_classes=num_class_phases)
+                edit_phases = edit_score(P_phases, Y_phases)
+                f1_10_phases = overlap_f1(P_phases, Y_phases, n_classes=num_class_phases, overlap=0.1)
+                f1_25_phases = overlap_f1(P_phases, Y_phases, n_classes=num_class_phases, overlap=0.25)
+                f1_50_phases = overlap_f1(P_phases, Y_phases, n_classes=num_class_phases, overlap=0.5)
+
+                
+                log("Trial Steps-{}:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}"
+                    .format(val_loader.dataset.video_name, acc_steps, f1_steps, edit_steps, f1_10_steps, f1_25_steps, f1_50_steps), output_folder)
+                log("Trial Phases-{}:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}"
+                    .format(val_loader.dataset.video_name, acc_phases, f1_phases, edit_phases, f1_10_phases, f1_25_phases, f1_50_phases), output_folder)
+
+                results_per_vedo.append([
+                    val_loader.dataset.video_name,
+                    acc_steps, f1_steps, edit_steps, f1_10_steps, f1_25_steps, f1_50_steps,
+                    acc_phases, f1_phases, edit_phases, f1_10_phases, f1_25_phases, f1_50_phases,
+                ])
+
+                # optionally track averages across videos
+                overall_acc.append((acc_steps + acc_phases)/2)
+                overall_avg_f1.append((f1_steps + f1_phases)/2)
+                overall_edit.append((edit_steps + edit_phases)/2)
+                overall_f1_10.append((f1_10_steps + f1_10_phases)/2)
+                overall_f1_25.append((f1_25_steps + f1_25_phases)/2)
+                overall_f1_50.append((f1_50_steps + f1_50_phases)/2)
+
+            else:
+                acc = accuracy(P, Y)
+                mean_avg_f1, avg_precision, avg_recall, avg_f1 = average_F1(P, Y, n_classes=num_class)
+                all_precisions.append(avg_precision)
+                all_recalls.append(avg_recall)
+                all_f1s.append(avg_f1)
+
+                avg_precision_ = np.array(avg_precision)
+                avg_recall_ = np.array(avg_recall)
+                avg_f1_ = np.array(avg_f1)
+                avg_precision.append(np.mean(avg_precision_[(avg_precision_) != np.array(None)]))
+                avg_recall.append(np.mean(avg_recall_[(avg_recall_) != np.array(None)]))
+                avg_f1.append(np.mean(avg_f1_[(avg_f1_) != np.array(None)]))
+                
+                gesture_ids_ = gesture_ids.copy() + ["mean"]
+                df = pd.DataFrame(list(zip(gesture_ids_, avg_precision, avg_recall, avg_f1)),
+                                columns=['gesture_ids', 'avg_precision', 'avg_recall', 'avg_f1'])
+                log(df, output_folder)
+                
+                edit = edit_score(P, Y)
+                f1_10 = overlap_f1(P, Y, n_classes=num_class, overlap=0.1)
+                f1_25 = overlap_f1(P, Y, n_classes=num_class, overlap=0.25)
+                f1_50 = overlap_f1(P, Y, n_classes=num_class, overlap=0.5)
+                log("Trial {}:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}"
+                    .format(val_loader.dataset.video_name, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50), output_folder)
+                results_per_vedo.append([val_loader.dataset.video_name, acc, mean_avg_f1, edit, f1_10, f1_25, f1_50])
+
+                overall_acc.append(acc)
+                overall_avg_f1.append(mean_avg_f1)
+                overall_edit.append(edit)
+                overall_f1_10.append(f1_10)
+                overall_f1_25.append(f1_25)
+                overall_f1_50.append(f1_50)
 
         log("Overall:\tAcc\t{:.3f}\tAvg_F1\t{:.3f}\tEdit\t{:.3f}\tF1_10\t{:.3f}\tF1_25\t{:.3f}\tF1_50\t{:.3f}".format(
             np.mean(overall_acc), np.mean(overall_avg_f1), np.mean(overall_edit),
@@ -516,8 +573,13 @@ def main(split =3,upload =False,save_features=False):
             pretrained=True,
             clip_len=args.clip_len,       # or hard-coded 16
             input_size=args.input_size,   # consistent with 2D path
-            num_classes=args.num_classes  # <--- this turns on the head
+            num_classes=None # args.num_classes  # <--- this turns on the head
         )
+        if args.task == "multi_task":
+            model.head_steps = nn.Linear(model.feat_dim, num_classes_steps)
+            model.head_phases = nn.Linear(model.feat_dim, num_classes_phases)
+        else:
+            model.head = nn.Linear(model.feat_dim, args.num_classes)
         args.feature_dim = model.feat_dim
     else:
         raise NotImplementedError("Other than EfficientNetV2 or X3D is not implemented yet")
@@ -589,7 +651,8 @@ def main(split =3,upload =False,save_features=False):
                                     video_suffix       = args.video_suffix,
                                     transform          = train_augmentation,
                                     normalize          = normalize,
-                                    epoch_size         = (args.number_of_samples_per_class * args.num_classes),)
+                                    epoch_size         = (args.number_of_samples_per_class * args.num_classes),
+                                    task               = args.task)
             
 
 
@@ -664,7 +727,8 @@ def main(split =3,upload =False,save_features=False):
                                                     image_tmpl            = args.image_tmpl,
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
-                                                    transform             = val_augmentation)  ##augmentation are off
+                                                    transform             = val_augmentation,
+                                                    task                  = args.task)  ##augmentation are off
         val_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                        batch_size       = args.eval_batch_size,
                                                        shuffle          = False, 
@@ -747,21 +811,38 @@ def main(split =3,upload =False,save_features=False):
                         features = output[1]
                         output = output[0]
 
-                    loss = criterion(output, target)
-                    loss = torch.mean(loss)
+                    # loss = criterion(output, target)
+                    # loss = torch.mean(loss)
+                    if args.task == "multi_task":
+                        # features = features.view(features.size(0), -1)  # flatten to [B, D]
+                        # features = features.transpose(0, 1)
+                        logits_steps = model.head_steps(features)
+                        logits_phases = model.head_phases(features)
+                        loss_steps = criterion(logits_steps, target[:, 0])
+                        loss_phases = criterion(logits_phases, target[:, 1])
+                        loss = loss_steps + loss_phases
+                        
+                        predicted_steps = torch.nn.Softmax(dim=1)(logits_steps)
+                        _, predicted_steps = torch.max(predicted_steps, 1)
+                        predicted_phases = torch.nn.Softmax(dim=1)(logits_phases)
+                        _, predicted_phases = torch.max(predicted_phases, 1)
+                        acc = ((predicted_steps == target[:, 0]).sum().item() + (predicted_phases == target[:, 1]).sum().item()) / (2 * batch_size)
+                    else:
+                        logits = model.head(features)
+                        loss = criterion(logits, target)
+                        
+                        predicted = torch.nn.Softmax(dim=1)(output)
+                        _, predicted = torch.max(predicted, 1)
+                        # _, predicted = torch.max(output, 1)
+
+                        acc = (predicted == target).sum().item() / batch_size
 
                     loss.backward()
                     optimizer.step()
 
                     train_loss.update(loss.item(), batch_size)
-
-                    predicted = torch.nn.Softmax(dim=1)(output)
-                    _, predicted = torch.max(predicted, 1)
-                    # _, predicted = torch.max(output, 1)
-
-                    acc = (predicted == target).sum().item() / batch_size
-
                     train_acc.update(acc, batch_size)
+                    
                     pbar.update(1)
 
 
@@ -778,7 +859,7 @@ def main(split =3,upload =False,save_features=False):
             if (epoch + 1) % args.eval_freq == 0 or epoch == args.epochs - 1:
                 log("Start evaluation...", output_folder)
 
-                acc, f1, edit, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload)
+                acc, f1, edit, f1_10, f1_25, f1_50, valid_per_video = eval(model,val_loaders,device_gpu,device_cpu,args.num_classes,output_folder,gesture_ids,epoch, upload=upload, task=args.task)
                 all_eval_results.append([split, epoch, acc, f1, edit, f1_10, f1_25, f1_50])
                 full_eval_results = pd.DataFrame(all_eval_results,columns=['split num', 'epoch', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50'])
                 full_eval_results.to_csv(output_folder + "/" + "evaluation_results.csv", index=False)
@@ -804,7 +885,7 @@ def main(split =3,upload =False,save_features=False):
         model.load_state_dict(torch.load(model_file))
         log("",output_folder)
         log("testing based on epoch " + str(best_epoch), output_folder) # based on epoch XX model
-        acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False)
+        acc_test, f1_test, edit_test, f1_10_test, f1_25_test, f1_50_test, test_per_video = eval(model, test_loaders, device_gpu, device_cpu, args.num_classes, output_folder, gesture_ids,best_epoch, upload=False, task=args.task)
         full_test_results = pd.DataFrame(test_per_video, columns=['video name', 'acc', 'f1_macro', 'edit', 'f1_10', 'f1_25', 'f1_50']) # TODO change to header like in MS-TCN
         full_test_results["epoch"] = best_epoch
         full_test_results["split"] = split
