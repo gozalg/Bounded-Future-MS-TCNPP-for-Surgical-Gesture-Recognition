@@ -1,0 +1,8 @@
+gestures = {
+    "Non ppecific motion"                                             : "G0",
+    "Needle passing"                             : "G1",
+    "Pull the suture"                        : "G2",
+    "Instrumental tie"             : "G3",
+    "Lay the knot"              : "G4",
+    " Cut the suture"                                      : "G5"
+    }
