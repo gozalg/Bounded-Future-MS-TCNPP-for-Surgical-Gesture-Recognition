@@ -33,7 +33,7 @@ elif [ ${ARCH} == "EfficientNetV2" ]; then
     batch_size=32
     lr=0.00025
 else
-    echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
+    echo "Invalid argument (ARCH): Choices: [X3D, EfficientNetV2]"
     exit
 fi
 # chech match between arch and arch_size. for each arch check size given is in the list
