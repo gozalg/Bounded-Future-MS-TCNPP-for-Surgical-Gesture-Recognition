@@ -1,4 +1,6 @@
-# parts of the code were adapted from: https://github.com/sj-li/MS-TCN2?utm_source=catalyzex.com
+# parts of the code were adapted from: 
+# 1. https://github.com/sj-li/MS-TCN2?utm_source=catalyzex.com
+# 2. https://github.com/AdamGoldbraikh/Bounded-Future-MS-TCNPP-for-Surgical-Gesture-Recognition
 #----------------- Python Libraries Imports -----------------#
 # Standard library imports
 import argparse
@@ -24,12 +26,12 @@ date_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
 # set the args for the experiment
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='JIGSAWS', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
+parser.add_argument('--dataset', type=str, default='MultiBypass140', choices=['VTS', 'JIGSAWS', 'MultiBypass140', 'SAR_RARP50'],
                     help="Name of the dataset to use.")
 parser.add_argument('--eval_scheme', type=str, choices=['LOSO', 'LOUO'], default='LOUO',
                     help="Cross-validation scheme to use: Leave one supertrial out (LOSO) or Leave one user out (LOUO)." + 
                     "Only LOUO supported for TBD.")
-parser.add_argument('--task', default="gestures", choices=['gestures', 'steps', 'phases', 'tools', 'multi-taks'])
+parser.add_argument('--task', default="multi_task", choices=['gestures', 'steps', 'phases', 'multi_task'])#'tools', 'multi-taks'])
 parser.add_argument('--feature_extractor', type=str, choices=[  "X3D-XS", "X3D-S", "X3D-M", "X3D-L",\
                                                                 "EfficientNetV2-S", "EfficientNetV2-M", "EfficientNetV2-L"], default="X3D-L")
 parser.add_argument('--network', choices=['MS-TCN2', 'MS-TCN2 late', 'MS-TCN2 early'], default="MS-TCN2")
@@ -159,6 +161,9 @@ for split_num in list_of_splits:
         gt_path_gestures = os.path.join(gt_path_gestures, "discrete")
     if args.dataset == "MultiBypass140":
         mapping_gestures_file = os.path.join(data_dir, args.dataset, f"mapping_{args.task}.txt")
+        if args.task == "multi_task":
+            mapping_steps_file = os.path.join(data_dir, args.dataset, "mapping_steps.txt")
+            mapping_phases_file = os.path.join(data_dir, args.dataset, "mapping_phases.txt")
     else:
         mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
     model_out_dir = os.path.join(models, experiment_name, "split" + args.split)
@@ -177,27 +182,40 @@ for split_num in list_of_splits:
         if not os.path.exists(model_out_dir):
             os.makedirs(model_out_dir)
     #-------------------- Get the gestures and tools mapping --------------------#
-    file_ptr = open(mapping_gestures_file, 'r')
-    actions = file_ptr.read().split('\n')[:-1]
-    file_ptr.close()
-    actions_dict_gestures = dict()
-    for a in actions:
-        actions_dict_gestures[a.split()[1]] = int(a.split()[0])
+    if args.dataset == "MultiBypass140" and args.task == "multi_task": # for MultiBypass140 with two heads
+        mapping_gestures_file_steps = os.path.join(data_dir, args.dataset, "mapping_steps.txt")
+        mapping_gestures_file_phases = os.path.join(data_dir, args.dataset, "mapping_phases.txt")
+        # Load both mappings and merge them (with no overlap in labels)
+        actions_dict_gestures = {}
+        with open(mapping_gestures_file_steps, 'r') as f:
+            for a in f.read().split('\n')[:-1]:
+                actions_dict_gestures[a.split()[1]] = int(a.split()[0])
+        with open(mapping_gestures_file_phases, 'r') as f:
+            for a in f.read().split('\n')[:-1]:
+                actions_dict_gestures[a.split()[1]] = int(a.split()[0])
+    else: # for all other datasets and tasks
+        mapping_gestures_file = os.path.join(data_dir, args.dataset, "mapping_gestures.txt")
+        with open(mapping_gestures_file, 'r') as f:
+            actions = f.read().split('\n')[:-1]
+        actions_dict_gestures = {a.split()[1]: int(a.split()[0]) for a in actions}
+        num_classes_tools = 0
+        # Example: {'T0': 0, 'T1': 1, 'T2': 2, 'T3': 3}
+        actions_dict_tools = dict()
+        # if args.dataset == "VTS":
+        #     file_ptr = open(mapping_tool_file, 'r')
+        #     actions = file_ptr.read().split('\n')[:-1]
+        #     file_ptr.close()
+        #     for a in actions:
+        #         actions_dict_tools[a.split()[1]] = int(a.split()[0])
+        #     num_classes_tools = len(actions_dict_tools)
     num_classes_tools = 0
-    # Example: {'T0': 0, 'T1': 1, 'T2': 2, 'T3': 3}
     actions_dict_tools = dict()
-    # if args.dataset == "VTS":
-    #     file_ptr = open(mapping_tool_file, 'r')
-    #     actions = file_ptr.read().split('\n')[:-1]
-    #     file_ptr.close()
-    #     for a in actions:
-    #         actions_dict_tools[a.split()[1]] = int(a.split()[0])
-    #     num_classes_tools = len(actions_dict_tools)
-
     num_classes_gestures = len(actions_dict_gestures)
 
     if args.task in ["gestures", "steps", "phases"]:
         num_classes_list = [num_classes_gestures]
+    elif args.dataset == "MultiBypass140" and args.task == "multi_task":
+        num_classes_list = [46, 12] # For MultiBypass140: 46 steps, 12 phases
     elif args.dataset == "VTS" and args.task == "tools":
         raise NotImplementedError()
         num_classes_list = [num_classes_tools, num_classes_tools]
@@ -205,6 +223,8 @@ for split_num in list_of_splits:
         raise NotImplementedError()
         num_classes_list = [num_classes_gestures,
                             num_classes_tools, num_classes_tools]
+    else:
+        raise NotImplementedError("Task not supported: " + args.task)
     #-------------------- Initialize the Trainer --------------------#
     # initializes the Trainer - does not train
     trainer = Trainer(num_layers_PG, 

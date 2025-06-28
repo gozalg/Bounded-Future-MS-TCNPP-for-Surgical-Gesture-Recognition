@@ -143,7 +143,10 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
 
     for i, seq in enumerate(list_of_videos):
         if args.dataset == "MultiBypass140":
-            file_ptr = open(os.path.join(ground_truth_path, args.task, seq.split('.')[0] + '.txt'), 'r')
+            if args.task == "multi_task":
+                file_ptr = open(os.path.join(ground_truth_path, suffix, seq.split('.')[0] + '.txt'), 'r')
+            else:
+                file_ptr = open(os.path.join(ground_truth_path, args.task, seq.split('.')[0] + '.txt'), 'r')
         else:
             if args.dataset == "SAR_RARP50":
                 file_ptr = open(os.path.join(ground_truth_path, seq.split('.')[0] + '_discrete.txt'), 'r')

@@ -351,6 +351,23 @@ class BatchGenerator(object):
                     classes[i] = self.actions_dict_gestures[content[i]]
                 batch_target_gestures.append(classes[::self.sample_rate])
 
+            # MultiBypass140 with two heads
+            elif self.task == "multi_task":
+                    file_ptr_steps = open(os.path.join(self.gt_path_gestures, "steps", seq.split('.')[0] + '.txt'), 'r')
+                    file_ptr_phases = open(os.path.join(self.gt_path_gestures, "phases", seq.split('.')[0] + '.txt'), 'r')
+                    gt_steps = self.pars_ground_truth(file_ptr_steps.read().split('\n')[:-1])
+                    gt_phases = self.pars_ground_truth(file_ptr_phases.read().split('\n')[:-1])
+                    
+                    classes_size = min(np.shape(features)[1], len(gt_steps), len(gt_phases))
+                    s_labels = np.zeros(classes_size)
+                    p_labels = np.zeros(classes_size)
+                    for i in range(classes_size):
+                        s_labels[i] = self.actions_dict_gestures[gt_steps[i]]
+                        p_labels[i] = self.actions_dict_gestures[gt_phases[i]]
+
+                    batch_target_left.append(s_labels[::self.sample_rate])
+                    batch_target_right.append(p_labels[::self.sample_rate])
+
             elif self.task == "tools":
                 raise NotImplementedError
                 file_ptr_right = open(os.path.join(
@@ -425,6 +442,20 @@ class BatchGenerator(object):
                 mask[i, :, :np.shape(batch_target_gestures[i])[0]] = torch.ones(self.num_classes_gestures, np.shape(batch_target_gestures[i])[0])
 
             return batch_input_tensor, batch_target_tensor, mask
+        
+        elif self.task == "multi_task": # MultiBypass140 with two heads
+            length_of_sequences = list(map(len, batch_target_left))
+            batch_input_tensor = torch.zeros(len(batch_input), np.shape(batch_input[0])[0], max(length_of_sequences), dtype=torch.float)
+            steps_tensor = torch.ones(len(batch_input), max(length_of_sequences), dtype=torch.long)*(-100)
+            phases_tensor = torch.ones(len(batch_input), max(length_of_sequences), dtype=torch.long)*(-100)
+            mask = torch.zeros(len(batch_input), self.num_classes_gestures, max(length_of_sequences), dtype=torch.float)
+            for i in range(len(batch_input)):
+                batch_input_tensor[i, :, :np.shape(batch_input[i])[1]] = torch.from_numpy(batch_input[i][:, :batch_input_tensor.shape[2]])
+                steps_tensor[i, :len(batch_target_left[i])] = torch.from_numpy(batch_target_left[i])
+                phases_tensor[i, :len(batch_target_right[i])] = torch.from_numpy(batch_target_right[i])
+                mask[i, :, :len(batch_target_right[i])] = torch.ones(self.num_classes_gestures, len(batch_target_right[i]))
+
+            return batch_input_tensor, steps_tensor, phases_tensor, mask
 
         else:
             raise NotImplementedError("Task not implemented yet")
