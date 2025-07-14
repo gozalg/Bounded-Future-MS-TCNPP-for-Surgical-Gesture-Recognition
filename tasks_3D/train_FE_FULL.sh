@@ -20,6 +20,7 @@ SPLIT=${SPLIT}
 # JIGSAWS: SPLIT_LIST=(0 1 2 3 4 5 6 7); for SPLIT in "${SPLIT_LIST[@]}"; do DATASET=JIGSAWS; TASK=gestures; echo "DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 # JIGSAWS:          for SPLIT in {0..7}; do ARCH=X3D; ARCH_SIZE=L; DATASET=JIGSAWS; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 # VTS:              for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=VTS; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
+# MultiBypass140:   for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=MultiBypass140; TASK=multi_task; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 # MultiBypass140:   for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=MultiBypass140; TASK=steps; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 # MultiBypass140:   for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=MultiBypass140; TASK=phases; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
 # SAR_RARP50:       for SPLIT in {0..4}; do ARCH=X3D; ARCH_SIZE=L; DATASET=SAR_RARP50; TASK=gestures; echo "ARCH-SIZE=${ARCH}-${ARCH_SIZE},DATASET=${DATASET}, TASK=${TASK}, SPLIT=${SPLIT}"; sbatch --export=ARCH=${ARCH},ARCH_SIZE=${ARCH_SIZE},DATASET=${DATASET},TASK=${TASK},SPLIT=${SPLIT} ./train_FE_FULL.sh; done
@@ -27,11 +28,11 @@ SPLIT=${SPLIT}
 if [ ${ARCH}  == "X3D" ]; then
     train_script=3D_trainer
     batch_size=4
-    lr=0.00005
+    # lr=0.00025
 elif [ ${ARCH} == "EfficientNetV2" ]; then
     train_script=3D_trainer
     batch_size=32
-    lr=0.00025
+    # lr=0.00025
 else
     echo "Invalid argument (ARCH): Choices: [X3D-L, EfficientNetV2]"
     exit
@@ -88,8 +89,10 @@ elif [ ${DATASET} == "MultiBypass140" ]; then
         CLASSES_N=46
     elif [ ${TASK} == "phases" ]; then
         CLASSES_N=12
+    elif [ ${TASK} == "multi_task" ]; then
+        CLASSES_N=12
     else
-        echo "Invalid argument (TASK): Choices: [steps, phases]"
+        echo "Invalid argument (TASK): Choices: [steps, phases, multi_task]"
         exit
     fi
     SMP_STEP=30
