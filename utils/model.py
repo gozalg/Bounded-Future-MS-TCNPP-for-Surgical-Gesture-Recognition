@@ -194,9 +194,12 @@ class MT_Prediction_Generation(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-        self.conv_outs = nn.ModuleList([copy.deepcopy(
-            nn.Conv1d(num_f_maps, num_classes_list[s], 1))
-                                 for s in range(len(num_classes_list))])
+        self.multi_task = len(num_classes_list) == 2
+        if self.multi_task:
+            self.conv_out_steps  = nn.Conv1d(num_f_maps, num_classes_list[0], 1)  # 46 classes
+            self.conv_out_phases = nn.Conv1d(num_f_maps, num_classes_list[1], 1)  # 12 classes
+        else:
+            self.conv_outs = nn.ModuleList([copy.deepcopy(nn.Conv1d(num_f_maps, num_classes_list[s], 1)) for s in range(len(num_classes_list))])
 
         # TODO - dynamic w_max
         self.use_dynamic_wmax = use_dynamic_wmax
@@ -235,9 +238,15 @@ class MT_Prediction_Generation(nn.Module):
             # print(f"Averaged wmax value(PG):        {avg_dynamic_w_max.item()}")
             # with open("wmax_log.txt", "a") as log_file:
             #     log_file.write(f"Averaged wmax value(PG):       {avg_dynamic_w_max.item()}\n")
-
-        for conv_out in self.conv_outs:
-            outs.append(conv_out(f))
+        if self.multi_task:
+            outs = [self.conv_out_steps(f), self.conv_out_phases(f)]
+            out_steps = self.conv_out_steps(f)
+            out_phases = self.conv_out_phases(f)
+            # print("PG-out_steps.shape:", out_steps.shape)
+            # print("PG-out_phases.shape:", out_phases.shape)
+        else:
+            for conv_out in self.conv_outs:
+                outs.append(conv_out(f))
         
         return outs, f, dynamic_w_max # TODO - dynamic w_max
 
@@ -247,7 +256,12 @@ class MT_Refinement(nn.Module):  # refinement stage
         super(MT_Refinement, self).__init__()
         self.conv_1x1 = nn.Conv1d(dim, num_f_maps, 1)
         self.layers = nn.ModuleList([copy.deepcopy(DilatedResidualLayer(2**i, num_f_maps, num_f_maps,dropout=dropout)) for i in range(num_layers)])
-        self.conv_outs = nn.ModuleList([copy.deepcopy(nn.Conv1d(num_f_maps, num_classes_list[s], 1)) for s in range(len(num_classes_list))])
+        self.multi_task = len(num_classes_list) == 2
+        if self.multi_task:
+            self.conv_out_steps  = nn.Conv1d(num_f_maps, num_classes_list[0], 1)  # 46 classes
+            self.conv_out_phases = nn.Conv1d(num_f_maps, num_classes_list[1], 1)  # 12 classes
+        else:
+            self.conv_outs = nn.ModuleList([copy.deepcopy(nn.Conv1d(num_f_maps, num_classes_list[s], 1)) for s in range(len(num_classes_list))])
         # TODO - dynamic w_max
         self.use_dynamic_wmax = use_dynamic_wmax
         self.refine_wmax = nn.Linear(num_f_maps, 1) # Refine predicted dynamic w_max
@@ -280,8 +294,15 @@ class MT_Refinement(nn.Module):  # refinement stage
             # print(f"Averaged wmax value(R ):        {avg_dynamic_w_max.item()}")
             # with open("wmax_log.txt", "a") as log_file:
             #     log_file.write(f"Averaged wmax value(R ):       {avg_dynamic_w_max.item()}\n")
-        for conv_out in self.conv_outs:
-            outs.append(conv_out(f))
+        if self.multi_task:
+            out_steps = self.conv_out_steps(f)
+            out_phases = self.conv_out_phases(f)
+            # print("R-out_steps.shape:", out_steps.shape)
+            # print("R-out_phases.shape:", out_phases.shape)
+            outs = [out_steps, out_phases]
+        else:
+            for conv_out in self.conv_outs:
+                outs.append(conv_out(f))
         return outs, dynamic_w_max # TODO - dynamic w_max
 
 

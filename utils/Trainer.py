@@ -126,7 +126,13 @@ class Trainer:
             loops_per_epoch         = 0
 
             while batch_gen.has_next():
-                if self.task == "multi-taks":
+                if self.task == "multi_task": # for MultiBypass140 with two heads
+                    batch_input, steps_target, phases_target, mask = batch_gen.next_batch(batch_size)
+                    batch_input = batch_input.to(self.device)
+                    steps_target = steps_target.to(self.device)
+                    phases_target = phases_target.to(self.device)
+                    mask = mask.to(self.device)  
+                elif self.task == "multi-taks": # for VTS dataset 
                     raise NotImplementedError
                     batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_gen.next_batch(batch_size)
                     batch_input, batch_target_left, batch_target_right, batch_target_gestures, mask_gesture,mask_tools = batch_input.to(
@@ -134,7 +140,7 @@ class Trainer:
                         self.device), batch_target_gestures.to(self.device), mask_gesture.to(self.device),mask_tools.to(self.device)
                     mask =mask_gesture
 
-                elif self.task == "tools":
+                elif self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     batch_input, batch_target_left, batch_target_right, mask = batch_gen.next_batch(batch_size)
                     batch_input, batch_target_left, batch_target_right, mask = batch_input.to(self.device), batch_target_left.to(
@@ -146,8 +152,11 @@ class Trainer:
                 optimizer.zero_grad()
                 predictions1, predictions2, predictions3 =[],[],[]
                 lengths = torch.sum(mask[:, 0, :], dim=1).to(dtype=torch.int64).to(device='cpu')
-
-                if self.task == "multi-taks":
+                if self.task == "multi_task": # for MultiBypass140 with two heads
+                    predictions, batch_avg_dynamic_wmax = self.model(batch_input, lengths)
+                    epoch_avg_dynamic_wmax += batch_avg_dynamic_wmax
+                    loops_per_epoch += 1
+                elif self.task == "multi-taks": # for VTS dataset
                     raise NotImplementedError
                     # Forward pass
                     predictions1, predictions2, predictions3 = self.model(batch_input, lengths)
@@ -156,7 +165,7 @@ class Trainer:
                     predictions3 = (predictions3 * mask_tools)
 
 
-                elif self.task == "tools":
+                elif self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     # Forward pass
                     predictions2, predictions3 = self.model(batch_input, lengths)
@@ -172,51 +181,88 @@ class Trainer:
                     loops_per_epoch += 1
 
                 loss = 0
-                for p in predictions1:
-                    # Cross-entropy loss
-                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]), batch_target_gestures.view(-1))
-                    
-                    # # TODO - dynamic w_max - # FIXME Continue here
-                    # if self.use_dynamic_wmax:
-                    #     # Add dynamic w_max regularization loss
-                    #     reg_loss    = torch.mean(dynamic_wmax)  # Penalize large w_max values
-                    #     smooth_loss = torch.mean((dynamic_wmax - prv_dynamic_wmax) ** 2)  # Smoothness constraint
-                    #     wmax_loss   = reg_loss + smooth_loss
-                    #     # Add a negative penalty for w_max being too small
-                    #     small_wmax_penalty = torch.mean(torch.relu(5 - dynamic_wmax))  # Encourage w_max to stay above a threshold (e.g., 5)
-                    #     # Combine losses in a way that penalizes small w_max
-                    #     wmax_loss = -1.0 * small_wmax_penalty + self.lambd * smooth_loss
-                    #     # TODO - loss only for w_max?
-                    #     loss += self.lambd * wmax_loss  # Incorporate w_max loss into total loss
-                    #     # update prv_dynamic_wmax
-                    #     prv_dynamic_wmax    = dynamic_wmax
-                    #     prv_dynamic_wmax    = prv_dynamic_wmax.to(self.device)
-                    #     # self.w_max          = prv_dynamic_wmax.to(self.device) # FIXME update teh w_max
-                    if self.network not in ["GRU","LSTM"]:
-                        loss += self.lambd * torch.mean(torch.clamp(self.mse(func.log_softmax(p[:, :, 1:], dim=1), 
-                                                                             func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
+                if self.task not in ["multi_task"]: # all cases
+                    for p in predictions1:
+                        # Cross-entropy loss
+                        loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[0]), batch_target_gestures.view(-1))
+                        
+                        # # TODO - dynamic w_max - # FIXME Continue here
+                        # if self.use_dynamic_wmax:
+                        #     # Add dynamic w_max regularization loss
+                        #     reg_loss    = torch.mean(dynamic_wmax)  # Penalize large w_max values
+                        #     smooth_loss = torch.mean((dynamic_wmax - prv_dynamic_wmax) ** 2)  # Smoothness constraint
+                        #     wmax_loss   = reg_loss + smooth_loss
+                        #     # Add a negative penalty for w_max being too small
+                        #     small_wmax_penalty = torch.mean(torch.relu(5 - dynamic_wmax))  # Encourage w_max to stay above a threshold (e.g., 5)
+                        #     # Combine losses in a way that penalizes small w_max
+                        #     wmax_loss = -1.0 * small_wmax_penalty + self.lambd * smooth_loss
+                        #     # TODO - loss only for w_max?
+                        #     loss += self.lambd * wmax_loss  # Incorporate w_max loss into total loss
+                        #     # update prv_dynamic_wmax
+                        #     prv_dynamic_wmax    = dynamic_wmax
+                        #     prv_dynamic_wmax    = prv_dynamic_wmax.to(self.device)
+                        #     # self.w_max          = prv_dynamic_wmax.to(self.device) # FIXME update teh w_max
+                        if self.network not in ["GRU","LSTM"]:
+                            loss += self.lambd * torch.mean(torch.clamp(self.mse(func.log_softmax(p[:, :, 1:], dim=1), 
+                                                                                func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=self.tau))
 
-                for p in predictions2:
-                    raise NotImplementedError
-                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
-                                    batch_target_right.view(-1))
-                    if self.network not in ["GRU","LSTM"]:
-                        loss += self.lambd * torch.mean(torch.clamp(
-                            self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
-                            max=self.tau))
+                    for p in predictions2:
+                        raise NotImplementedError
+                        loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
+                                        batch_target_right.view(-1))
+                        if self.network not in ["GRU","LSTM"]:
+                            loss += self.lambd * torch.mean(torch.clamp(
+                                self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
+                                max=self.tau))
 
-                for p in predictions3:
-                    raise NotImplementedError
-                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
-                                    batch_target_left.view(-1))
-                    if self.network not in ["GRU","LSTM"]:
-                        loss += self.lambd * torch.mean(torch.clamp(
-                            self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
-                            max=self.tau))
+                    for p in predictions3:
+                        raise NotImplementedError
+                        loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes_list[1]),
+                                        batch_target_left.view(-1))
+                        if self.network not in ["GRU","LSTM"]:
+                            loss += self.lambd * torch.mean(torch.clamp(
+                                self.mse(func.log_softmax(p[:, :, 1:], dim=1), func.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0,
+                                max=self.tau))
+                else: # for MultiBypass140 with two heads    
+                    # for p in predictions: # for MultiBypass140 with two heads
+                    #     step_logits = p[0]
+                    #     phase_logits = p[1]
+                    steps_all_stages, phases_all_stages = predictions  # each: [4, B, C, T]
 
+                    for i in range(steps_all_stages.shape[0]):
+                        step_logits = steps_all_stages[i]   # [B, 46, T]
+                        phase_logits = phases_all_stages[i] # [B, 12, T]
+
+                        # flatten and mask
+                        B, C_step, T = step_logits.shape
+                        B, C_phase, T = phase_logits.shape
+
+                        steps_target_flat = steps_target.view(-1)
+                        phases_target_flat = phases_target.view(-1)
+
+                        step_logits = step_logits.transpose(2, 1).contiguous().view(-1, C_step)
+                        phase_logits = phase_logits.transpose(2, 1).contiguous().view(-1, C_phase)
+
+                        step_mask = steps_target_flat != -100
+                        phase_mask = phases_target_flat != -100
+
+                        loss += self.ce(step_logits[step_mask], steps_target_flat[step_mask])
+                        loss += self.ce(phase_logits[phase_mask], phases_target_flat[phase_mask])
+
+
+
+                
                 epoch_loss += loss.item()
                 loss.backward()
                 optimizer.step()
+                if self.task == "multi_task": # for MultiBypass140 with two heads
+                    _, pred_steps = torch.max(predictions[-1][0].data, 1)
+                    _, pred_phases = torch.max(predictions[-1][1].data, 1)
+                    for i in range(len(lengths)):
+                        correct1 += (pred_steps[i][:lengths[i]] == steps_target[i][:lengths[i]]).float().sum().item()
+                        correct2 += (pred_phases[i][:lengths[i]] == phases_target[i][:lengths[i]]).float().sum().item()
+                        total1 += lengths[i]
+                        total2 += lengths[i]
                 if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1)
                     for i in range(len(lengths)):
@@ -224,7 +270,7 @@ class Trainer:
                         correct1 += (predicted1[i][:lengths[i]] == batch_target_gestures[i][:lengths[i]]).float().sum().item()
                         total1 += lengths[i]
 
-                if self.task == "multi-taks" or self.task == "tools":
+                if self.task == "multi-taks" or self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     _, predicted2 = torch.max(predictions2[-1].data, 1)
                     _, predicted3 = torch.max(predictions3[-1].data, 1)
@@ -238,7 +284,7 @@ class Trainer:
             batch_gen.reset()
             pbar.close()
             dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-            if self.task == "multi-taks":
+            if self.task == "multi-taks": # for VTS dataset
                 raise NotImplementedError
                 print(colored(dt_string, 'green', attrs=[
                     'bold']) + "  " + "[epoch %d]: train loss = %f,  train acc gesture = %f,  train acc right= %f,  train acc left = %f" % (
@@ -249,7 +295,7 @@ class Trainer:
                 train_results = {"epoch": epoch, "train loss": epoch_loss / len(batch_gen.list_of_train_examples),
                                  "train acc left": 100.0 * (float(correct1) / total1), "train acc right": 100.0 * (float(correct2) / total2),
                                  "train acc gestures": 100.0 * (float(correct3) / total3)}
-            elif self.task == "tools":
+            elif self.task == "tools": # for VTS dataset
                 raise NotImplementedError
                 print(colored(dt_string, 'green', attrs=[
                     'bold']) + "  " + "[epoch %d]: train loss = %f,   train acc right = %f,  train acc left = %f" % (
@@ -308,7 +354,7 @@ class Trainer:
                         if not self.DEBUG and not self.hyper_parameter_tuning:
                             torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                             torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
-                elif self.task == "tools":
+                elif self.task == "tools": # for VTS dataset
                    raise NotImplementedError
                    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
                     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
@@ -317,7 +363,7 @@ class Trainer:
                         torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
                         torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
-                elif self.task == "multi-taks":
+                elif self.task == "multi-taks": # for VTS dataset
                    raise NotImplementedError
                    if (results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3 >= Max_F1_50:
                     Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
@@ -412,7 +458,12 @@ class Trainer:
                 input_x = torch.tensor(features, dtype=torch.float)
                 input_x.unsqueeze_(0)
                 input_x = input_x.to(device)
-                if self.task == "multi-taks":
+                if self.task == "multi_task": # for MultiBypass140 with two heads
+                    predictions = self.model(input_x, torch.tensor([features.shape[1]]))[0]
+                    pred_steps = torch.argmax(predictions[-1][0], dim=1).squeeze()
+                    pred_phases = torch.argmax(predictions[-1][1], dim=1).squeeze()
+                
+                elif self.task == "multi-taks": # for VTS dataset
                     raise NotImplementedError
                     if self.network == "LSTM" or self.network == "GRU":
                         predictions1,predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
@@ -425,7 +476,7 @@ class Trainer:
 
                     else:
                         predictions1, predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
-                elif self.task == "tools":
+                elif self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     if self.network == "LSTM" or self.network == "GRU":
                         predictions2, predictions3 = self.model(input_x, torch.tensor([features.shape[1]]))
@@ -456,7 +507,7 @@ class Trainer:
                     _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage
                     predicted1 = predicted1.squeeze()
 
-                if self.task == "multi-taks" or self.task == "tools":
+                if self.task == "multi-taks" or self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     _, predicted2 = torch.max(predictions2[-1].data, 1)
                     _, predicted3 = torch.max(predictions3[-1].data, 1)
@@ -466,13 +517,19 @@ class Trainer:
                 recognition1 = []
                 recognition2 = []
                 recognition3 = []
+                if self.task == "multi_task": # for MultiBypass140 with two heads
+                    for i in range(len(pred_steps)):
+                        recognition1 = np.concatenate((recognition1, [list(actions_dict_gesures.keys())[list(actions_dict_gesures.values()).index(pred_steps[i].item())]] * sample_rate))
+                        recognition2 = np.concatenate((recognition2, [list(actions_dict_gesures.keys())[list(actions_dict_gesures.values()).index(pred_phases[i].item())]] * sample_rate))
+                    recognition1_list.append(recognition1)
+                    recognition2_list.append(recognition2)
                 if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     for i in range(len(predicted1)):
                         recognition1 = np.concatenate((recognition1, [list(actions_dict_gesures.keys())[
                                                                           list(actions_dict_gesures.values()).index(
                                                                               predicted1[i].item())]] * sample_rate))
                     recognition1_list.append(recognition1)
-                if self.task == "multi-taks" or self.task == "tools":
+                if self.task == "multi-taks" or self.task == "tools": # for VTS dataset
                     raise NotImplementedError
                     for i in range(len(predicted2)):
                         recognition2 = np.concatenate((recognition2, [list(actions_dict.keys())[
@@ -494,11 +551,35 @@ class Trainer:
                                                        list_of_videos     = list_of_vids,
                                                        suffix             = suffix,
                                                        is_test            = is_test)
-
-
                 results.update(results1)
+            elif self.task == "multi_task": # for MultiBypass140 with two heads
+                # DEBUG
+                print("\n=== DEBUG: Step Predictions vs GT ===")
+                for i, (pred, seq_name) in enumerate(zip(recognition1_list, list_of_vids)):
+                    print(f"[{i}] {seq_name} → pred unique: {np.unique(pred)}")
 
-            # if self.task == "multi-taks" or self.task == "tools":
+                print("\n=== DEBUG: Phase Predictions ===")
+                for i, (pred, seq_name) in enumerate(zip(recognition2_list, list_of_vids)):
+                    print(f"[{i}] {seq_name} → phase pred unique: {np.unique(pred)}")
+
+                
+                print("Steps (head 1)")
+                results1, gt_list = metric_calculation(args,
+                                                    ground_truth_path  = ground_truth_path_gestures.replace("multi_task", "steps"),
+                                                    recognition_list   = recognition1_list,
+                                                    list_of_videos     = list_of_vids,
+                                                    suffix             = "steps",
+                                                    is_test            = is_test)
+                print("Phases (head 2)")
+                results2, _ = metric_calculation(args,
+                                                ground_truth_path  = ground_truth_path_gestures.replace("multi_task", "phases"),
+                                                recognition_list   = recognition2_list,
+                                                list_of_videos     = list_of_vids,
+                                                suffix             = "phases",
+                                                is_test            = is_test)
+                results.update(results1)
+                results.update(results2)
+            # if self.task == "multi-taks" or self.task == "tools": # for VTS dataset
 
             #     print("right hand results")
             #     results2, _ = metric_calculation(args, ground_truth_path=ground_truth_path_right,
@@ -511,8 +592,9 @@ class Trainer:
             #     results.update(results2)
             #     results.update(results3)
 
-            # TODO dynamic w_max
-            results["Avg w_max-eval"] = eval_dyn_wmax
+            if self.task != "multi-taks":
+                # TODO dynamic w_max
+                results["Avg w_max-eval"] = eval_dyn_wmax
 
             # if is_test:
             results["list_of_seq"] = list_of_vids
