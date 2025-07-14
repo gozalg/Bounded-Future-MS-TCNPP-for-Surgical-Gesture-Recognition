@@ -6,8 +6,11 @@ import math
 import os
 
 # Third party imports
+import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as func
 from scipy import signal
 from termcolor import colored, cprint
 import tqdm
@@ -39,7 +42,9 @@ class Trainer:
                  device                 = "cuda",
                  network                = 'MS-TCN2',
                  hyper_parameter_tuning = False,
-                 DEBUG                  = False):
+                 DEBUG                  = False,
+                 clip_length_past       = 0,
+                 clip_length_future     = 0):
         if network == 'MS-TCN2':
             self.model = MST_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps,dim, num_classes_list,dropout=dropout_TCN,RR_not_BF_mode=RR_not_BF_mode, use_dynamic_wmax=use_dynamic_wmax)
         elif network == 'MS-TCN2 late':
@@ -67,6 +72,37 @@ class Trainer:
         self.lambd = lambd
         self.task =task
         self.hyper_parameter_tuning =hyper_parameter_tuning
+        self.clip_length_past = clip_length_past
+        self.clip_length_future = clip_length_future
+
+
+    def align_predictions_for_causal_eval(self, predictions, T):
+        """
+        Align predictions for causal evaluation by clipping past and future frames.
+        
+        Args:
+            predictions: List of prediction tensors from different refinement stages
+            T: Total sequence length
+            
+        Returns:
+            Clipped predictions aligned for causal evaluation
+        """
+        if self.clip_length_past == 0 and self.clip_length_future == 0:
+            return predictions
+            
+        start = self.clip_length_past
+        end = T - self.clip_length_future
+        
+        # Apply clipping to all refinement stages
+        clipped_predictions = []
+        for pred in predictions:
+            if len(pred.shape) == 3:  # [batch, classes, time]
+                clipped_pred = pred[:, :, start:end]
+            else:  # Handle other tensor shapes if needed
+                clipped_pred = pred
+            clipped_predictions.append(clipped_pred)
+            
+        return clipped_predictions
 
 
     def train(self, save_dir, sum_dir, split_num, batch_gen, num_epochs, batch_size, learning_rate, eval_dict, args):
@@ -409,6 +445,7 @@ class Trainer:
                     features = (numerator / denominator).T
 
                 features = features[:, ::sample_rate]
+                original_T = features.shape[1]  # Store original sequence length
                 input_x = torch.tensor(features, dtype=torch.float)
                 input_x.unsqueeze_(0)
                 input_x = input_x.to(device)
@@ -451,6 +488,8 @@ class Trainer:
                         predictions1    = eval_inference[0][0]
                         eval_dyn_wmax   = eval_inference[1]
                         
+                        # Apply causal clipping for evaluation
+                        predictions1 = self.align_predictions_for_causal_eval(predictions1, original_T)
 
                 if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
                     _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage

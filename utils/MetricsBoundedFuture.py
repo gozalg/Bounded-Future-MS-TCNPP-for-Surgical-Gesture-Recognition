@@ -113,6 +113,35 @@ def pars_ground_truth(args, gt_source):
     return contant
 
 
+def apply_causal_clipping(gt_content, recog_content, args):
+    """
+    Apply causal clipping to both ground truth and recognition content for evaluation.
+    
+    Args:
+        gt_content: Ground truth labels
+        recog_content: Recognition predictions
+        args: Arguments containing clip_length_past and clip_length_future
+        
+    Returns:
+        Clipped gt_content and recog_content
+    """
+    clip_length_past = getattr(args, 'clip_length_past', 0)
+    clip_length_future = getattr(args, 'clip_length_future', 0)
+    
+    if clip_length_past == 0 and clip_length_future == 0:
+        return gt_content, recog_content
+    
+    T = min(len(gt_content), len(recog_content))
+    start = clip_length_past
+    end = T - clip_length_future
+    
+    # Ensure we don't have negative indices
+    if start >= end or start < 0 or end <= 0:
+        return gt_content, recog_content
+    
+    return gt_content[start:end], recog_content[start:end]
+
+
 def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,suffix="",is_test=False):
     overlap = [.1, .25, .5]
     results_dict = {"Acc "+suffix:None, "Edit "+suffix:None,"F1-macro "+suffix:None,
@@ -131,8 +160,8 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
         video_freq = 60
         label_freq = 10
     elif args.dataset == "MultiBypass140":
-        video_freq = 25
-        label_freq = 25
+        video_freq = 1
+        label_freq = 1
     gt_list =[]
     acc_list = []
     f1_macro_list =[]
@@ -157,6 +186,10 @@ def metric_calculation(args, ground_truth_path,recognition_list,list_of_videos,s
         # gt_content = gt_content[::int(video_freq / label_freq)] # 23/10/2024 commented out
 
         recog_content = recognition_list[i]
+        
+        # Apply causal clipping for evaluation
+        gt_content, recog_content = apply_causal_clipping(gt_content, recog_content, args)
+        
         number_of_frames_to_compare = min(len(gt_content),len(recog_content))
         acc_list.append(100*(sum(gt_content[:number_of_frames_to_compare] == recog_content[:number_of_frames_to_compare]) / number_of_frames_to_compare))
         edit_list.append(edit_score(recog_content, gt_content))
@@ -294,7 +327,7 @@ def metric_calculation_analysis(args, gt_list,recognition_list,sampling=1,suffix
     return results_dict_of_lists
 
 
-def metric_calculation_backup(ground_truth_path,recognition_list,list_of_videos,suffix=""):
+def metric_calculation_backup(args, ground_truth_path,recognition_list,list_of_videos,suffix=""):
     overlap = [.1, .25, .5]
     results_dict = {"Acc "+suffix:None, "Edit "+suffix:None,"F1-macro "+suffix:None,
                     F"F1@{int(overlap[0] * 100) } "+suffix:None, F"F1@{int(overlap[1] * 100) } "+suffix:None,
