@@ -27,11 +27,11 @@ DATE=$(date '+%Y-%m-%d_%H-%M-%S')
 #     fi
 # done
 # R_N_LIST=(0 1 2 3); LAYERS_N_LIST=(2 3 4 5 6 8 10); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in "${R_N_LIST[@]}"; do for LAYERS_N in "${LAYERS_N_LIST[@]}"; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
-# VTS-gestures:             W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=VTS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
-# JIGSAWS-gestures:         W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=JIGSAWS; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
-# MultiBypass140-Steps:     W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140; TASK=steps; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
-# MultiBypass140-phases:    W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140; TASK=phases; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
-# SAR_RARP50-gestures:      W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=SAR_RARP50; TASK=gestures; echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}"; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# VTS-gestures:             CLIP_LENGTH_PAST=15; CLIP_LENGTH_FUTURE=$((15-CLIP_LENGTH_PAST)); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=VTS;               TASK=gestures;  echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}, CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}, CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}"; export CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}; export CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# JIGSAWS-gestures:         CLIP_LENGTH_PAST=15; CLIP_LENGTH_FUTURE=$((15-CLIP_LENGTH_PAST)); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=JIGSAWS;           TASK=gestures;  echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}, CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}, CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}"; export CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}; export CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-Steps:     CLIP_LENGTH_PAST=15; CLIP_LENGTH_FUTURE=$((15-CLIP_LENGTH_PAST)); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140;    TASK=steps;     echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}, CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}, CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}"; export CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}; export CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# MultiBypass140-phases:    CLIP_LENGTH_PAST=15; CLIP_LENGTH_FUTURE=$((15-CLIP_LENGTH_PAST)); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=MultiBypass140;    TASK=phases;    echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}, CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}, CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}"; export CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}; export CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
+# SAR_RARP50-gestures:      CLIP_LENGTH_PAST=15; CLIP_LENGTH_FUTURE=$((15-CLIP_LENGTH_PAST)); W_MAX_LIST=(0 1 2 3 6 7 8 10 12 13 14 15 16 17 20); for R_N in {3..3}; do for LAYERS_N in {10..10}; do for W_MAX in "${W_MAX_LIST[@]}"; do W_MAX=${W_MAX}; BACKBONE=X3D-L; DATASET=SAR_RARP50;        TASK=gestures;  echo "R_N=${R_N}, LAYERS_N=${LAYERS_N}, W_MAX=${W_MAX}, DATASET=${DATASET}, TASK=${TASK}, BACKBONE=${BACKBONE}, CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}, CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}"; export CLIP_LENGTH_PAST=${CLIP_LENGTH_PAST}; export CLIP_LENGTH_FUTURE=${CLIP_LENGTH_FUTURE}; export R_N=${R_N}; export LAYERS_N=${LAYERS_N}; export W_MAX=${W_MAX}; export DATASET=${DATASET}; export TASK=${TASK}; export BACKBONE=${BACKBONE}; sbatch ./BF-MS-TCN_train.sh; done; done; done;
 #--------------------- User ----------------------
 #------------------------------
 BACKBONE=${BACKBONE}    # options: [X3D-XS, X3D-S, X3D-M, X3D-L, EfficientNetV2-S, EfficientNetV2-M, EfficientNetV2-L]
@@ -50,7 +50,7 @@ RR_or_BF=BF             # RR for RR-MS-TCN ("offline"), BF for BF-MS-TCN ("onlin
 W_MAX=${W_MAX}          # [0,1,2,3,6,7,8,10,12,13,14,15,16,17,20]
 LAYERS_N=${LAYERS_N}    # [2,3,4,5,6,8,10]
 R_N=${R_N}              # [0,1,2,3]
-echo "FUTURE_EXTRRACTOR=${BACKBONE}"
+echo "BACKBONE=${BACKBONE}"
 echo "DATASET=${DATASET}"
 echo "TASK=${TASK}"
 echo "RR_or_BF=${RR_or_BF}"
@@ -96,14 +96,14 @@ else
     echo "Invalid RR_or_BF: Choices: [RR, BF]"
     exit
 fi
-script_name="${DATE}_${DATASET}_${TASK}_${SCRIPT_SUFFIX}_w_max-${W_MAX}_Layers-${LAYERS_N}_Rnum-${R_N}"
+script_name="${DATE}_${DATASET}_${TASK}_${SCRIPT_SUFFIX}_w_max-${W_MAX}_Layers-${LAYERS_N}_Rnum-${R_N}_Fut_win-${CLIP_LENGTH_FUTURE}"
 #-------------------------------------------------
 mkdir -p ${TASKS_PATH}/logs
 srun    --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
         --container-mounts /rg/laufer_prj/gabrielg/:/rg/laufer_prj/gabrielg \
         -o ${TASKS_PATH}/logs/BF-MS-TCN/${BACKBONE}/${script_name}_%j.log \
         -e ${TASKS_PATH}/logs/BF-MS-TCN/${BACKBONE}/${script_name}_%j.log \
-        python3 ${BASE_PATH}/train_experiment.py \
+        python3 ${BASE_PATH}/train_causal_x3d.py \
                 --dataset ${DATASET} \
                 --eval_scheme ${EVAL_SCHEME} \
                 --task ${TASK} \
@@ -122,6 +122,8 @@ srun    --container-image ${BASE_PATH}/nvidia+pytorch+24.04-py3.sqsh \
                 --num_R ${R_N} \
                 --sample_rate 1 \
                 --RR_or_BF_mode ${RR_or_BF} \
+                --clip_length_past ${CLIP_LENGTH_PAST} \
+                --clip_length_future ${CLIP_LENGTH_FUTURE} \
                 --loss_tau 16 \
                 --loss_lambda 1 \
                 --dropout_TCN 0.5 \
