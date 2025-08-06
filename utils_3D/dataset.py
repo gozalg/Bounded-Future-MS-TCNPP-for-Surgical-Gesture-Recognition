@@ -417,7 +417,9 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
                  transform=None,
                  normalize=None,
                  epoch_size=50,
-                 debag=False):
+                 debag=False,
+                 clip_length_past=0,    # Frame selection parameter
+                 clip_length_future=0): # Frame selection parameter
 
         # 1) Let the 2D base loader build self.labels_data (one label per sampled frame)
         super().__init__(
@@ -441,20 +443,24 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
             self.video_samp_rate = 6
         self.transform      = transform
         self.normalize      = normalize
+        
+        # 3) Store frame selection parameters
+        self.clip_length_past = clip_length_past
+        self.clip_length_future = clip_length_future
 
 
         # 3) Only override frame_num_data for non-SAR datasets:
         if "SAR_RARP50" not in root_path:
             # rebuild as 1,1+step,1+2*step… to match labels_data length
             self.frame_num_data = {
-                vid: [i * sampling_step + 1 # TODO self.sampling_step?
+                vid: [i * sampling_step + 1
                       for i in range(len(self.labels_data[vid]))]
                 for vid in self.labels_data
             }
         else:
             # rebuild as 1,1+step,1+2*step… to match labels_data length
             self.frame_num_data = {
-                vid: [i * sampling_step # TODO self.sampling_step?
+                vid: [i * sampling_step 
                       for i in range(len(self.labels_data[vid]))]
                 for vid in self.labels_data
             }
@@ -463,7 +469,7 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
         # 4) Now precompute all (video_id, clip_start) pairs
         self.clip_info = []
         for vid, frames in self.frame_num_data.items():
-            max_start = len(frames)*sampling_step - self.snippet_length# TODO SAR_RARP50 CONTINUE HERE *sampling_step
+            max_start = len(frames)*sampling_step - self.snippet_length# 
             if max_start < 0:
                 continue
             for start in range(0, max_start + 1, self.sampling_step):
@@ -508,14 +514,23 @@ class Gesture3dTrainSet(Gesture2dTrainSet):
         if self.normalize:
             clip = self.normalize(clip)
 
-        # 6) label is gesture at the last frame
-        if "SAR_RARP50" not in self.root_path:
-            # frame_indices[-1] is a 1-based frame number; convert to 0-based index
-            raw_label = self.labels_data[video_id][frame_indices[-1] - 1]
+        # 6) label is gesture at the selected frame (using frame selection logic)
+        if self.clip_length_past == 0 and self.clip_length_future == 0:
+            # Default behavior: use last frame
+            selected_frame_index = frame_indices[-1]
         else:
-            # frame_indices[-1] is a 0-based frame number, but we need to adjust to the video's FPS to label Hz frequency
+            # Frame selection: use the frame at position clip_length_past
+            if len(frame_indices) != self.snippet_length:
+                raise ValueError(f"Expected {self.snippet_length} frames, got {len(frame_indices)}")
+            selected_frame_index = frame_indices[self.clip_length_past]
+        
+        if "SAR_RARP50" not in self.root_path:
+            # frame_indices contains 1-based frame numbers; convert to 0-based index
+            raw_label = self.labels_data[video_id][selected_frame_index - 1]
+        else:
+            # frame_indices contains 0-based frame numbers, but we need to adjust to the video's FPS to label Hz frequency
             # e.g. 0, 6, 12, 18, 24 → 0, 1, 2, 3, 4
-            raw_label = self.labels_data[video_id][frame_indices[-1]//self.video_samp_rate] 
+            raw_label = self.labels_data[video_id][selected_frame_index//self.video_samp_rate] 
         # map it into its numeric index in the gesture_ids list
         label = self.gesture_ids.index(raw_label)  # e.g. "G3" → 2
 
@@ -539,7 +554,9 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
                  image_tmpl: str = "img_{:05d}.jpg",
                  video_suffix: str = "",
                  normalize=None,
-                 transform=None):
+                 transform=None,
+                 clip_length_past: int = 0,    # Frame selection parameter
+                 clip_length_future: int = 0): # Frame selection parameter
         self.root_path         = video_root
         self.video_root        = video_root
         self.preload           = False
@@ -552,6 +569,10 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
         self.video_suffix      = video_suffix
         self.normalize         = normalize
         self.transform         = transform
+        
+        # Store frame selection parameters
+        self.clip_length_past = clip_length_past
+        self.clip_length_future = clip_length_future
 
         # Build per-video frame indices and labels
         self.frame_num_data = {}
@@ -605,13 +626,16 @@ class Sequential3DTestGestureDataSet(Sequential2DTestGestureDataSet):
             clip_tensor = self.normalize(clip_tensor)
 
 
-        # 6) label = label of the *last* frame in the clip,
+        # 6) label = label of the selected frame in the clip (using frame selection logic)
         #    but we must index into labels_data by its 0-based position,
         #    not by the raw frame number.
-        #    Since clip_idx * sampling_step is our starting position,
-        #    the last label is at:
-        # label_pos = index * self.sampling_step + (self.snippet_length - 1) # TODO: fixed SAR_RARP50?
-        label_pos = index + (self.snippet_length - 1)
+        if self.clip_length_past == 0 and self.clip_length_future == 0:
+            # Default behavior: use last frame
+            label_pos = index + (self.snippet_length - 1)
+        else:
+            # Frame selection: use the frame at position clip_length_past
+            label_pos = index + self.clip_length_past
+        
         target = self.labels_data[video_id][label_pos]
 
         return clip_tensor, target

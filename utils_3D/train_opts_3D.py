@@ -153,6 +153,13 @@ parser.add_argument('-j', '--workers', type=int, default=48, help="Number of thr
 #  Adam optimizer
 parser.add_argument('--lr', type=float, default=0.00025, help="Learning rate.")
 parser.add_argument('--use_scheduler', type=bool, default=True, help="Whether to use the learning rate scheduler.")
+# ----------------------
+# Causal Configuration
+# ----------------------
+parser.add_argument('--clip_length_past', type=int, default=0, 
+                   help="With X3D only: Number of frames before the labeled frame in the 16-frame clip. Used to select which frame gets the label. Must sum with clip_length_future to 15.")
+parser.add_argument('--clip_length_future', type=int, default=0, 
+                   help="With X3D only: Number of frames after the labeled frame in the 16-frame clip. Used to select which frame gets the label. Must sum with clip_length_past to 15.")
 #  TBD
 # parser.add_argument('--loss_weighting', type=bool, default=True,
 #                     help="Whether to apply weights to loss calculation so that errors in more current predictions "

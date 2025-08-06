@@ -491,7 +491,7 @@ class Trainer:
                         # Apply causal clipping for evaluation
                         predictions1 = self.align_predictions_for_causal_eval(predictions1, original_T)
 
-                if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: # TODO: 23-09-2024: I need to check this part
+                if self.task == "multi-taks" or self.task in ["gestures", "steps", "phases"]: 
                     _, predicted1 = torch.max(predictions1[-1].data, 1) # taking the prediction from the last refinement stage
                     predicted1 = predicted1.squeeze()
 

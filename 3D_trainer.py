@@ -43,6 +43,11 @@ assert  args.arch == "EfficientNetV2" and args.arch_size.upper() in ["S", "M", "
             \tFor EfficientNetV2, arch_size should be one of [S, M, L].\n\
             \tFor X3D, arch_size should be one of [XS, S, M, L]."
 
+# check X3D label frame configuration
+if args.arch == "X3D":
+    assert args.clip_length_past + args.clip_length_future == 15, \
+        f"For X3D, clip_length_past + clip_length_future must equal 15 (to select 1 frame from 16-frame clip for labeling). Got: {args.clip_length_past} + {args.clip_length_future} = {args.clip_length_past + args.clip_length_future}"
+
 # check if the dataset and task are valid
 assert args.dataset in ["VTS", "JIGSAWS", "SAR_RARP50"] and args.task in ["gestures"] or \
        args.dataset in ["MultiBypass140"]               and args.task in ["steps", "phases"], f"Invalid combination of dataset({args.dataset}) and task({args.task})"
@@ -408,7 +413,15 @@ def save_fetures(model, val_loaders, list_of_videos_names, device_gpu, features_
             video_features      = []
 
 def main(split =3,upload =False,save_features=False):
-    features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', f"{args.arch}-{args.arch_size.upper()}", args.task, f'fold {split}')
+    # Create base features path
+    base_features_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', args.dataset, 'features', f"{args.arch}-{args.arch_size.upper()}", args.task)
+    
+    # Add frame selection subfolder if specified
+    if args.arch == "X3D" and (args.clip_length_past > 0 or args.clip_length_future > 0):
+        frame_config_folder = f"pst{args.clip_length_past}_ftr{args.clip_length_future}"
+        features_path = os.path.join(base_features_path, frame_config_folder, f'fold {split}')
+    else:
+        features_path = os.path.join(base_features_path, f'fold {split}')
     if args.resume_exp==None:
         if os.path.exists(features_path):
             print(f"Features already extracted to:\n\t'{features_path}'\nDo you want to delete them? (y/n)")
@@ -456,7 +469,15 @@ def main(split =3,upload =False,save_features=False):
         #                               str(split), datetime.datetime.now().strftime("%H%M"))
         cur_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         # output_folder = os.path.join(args.out, args.dataset, f"{args.task}_{args.num_classes}_{cur_date}", str(split))
-        output_folder = os.path.join(args.out, args.dataset, f"{args.arch}-{args.arch_size.upper()}", f"{args.task}_epochs_{args.epochs}", str(split))
+        
+        # Create base folder name
+        base_folder_name = f"{args.task}_epochs_{args.epochs}"
+        
+        # Add causal configuration to folder name if specified
+        if args.clip_length_past > 0 or args.clip_length_future > 0:
+            base_folder_name += f"_pst{args.clip_length_past}_ftr{args.clip_length_future}"
+        
+        output_folder = os.path.join(args.out, args.dataset, f"{args.arch}-{args.arch_size.upper()}", base_folder_name, str(split))
         os.makedirs(output_folder, exist_ok=True)
 
     if args.extract_features_only:
@@ -589,7 +610,9 @@ def main(split =3,upload =False,save_features=False):
                                     video_suffix       = args.video_suffix,
                                     transform          = train_augmentation,
                                     normalize          = normalize,
-                                    epoch_size         = (args.number_of_samples_per_class * args.num_classes),)
+                                    epoch_size         = (args.number_of_samples_per_class * args.num_classes),
+                                    clip_length_past   = args.clip_length_past,
+                                    clip_length_future = args.clip_length_future)
             
 
 
@@ -664,7 +687,9 @@ def main(split =3,upload =False,save_features=False):
                                                     image_tmpl            = args.image_tmpl,
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
-                                                    transform             = val_augmentation)  ##augmentation are off
+                                                    transform             = val_augmentation,  ##augmentation are off
+                                                    clip_length_past      = args.clip_length_past,
+                                                    clip_length_future    = args.clip_length_future)
         val_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                        batch_size       = args.eval_batch_size,
                                                        shuffle          = False, 
@@ -693,7 +718,9 @@ def main(split =3,upload =False,save_features=False):
                                                     image_tmpl            = args.image_tmpl,
                                                     video_suffix          = args.video_suffix,
                                                     normalize             = normalize,
-                                                    transform             = val_augmentation) ##augmentation are off
+                                                    transform             = val_augmentation, ##augmentation are off
+                                                    clip_length_past      = args.clip_length_past,
+                                                    clip_length_future    = args.clip_length_future)
         test_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                         batch_size      = args.eval_batch_size,
                                                         shuffle         = False, 
@@ -860,7 +887,9 @@ def extract_features(model,
                                                         image_tmpl            = args.image_tmpl,
                                                         video_suffix          = args.video_suffix,
                                                         normalize             = normalize,
-                                                        transform             = val_augmentation) ##augmentation are off
+                                                        transform             = val_augmentation, ##augmentation are off
+                                                        clip_length_past      = args.clip_length_past,
+                                                        clip_length_future    = args.clip_length_future)
         all_loaders.append(torch.utils.data.DataLoader(data_set, 
                                                         batch_size       = 1,
                                                         shuffle          = False, 
