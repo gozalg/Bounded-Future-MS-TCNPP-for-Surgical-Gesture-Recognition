@@ -41,6 +41,7 @@ class Trainer:
                  task                   = "gestures", 
                  device                 = "cuda",
                  network                = 'MS-TCN2',
+                 save_model             = True,
                  hyper_parameter_tuning = False,
                  DEBUG                  = False,
                  clip_length_past       = 0,
@@ -63,6 +64,7 @@ class Trainer:
         self.use_dynamic_wmax = use_dynamic_wmax # TODO - dynamic w_max
         self.DEBUG =DEBUG
         self.network = network
+        self.save_model = save_model
         self.device = device
         self.ce = nn.CrossEntropyLoss(ignore_index=-100)
         self.mse = nn.MSELoss(reduction='none')
@@ -328,30 +330,34 @@ class Trainer:
                     Max_F1_50 =results['F1@50 gestures']
                     best_valid_results = results
                     if not self.DEBUG and not self.hyper_parameter_tuning:
-                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                        if self.save_model:
+                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 elif self.task == "steps":
                     if results['F1@50 steps'] >= Max_F1_50:
                         Max_F1_50 = results['F1@50 steps']
                         best_valid_results = results
                         if not self.DEBUG and not self.hyper_parameter_tuning:
-                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                            if self.save_model:
+                                torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                                torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 elif self.task == "phases":
                     if results['F1@50 phases'] >= Max_F1_50:
                         Max_F1_50 = results['F1@50 phases']
                         best_valid_results = results
                         if not self.DEBUG and not self.hyper_parameter_tuning:
-                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                            if self.save_model:
+                                torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                                torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 elif self.task == "tools":
                    raise NotImplementedError
                    if (results['F1@50 left']  + results['F1@50 right'])/2 >= Max_F1_50:
                     Max_F1_50 = (results['F1@50 left']  + results['F1@50 right'])/2
                     best_valid_results = results
                     if not self.DEBUG and not self.hyper_parameter_tuning:
-                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                        if self.save_model:
+                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
 
                 elif self.task == "multi-taks":
                    raise NotImplementedError
@@ -359,8 +365,9 @@ class Trainer:
                     Max_F1_50 =(results['F1@50 gesture'] + results['F1@50 left'] + results['F1@50 right'])/3
                     best_valid_results = results
                     if not self.DEBUG and not self.hyper_parameter_tuning:
-                        torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
-                        torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
+                        if self.save_model:
+                            torch.save(self.model.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".model")
+                            torch.save(optimizer.state_dict(), save_dir + "/"+self.network+"_"+self.task + ".opt")
                 else:
                     raise NotImplementedError()
 

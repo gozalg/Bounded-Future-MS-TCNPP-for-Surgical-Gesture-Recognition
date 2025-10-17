@@ -818,7 +818,7 @@ def main(split =3,upload =False,save_features=False):
                     torch.save(model.state_dict(), model_file)
                     log("Saved model to " + model_file, output_folder)
 
-                    # ===== save checkpoint =====
+            # ===== save checkpoint =====
             current_state = {'epoch': epoch + 1,
                             'model_weights': model.state_dict(),
                             'optimizer': optimizer.state_dict(),
